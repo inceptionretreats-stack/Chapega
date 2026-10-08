@@ -581,4 +581,39 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
       await app.end({ timeout: 5 });
     }
   });
+
+  it("upgrades only the signed-in user's own, unchanged password hash (AUD-18)", async () => {
+    const [owner] = await admin<{ id: string; hash: string; salt: string }[]>`
+      select id, password_hash as hash, password_salt as salt
+      from private.vendor_users where email = ${OWNER.email}`;
+    const [other] = await admin<{ id: string; hash: string }[]>`
+      select id, password_hash as hash from private.vendor_users where email = 'second@integration.test'`;
+    const modern = "scrypt$N=131072,r=8,p=1$bmV3LWhhc2gtZm9yLXRlc3Q=";
+    const app = postgres(appUrl.toString(), clientOptions());
+    try {
+      const rehash = (actingUser: string, userId: string, expected: string, hash: string) =>
+        app.begin(async (sql) => {
+          await sql`select set_config('app.user_id', ${actingUser}, true)`;
+          const [result] = await sql<{ changed: boolean }[]>`
+            select private.rehash_own_password(${userId}::uuid, ${expected}, 'integration-new-salt', ${hash}) as changed`;
+          return result.changed;
+        });
+
+      await expect(rehash(owner.id, other.id, other.hash, modern)).resolves.toBe(false);
+      await expect(rehash(owner.id, owner.id, "stale-hash", modern)).resolves.toBe(false);
+      await expect(rehash(owner.id, owner.id, owner.hash, "plain-text")).resolves.toBe(false);
+      await expect(rehash(owner.id, owner.id, owner.hash, modern)).resolves.toBe(true);
+
+      const rows = await admin<{ id: string; hash: string; salt: string }[]>`
+        select id, password_hash as hash, password_salt as salt
+        from private.vendor_users where id in (${owner.id}, ${other.id})`;
+      expect(rows.find((row) => row.id === owner.id)).toMatchObject({ hash: modern, salt: "integration-new-salt" });
+      expect(rows.find((row) => row.id === other.id)?.hash).toBe(other.hash);
+    } finally {
+      await app.end({ timeout: 5 });
+      await admin`
+        update private.vendor_users set password_hash = ${owner.hash}, password_salt = ${owner.salt}
+        where id = ${owner.id}`;
+    }
+  });
 });
