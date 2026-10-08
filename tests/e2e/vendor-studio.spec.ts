@@ -1,6 +1,8 @@
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
+import { fillHydrated, isVendorMobileLayout } from "./helpers";
+
 const VENDOR_EMAIL = process.env.VENDOR_EMAIL ?? "owner@chapega.com";
 const VENDOR_PASSWORD = process.env.VENDOR_PASSWORD ?? "Chapega@2026";
 const VENDOR_NAME = process.env.VENDOR_NAME ?? "Aanya";
@@ -48,6 +50,30 @@ function vendorSidebar(page: Page) {
   return page.locator(".vendor-sidebar");
 }
 
+type VendorViewName = "Products" | "Orders" | "Settings";
+
+/** Open a studio view via the sidebar on desktop or the bottom nav on mobile. */
+async function openVendorView(page: Page, view: VendorViewName) {
+  if (isVendorMobileLayout(page)) {
+    const bottomNav = page.getByRole("navigation", { name: "Mobile vendor navigation" });
+    const name = view === "Settings" ? "More" : view === "Orders" ? /Orders/ : "Products";
+    await bottomNav.getByRole("button", { name }).click();
+    return;
+  }
+  const name = view === "Settings" ? "Shop settings" : view === "Orders" ? /Orders/ : "Products";
+  await vendorSidebar(page).getByRole("button", { name }).click();
+}
+
+async function signIn(page: Page, email: string, password: string) {
+  await fillHydrated(page, page.getByLabel("Email address"), email);
+  await fillHydrated(page, page.getByLabel("Password", { exact: true }), password);
+  await page.getByRole("button", { name: "Sign in" }).click();
+}
+
+// Cleanup runs in a `finally`; keep each call short so a failed or timed-out
+// test surfaces its real error instead of hanging for the full test timeout.
+const CLEANUP_REQUEST_TIMEOUT_MS = 5_000;
+
 function chooseUnusedOrderNumber(orders: readonly VendorOrder[]): string {
   const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
   const used = new Set(orders.map((order) => order.orderNumber));
@@ -70,22 +96,37 @@ async function cleanupCreatedRecords(
   productName: string,
   idempotencyKey: string,
 ) {
-  const bootstrapResponse = await page.request.get("/api/vendor/bootstrap");
-  if (!bootstrapResponse.ok()) return;
+  const requestOptions = { timeout: CLEANUP_REQUEST_TIMEOUT_MS };
+  const bootstrapResponse = await page.request.get(
+    "/api/vendor/bootstrap",
+    requestOptions,
+  );
+  if (!bootstrapResponse.ok()) {
+    throw new Error(
+      `Cleanup could not load vendor bootstrap (HTTP ${bootstrapResponse.status()}).`,
+    );
+  }
 
   let bootstrap = (await bootstrapResponse.json()) as VendorBootstrap;
   const order = bootstrap.orders.find(
     (candidate) => candidate.idempotencyKey === idempotencyKey,
   );
   if (order && order.status !== "completed" && order.status !== "cancelled") {
-    await page.request.patch(
+    const cancelled = await page.request.patch(
       `/api/vendor/orders/${encodeURIComponent(order.id)}`,
       {
+        ...requestOptions,
         headers: { origin },
         data: { status: "cancelled", version: order.version },
       },
     );
-    const refreshed = await page.request.get("/api/vendor/bootstrap");
+    if (!cancelled.ok()) {
+      throw new Error(`Cleanup could not cancel order (HTTP ${cancelled.status()}).`);
+    }
+    const refreshed = await page.request.get(
+      "/api/vendor/bootstrap",
+      requestOptions,
+    );
     if (refreshed.ok()) bootstrap = (await refreshed.json()) as VendorBootstrap;
   }
 
@@ -93,13 +134,17 @@ async function cleanupCreatedRecords(
     (candidate) => candidate.name === productName,
   );
   if (product) {
-    await page.request.delete(
+    const deleted = await page.request.delete(
       `/api/vendor/products/${encodeURIComponent(product.id)}`,
       {
+        ...requestOptions,
         headers: { origin },
         data: { version: product.version },
       },
     );
+    if (!deleted.ok()) {
+      throw new Error(`Cleanup could not delete product (HTTP ${deleted.status()}).`);
+    }
   }
 }
 
@@ -118,9 +163,7 @@ test("public vendor login and mobile sign-out keep the studio protected", async 
   await expect(page).toHaveURL(/\/vendor\/login$/);
   await expect(page.getByRole("link", { name: "Back to kiosk" })).toBeVisible();
 
-  await page.getByLabel("Email address").fill(VENDOR_EMAIL);
-  await page.getByLabel("Password", { exact: true }).fill(VENDOR_PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await signIn(page, VENDOR_EMAIL, VENDOR_PASSWORD);
   await expect(page).toHaveURL(/\/vendor\/chapega$/);
 
   const menuButton = page.getByRole("button", { name: "Open navigation" });
@@ -169,7 +212,9 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
   page,
   context,
   baseURL,
+  browserName,
 }) => {
+  let testBodyFailed = false;
   const origin = new URL(baseURL ?? "http://localhost:3000").origin;
   const runId = Date.now().toString(36);
   const productName = `E2E Keepsake ${runId}`;
@@ -182,20 +227,26 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       page.getByRole("heading", { name: "Welcome back" }),
     ).toBeVisible();
 
-    await page
-      .getByLabel("Email address")
-      .fill(`missing-${runId}@chapega.com`);
-    await page
-      .getByLabel("Password", { exact: true })
-      .fill("DefinitelyWrong!2026");
-    await page.getByRole("button", { name: "Sign in" }).click();
+    await signIn(page, `missing-${runId}@chapega.com`, "DefinitelyWrong!2026");
     await expect(page.locator(".vendor-form-error")).toHaveText(
       "The email or password is incorrect.",
     );
 
-    await page.getByLabel("Email address").fill(VENDOR_EMAIL);
-    await page.getByLabel("Password", { exact: true }).fill(VENDOR_PASSWORD);
-    await page.getByRole("button", { name: "Sign in" }).click();
+    const loginResponse = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/api/vendor/login") &&
+        response.request().method() === "POST" &&
+        response.ok(),
+    );
+    await signIn(page, VENDOR_EMAIL, VENDOR_PASSWORD);
+    const setCookie = (await (await loginResponse).headersArray())
+      .filter((header) => header.name.toLowerCase() === "set-cookie")
+      .map((header) => header.value)
+      .find((value) => value.startsWith("chapega_vendor_session="));
+    // The server contract: the session cookie is HttpOnly + SameSite=Strict.
+    // This is asserted on the raw response header in every browser.
+    expect(setCookie).toMatch(/;\s*HttpOnly/i);
+    expect(setCookie).toMatch(/;\s*SameSite=Strict/i);
     await expect(page).toHaveURL(/\/vendor\/chapega$/);
     await expect(
       page.getByRole("heading", { name: /Good morning,/ }),
@@ -205,18 +256,19 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
     const sessionCookie = (await context.cookies()).find(
       (cookie) => cookie.name === "chapega_vendor_session",
     );
-    expect(sessionCookie).toMatchObject({
-      httpOnly: true,
-      path: "/",
-      sameSite: "Strict",
-    });
+    expect(sessionCookie).toMatchObject({ httpOnly: true, path: "/" });
+    // Playwright-WebKit reports "None" for SameSite=Strict cookies set on
+    // http://localhost even though the header above proves the server sent
+    // Strict, so the cookie-jar attribute is only asserted on the engines that
+    // report it faithfully.
+    if (browserName !== "webkit") {
+      expect(sessionCookie?.sameSite).toBe("Strict");
+    }
   });
 
   try {
     await test.step("publish a product with an uploaded PNG", async () => {
-      await vendorSidebar(page)
-        .getByRole("button", { name: "Products" })
-        .click();
+      await openVendorView(page, "Products");
       await expect(
         page.getByRole("heading", { name: "Products", exact: true }),
       ).toBeVisible();
@@ -363,9 +415,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       ]);
 
       await page.getByRole("button", { name: "Refresh vendor data" }).click();
-      await vendorSidebar(page)
-        .getByRole("button", { name: /Orders/ })
-        .click();
+      await openVendorView(page, "Orders");
       await page
         .getByPlaceholder("Search number, customer, or gift")
         .fill(orderNumber);
@@ -471,9 +521,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
     });
 
     await test.step("open settings and archive the test product", async () => {
-      await vendorSidebar(page)
-        .getByRole("button", { name: "Shop settings" })
-        .click();
+      await openVendorView(page, "Settings");
       await expect(
         page.getByRole("heading", { name: "Store profile" }),
       ).toBeVisible();
@@ -485,9 +533,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
         page.getByRole("button", { name: "Publish settings" }),
       ).toBeDisabled();
 
-      await vendorSidebar(page)
-        .getByRole("button", { name: "Products" })
-        .click();
+      await openVendorView(page, "Products");
       await page.getByPlaceholder("Search products").fill(productName);
       const row = page.getByRole("row").filter({ hasText: productName });
       await row
@@ -511,17 +557,30 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
         kioskBootstrap.products.some((product) => product.name === productName),
       ).toBe(false);
     });
+  } catch (error) {
+    testBodyFailed = true;
+    throw error;
   } finally {
-    await cleanupCreatedRecords(
-      page,
-      origin,
-      productName,
-      idempotencyKey,
-    );
+    try {
+      await cleanupCreatedRecords(
+        page,
+        origin,
+        productName,
+        idempotencyKey,
+      );
+    } catch (cleanupError) {
+      // Never let a cleanup failure mask the real test failure.
+      if (!testBodyFailed) throw cleanupError;
+      console.warn("E2E cleanup failed:", cleanupError);
+    }
   }
 
   await test.step("sign out and revoke the protected session", async () => {
-    await vendorSidebar(page).getByRole("button", { name: "Sign out" }).click();
+    // The topbar button is visible on both desktop and mobile layouts.
+    await page
+      .locator(".vendor-topbar")
+      .getByRole("button", { name: "Sign out of Vendor Studio" })
+      .click();
     await expect(page).toHaveURL(/\/vendor\/login$/);
     await expect(
       page.getByRole("heading", { name: "Welcome back" }),

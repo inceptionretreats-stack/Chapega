@@ -86,8 +86,23 @@ test("customer completes the kiosk WhatsApp QR handoff and starts a clean order"
     await quickAdd.click();
   }
 
+  // At <= 900px (see app/atelier.css) the desktop cart rail is hidden and
+  // replaced by a bottom dock reading "5 / 5 gifts"; assert whichever element
+  // is the visible one for this viewport.
+  const compactViewport = (page.viewportSize()?.width ?? 1280) <= 900;
   const cartSummary = page.getByLabel("Cart summary");
-  await expect(cartSummary.getByText("5 of 5 gifts selected")).toBeVisible();
+  const mobileDock = page.getByRole("button", { name: /^Cart · 5 \/ 5/ });
+  const expectFiveOfFive = async () => {
+    if (compactViewport) {
+      await expect(cartSummary).toBeHidden();
+      await expect(mobileDock).toBeVisible();
+      await expect(mobileDock.getByText(/^5 \/ 5 gifts/)).toBeVisible();
+    } else {
+      await expect(mobileDock).toBeHidden();
+      await expect(cartSummary.getByText("5 of 5 gifts selected")).toBeVisible();
+    }
+  };
+  await expectFiveOfFive();
   const sixthProductCard = page.locator("article.product-card").filter({
     has: page.getByRole("heading", { name: "8x8 Decorated Hamper Box" }),
   });
@@ -95,9 +110,13 @@ test("customer completes the kiosk WhatsApp QR handoff and starts a clean order"
     .getByRole("button", { name: "Quick add 8x8 Decorated Hamper Box" })
     .click();
   await expect(page.getByText(/maximum of 5 gifts/i)).toBeVisible();
-  await expect(cartSummary.getByText("5 of 5 gifts selected")).toBeVisible();
+  await expectFiveOfFive();
 
-  await cartSummary.getByRole("button", { name: "Review cart" }).click();
+  if (compactViewport) {
+    await mobileDock.click();
+  } else {
+    await cartSummary.getByRole("button", { name: "Review cart" }).click();
+  }
   await expect(
     page.getByRole("heading", { name: "Review your gifts" }),
   ).toBeVisible();
