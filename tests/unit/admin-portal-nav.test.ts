@@ -33,8 +33,10 @@ describe("admin navigation destinations (AUD-40)", () => {
         name: /platform administration navigation/i,
       });
       await userEvent.click(within(sidebar).getByRole("button", { name: label }));
+      // The click itself focuses the sidebar button; wait for the portal to
+      // move focus into the main content before asserting on the target.
       await waitFor(() => {
-        expect(document.activeElement).not.toBe(document.body);
+        expect((document.activeElement as HTMLElement | null)?.closest("main")).not.toBeNull();
       });
       const focused = document.activeElement as HTMLElement;
       expect(focused.tagName).not.toBe("TH");
