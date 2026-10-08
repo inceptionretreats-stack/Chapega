@@ -1834,13 +1834,15 @@ summary:focus-visible,
   box-shadow: 0 0 0 4px rgba(122, 38, 58, 0.08);
 }
 
-.field > small {
+.field > small,
+.field > [data-phone-error-region] > small {
   color: var(--muted);
   font-size: 0.76rem;
   line-height: 1.4;
 }
 
-.field > .field-error {
+.field > .field-error,
+.field > [data-phone-error-region] > .field-error {
   color: var(--red);
   font-weight: 700;
 }

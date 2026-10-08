@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   UserRound,
 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CartLine, CartTotals, CustomerDetails } from "@/types/kiosk";
 import { optionalCustomerPhoneError } from "@/domain/customer";
 import { formatInr } from "@/domain/money";
@@ -35,6 +35,7 @@ type CheckoutScreenProps = {
 export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, onEditSelection, onReview }: CheckoutScreenProps) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
   const phoneError = optionalCustomerPhoneError(customer.customerPhone);
 
   return (
@@ -100,7 +101,10 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
           onSubmit={(event) => {
             event.preventDefault();
             setPhoneTouched(true);
-            if (phoneError) return;
+            if (phoneError) {
+              phoneInputRef.current?.focus();
+              return;
+            }
             onReview();
           }}
         >
@@ -133,6 +137,7 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
                 <span className="field-control">
                   <Phone size={18} aria-hidden="true" />
                   <input
+                    ref={phoneInputRef}
                     value={customer.customerPhone}
                     onChange={(event) => {
                       onChange({ customerPhone: event.target.value.slice(0, 20) });
@@ -148,7 +153,9 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
                     aria-describedby={phoneTouched && phoneError ? "customer-phone-error" : undefined}
                   />
                 </span>
-                {phoneTouched && phoneError ? <small id="customer-phone-error" className="field-error" role="alert">{phoneError}</small> : null}
+                <span data-phone-error-region aria-live="polite" aria-atomic="true">
+                  {phoneTouched && phoneError ? <small id="customer-phone-error" className="field-error">{phoneError}</small> : null}
+                </span>
               </label>
             </div>
           </fieldset>
