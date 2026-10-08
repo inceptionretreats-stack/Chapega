@@ -24,10 +24,10 @@ export default defineConfig({
       // differ slightly from local runs) so regressions
       // fail CI. Raise these as coverage improves; never lower them.
       thresholds: {
-        statements: 60,
-        branches: 55,
-        functions: 59,
-        lines: 63,
+        statements: 62,
+        branches: 57,
+        functions: 61,
+        lines: 64,
       },
     },
   },
