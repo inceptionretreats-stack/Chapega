@@ -28,7 +28,15 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm test
+      - name: Unit tests with coverage (ratcheted thresholds in vitest.config.mts)
+        run: npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=coverage/junit.xml
+      - name: Upload coverage and JUnit results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: unit-coverage
+          path: coverage/
+          if-no-files-found: warn
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
