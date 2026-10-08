@@ -261,7 +261,7 @@
 }
 
 .vendor-workspace-links a {
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 11px;
   border: 1px solid #e7d5cf;
   border-radius: 9px;
@@ -338,7 +338,7 @@
 
 .vendor-login-back {
   width: fit-content;
-  min-height: 42px;
+  min-height: 44px;
   margin-bottom: 28px;
   padding: 0 12px;
   border: 1px solid #e3d2cb;
@@ -841,8 +841,10 @@
 }
 
 .vendor-text-action {
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 0 4px;
+  justify-content: center;
   background: transparent;
   color: #7a263a;
   display: inline-flex;
@@ -997,8 +999,6 @@
 .vendor-dashboard-orders { min-width: 760px; }
 
 .vendor-row-action {
-  width: 36px;
-  height: 36px;
   border-color: transparent;
   background: transparent;
 }
@@ -1162,7 +1162,7 @@
 .vendor-stock-state.is-low { color: var(--gold-ink); }
 .vendor-stock-state.is-out { color: #b63b4a; }
 
-.vendor-mini-toggle { display: inline-grid; grid-template-columns: 39px auto; align-items: center; gap: 8px; color: #6f6260; font-size: 10px; cursor: pointer; }
+.vendor-mini-toggle { min-height: 44px; display: inline-grid; grid-template-columns: 39px auto; align-items: center; gap: 8px; color: #6f6260; font-size: 10px; cursor: pointer; }
 .vendor-mini-toggle input { position: absolute; opacity: 0; pointer-events: none; }
 .vendor-mini-toggle i,
 .vendor-toggle-row i {
@@ -1330,7 +1330,7 @@
 }
 
 .vendor-option-add {
-  min-height: 42px;
+  min-height: 44px;
   padding: 0 14px;
   border: 1px solid #d5b1ad;
   border-radius: 8px;
@@ -1472,8 +1472,8 @@
 }
 
 .vendor-option-remove {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -1600,7 +1600,7 @@
 
 .vendor-segmented button {
   min-width: 122px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 12px;
   border-radius: 6px;
   background: transparent;
@@ -1860,7 +1860,7 @@
   .vendor-store-state span,
   .vendor-topbar-add { display: none; }
   .vendor-sync-button,
-  .vendor-store-state { width: 42px; padding: 0; justify-content: center; }
+  .vendor-store-state { width: 44px; padding: 0; justify-content: center; }
   .vendor-view-kiosk { padding: 0 12px; }
   .vendor-mobile-heading { padding: 25px 20px 0; display: block; }
   .vendor-mobile-heading h1 { font-size: 35px; }
@@ -1898,7 +1898,7 @@
   .vendor-login-card h1 { font-size: 45px; }
   .vendor-login-mobile-brand { margin-bottom: 44px; }
   .vendor-mobile-heading h1 { font-size: 32px; }
-  .vendor-view-kiosk { width: 42px; padding: 0; font-size: 0; }
+  .vendor-view-kiosk { width: 44px; padding: 0; font-size: 0; }
   .vendor-view-kiosk svg { width: 17px; }
 
   .vendor-summary-band { padding: 22px; grid-template-columns: repeat(2, minmax(0, 1fr)); }

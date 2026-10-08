@@ -739,8 +739,12 @@ summary:focus-visible,
 
 .welcome-privacy-link {
   position: absolute;
-  bottom: 6px;
+  bottom: 0;
   left: var(--page-gutter);
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0 4px;
   color: var(--muted);
   font-size: 0.78rem;
   text-decoration: underline;
@@ -1699,7 +1703,7 @@ summary:focus-visible,
 .quantity-control {
   display: inline-grid;
   min-height: 44px;
-  grid-template-columns: 42px minmax(34px, auto) 42px;
+  grid-template-columns: 44px minmax(34px, auto) 44px;
   align-items: center;
   border: 1px solid var(--line-strong);
   border-radius: 12px;
@@ -1708,8 +1712,8 @@ summary:focus-visible,
 
 .quantity-control button {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   background: transparent;
   color: var(--wine);
@@ -3326,8 +3330,8 @@ summary:focus-visible,
 
 @media (max-width: 390px) {
   .kiosk-header__brand-wrap .icon-button {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 
   .brand-logo__text.compact {
@@ -3508,7 +3512,7 @@ summary:focus-visible,
   display: none;
   align-items: center;
   gap: 6px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 4px;
   background: transparent;
   color: var(--wine);
@@ -3526,7 +3530,7 @@ summary:focus-visible,
 
 .checkout-summary__edit {
   display: inline-flex;
-  min-height: 32px;
+  min-height: 44px;
   align-items: center;
   gap: 6px;
   padding: 0;
@@ -3671,7 +3675,7 @@ summary:focus-visible,
   }
 
   .checkout-summary__edit {
-    min-height: 40px;
+    min-height: 44px;
   }
 
   .checkout-summary__collapsible {
@@ -4399,7 +4403,7 @@ summary:focus-visible,
 }
 
 .review-page .transaction-summary__actions .text-button {
-  min-height: 38px;
+  min-height: 44px;
 }
 
 .order-ready-meta {
@@ -5411,7 +5415,7 @@ select:focus-visible {
   }
 
   .review-page .transaction-summary__actions .text-button {
-    min-height: 42px;
+    min-height: 44px;
   }
 }
 
