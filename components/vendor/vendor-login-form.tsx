@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { focusFirstInvalid } from "./vendor-shared";
 
 type LoginFormProps = {
   authenticationAvailable: boolean;
@@ -32,6 +33,16 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
+  const [failureCount, setFailureCount] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // After a failed submit the button was disabled and focus fell to <body>;
+  // move it to the first invalid field, or to the alert for general failures.
+  useEffect(() => {
+    if (failureCount === 0) return;
+    focusFirstInvalid(formRef.current, errorRef.current);
+  }, [failureCount]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -70,6 +81,7 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
           password: result.error?.fields?.password?.[0],
         });
         setError(result.error?.message ?? "Unable to sign in. Please try again.");
+        setFailureCount((count) => count + 1);
         return;
       }
       const activeVendorSlug = result.user?.activeVendor?.slug;
@@ -83,6 +95,7 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
       router.refresh();
     } catch {
       setError("The vendor service is unavailable. Check the connection and try again.");
+      setFailureCount((count) => count + 1);
     } finally {
       setPending(false);
     }
@@ -124,7 +137,7 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
             </p>
           ) : null}
 
-          <form onSubmit={submit} aria-busy={pending}>
+          <form ref={formRef} onSubmit={submit} aria-busy={pending}>
             <div className="vendor-field">
               <label htmlFor="vendor-email">Email address</label>
               <span className="vendor-input-with-icon">
@@ -143,7 +156,7 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   required
                   maxLength={160}
                   disabled={pending || !authenticationAvailable}
-                  aria-invalid={Boolean(error || fieldErrors.email)}
+                  aria-invalid={Boolean(fieldErrors.email)}
                   aria-describedby={fieldErrors.email ? "vendor-email-error" : error ? "vendor-login-error" : undefined}
                 />
               </span>
@@ -169,7 +182,7 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   minLength={8}
                   maxLength={200}
                   disabled={pending || !authenticationAvailable}
-                  aria-invalid={Boolean(error || fieldErrors.password)}
+                  aria-invalid={Boolean(fieldErrors.password)}
                   aria-describedby={fieldErrors.password ? "vendor-password-error" : error ? "vendor-login-error" : undefined}
                 />
                 <button
@@ -186,7 +199,7 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
               {fieldErrors.password ? <small id="vendor-password-error" className="vendor-field-error">{fieldErrors.password}</small> : null}
             </div>
 
-            {error ? <p id="vendor-login-error" className="vendor-form-error" role="alert">{error}</p> : null}
+            {error ? <p id="vendor-login-error" ref={errorRef} tabIndex={-1} className="vendor-form-error" role="alert">{error}</p> : null}
 
             <button className="vendor-primary vendor-login-submit" type="submit" disabled={pending || !authenticationAvailable}>
               {pending ? <LoaderCircle className="vendor-spin" size={20} /> : null}

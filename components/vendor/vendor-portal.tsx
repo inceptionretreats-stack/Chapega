@@ -356,6 +356,19 @@ export function VendorPortal({ initialData }: PortalProps) {
 
   return (
     <div className="vendor-app-shell">
+      <a
+        className="vendor-skip-link"
+        href="#vendor-main"
+        onClick={(event) => {
+          const target = document.getElementById("vendor-main");
+          if (!target) return;
+          event.preventDefault();
+          target.focus();
+          target.scrollIntoView?.({ block: "start" });
+        }}
+      >
+        Skip to content
+      </a>
       <aside
         ref={vendorSidebarRef}
         id="vendor-sidebar"
@@ -428,6 +441,7 @@ export function VendorPortal({ initialData }: PortalProps) {
           </div>
         </header>
 
+<main id="vendor-main" className="vendor-content" tabIndex={-1}>
         <div className="vendor-mobile-heading">
           {view === "dashboard" ? <><h1>Good morning, {data.user.name}</h1><p>{copy.description}</p></> : <><h1>{copy.title}</h1><p>{copy.description}</p></>}
         </div>
@@ -444,6 +458,7 @@ export function VendorPortal({ initialData }: PortalProps) {
         {view === "settings" ? (
           <VendorSettings apiBase={apiBase} settings={data.settings} onSettingsSaved={commitSettings} />
         ) : null}
+        </main>
       </div>
 
       <nav className="vendor-bottom-nav" aria-label="Mobile vendor navigation" inert={mobileLayout && mobileMenu ? true : undefined}>

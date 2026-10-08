@@ -22,7 +22,9 @@ import {
   commaSeparated,
   parseCommaSeparated,
   vendorRequest,
+  VendorClientError,
 } from "./vendor-client";
+import { focusFirstInvalid } from "./vendor-shared";
 
 type EditorProps = {
   apiBase?: string;
@@ -65,6 +67,54 @@ type VariantDraftErrors = {
   stock?: string;
   row?: string;
 };
+
+type ProductFieldKey =
+  | "name"
+  | "shortDescription"
+  | "description"
+  | "category"
+  | "price"
+  | "compareAtPrice"
+  | "stock"
+  | "preparationTime"
+  | "tags"
+  | "occasionTags"
+  | "recipientTags"
+  | "image";
+
+type ProductFieldErrors = Partial<Record<ProductFieldKey, string>>;
+
+/** Server field names that differ from the draft's field keys. */
+const SERVER_FIELD_KEYS: Readonly<Record<string, ProductFieldKey>> = {
+  pricePaise: "price",
+  compareAtPricePaise: "compareAtPrice",
+};
+
+const PRODUCT_FIELD_KEYS: readonly ProductFieldKey[] = [
+  "name",
+  "shortDescription",
+  "description",
+  "category",
+  "price",
+  "compareAtPrice",
+  "stock",
+  "preparationTime",
+  "tags",
+  "occasionTags",
+  "recipientTags",
+  "image",
+];
+
+function fieldErrorsFromServer(
+  fields: Record<string, string[] | undefined> | undefined,
+): ProductFieldErrors {
+  const mapped: ProductFieldErrors = {};
+  for (const [name, messages] of Object.entries(fields ?? {})) {
+    const key = SERVER_FIELD_KEYS[name] ?? (name as ProductFieldKey);
+    if (PRODUCT_FIELD_KEYS.includes(key) && messages?.[0]) mapped[key] = messages[0];
+  }
+  return mapped;
+}
 
 const MAX_VARIANTS = 20;
 const MAX_PRICE_PAISE = 100_000_000;
@@ -295,13 +345,41 @@ export function VendorProductEditor({
   const [variantErrors, setVariantErrors] = useState<
     Record<string, VariantDraftErrors>
   >({});
+  const [fieldErrors, setFieldErrors] = useState<ProductFieldErrors>({});
+  const [failureCount, setFailureCount] = useState(0);
   const drawerRef = useRef<HTMLElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const archiveButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : product?.image), [file, product?.image]);
 
   useModalFocus(drawerRef, closeButtonRef, () => {
-    if (!pending && !archiving) onClose();
+    if (pending || archiving) return;
+    // Escape first backs out of the inline archive confirmation.
+    if (confirmArchive) {
+      setConfirmArchive(false);
+      window.requestAnimationFrame(() => archiveButtonRef.current?.focus());
+      return;
+    }
+    onClose();
   });
+
+  // After a failed save/archive the clicked button was disabled and focus fell
+  // to <body>: focus the first invalid field, or the alert summary.
+  useEffect(() => {
+    if (failureCount === 0) return;
+    focusFirstInvalid(formRef.current, errorRef.current);
+  }, [failureCount]);
+
+  const fieldAria = (key: ProductFieldKey) =>
+    fieldErrors[key]
+      ? { "aria-invalid": true as const, "aria-describedby": `vendor-product-${key}-error` }
+      : {};
+  const fieldError = (key: ProductFieldKey) =>
+    fieldErrors[key] ? (
+      <small className="vendor-field-error" id={`vendor-product-${key}-error`}>{fieldErrors[key]}</small>
+    ) : null;
 
   useEffect(() => {
     return () => {
@@ -311,6 +389,7 @@ export function VendorProductEditor({
 
   const update = <Key extends keyof ProductDraft>(key: Key, value: ProductDraft[Key]) => {
     setDraft((current) => ({ ...current, [key]: value }));
+    setFieldErrors((current) => (key in current ? { ...current, [key]: undefined } : current));
     if (key === "price") {
       setVariantErrors((current) =>
         clearVariantErrorField(current, "priceAdjustment"),
@@ -372,37 +451,47 @@ export function VendorProductEditor({
     if (pending) return;
     setError(null);
     setVariantErrors({});
+    setFieldErrors({});
+    const fail = (message: string, fields: ProductFieldErrors = {}) => {
+      setFieldErrors(fields);
+      setError(message);
+      setFailureCount((count) => count + 1);
+    };
     const pricePaise = paise(draft.price);
     const compareAtPricePaise = paise(draft.compareAtPrice);
     const stock = Number(draft.stock);
-    if (
-      pricePaise === null ||
-      !Number.isSafeInteger(stock) ||
-      stock < 0 ||
-      stock > MAX_STOCK
-    ) {
-      setError("Enter a valid price and a stock quantity from 0 to 100,000.");
+    const stockInvalid =
+      !Number.isSafeInteger(stock) || stock < 0 || stock > MAX_STOCK;
+    if (pricePaise === null || stockInvalid) {
+      fail("Enter a valid price and a stock quantity from 0 to 100,000.", {
+        ...(pricePaise === null ? { price: "Enter a price from ₹0 to ₹10,00,000." } : {}),
+        ...(stockInvalid ? { stock: "Use a whole number from 0 to 100,000." } : {}),
+      });
       return;
     }
     if (
       draft.compareAtPrice.trim() &&
       (compareAtPricePaise === null || compareAtPricePaise <= pricePaise)
     ) {
-      setError("The compare-at price must be higher than the selling price.");
+      fail("The compare-at price must be higher than the selling price.", {
+        compareAtPrice: "Must be higher than the selling price.",
+      });
       return;
     }
     if (draft.variants.length > MAX_VARIANTS) {
-      setError(`Keep this product to ${MAX_VARIANTS} options or fewer.`);
+      fail(`Keep this product to ${MAX_VARIANTS} options or fewer.`);
       return;
     }
     const validatedVariants = validateVariants(draft.variants, pricePaise);
     if (!validatedVariants.variants) {
       setVariantErrors(validatedVariants.errors);
-      setError("Review the highlighted product options before saving.");
+      fail("Review the highlighted product options before saving.");
       return;
     }
     if (!product && !file) {
-      setError("Add a clear product image before publishing this gift.");
+      fail("Add a clear product image before publishing this gift.", {
+        image: "Choose a product image.",
+      });
       return;
     }
 
@@ -460,7 +549,11 @@ export function VendorProductEditor({
       onClose();
     } catch (caught) {
       await releaseUnusedUpload(uploadedPath, apiBase);
+      setFieldErrors(
+        caught instanceof VendorClientError ? fieldErrorsFromServer(caught.fields) : {},
+      );
       setError(caught instanceof Error ? caught.message : "The product could not be saved.");
+      setFailureCount((count) => count + 1);
     } finally {
       setPending(false);
     }
@@ -474,6 +567,7 @@ export function VendorProductEditor({
     }
     setArchiving(true);
     setError(null);
+    setFieldErrors({});
     try {
       await vendorRequest(`${apiBase}/products/${encodeURIComponent(product.id)}`, {
         method: "DELETE",
@@ -486,6 +580,7 @@ export function VendorProductEditor({
       onClose();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The product could not be archived.");
+      setFailureCount((count) => count + 1);
     } finally {
       setArchiving(false);
     }
@@ -504,33 +599,34 @@ export function VendorProductEditor({
           <button ref={closeButtonRef} className="vendor-icon-button" type="button" onClick={onClose} disabled={pending || archiving} aria-label="Close product editor"><X size={21} /></button>
         </header>
 
-        <form className="vendor-product-form" onSubmit={submit}>
+        <form ref={formRef} className="vendor-product-form" onSubmit={submit}>
           <div className="vendor-form-scroll">
-            {error ? <div className="vendor-form-error vendor-form-error--panel" role="alert">{error}</div> : null}
+            {error ? <div ref={errorRef} tabIndex={-1} className="vendor-form-error vendor-form-error--panel" role="alert">{error}</div> : null}
 
             <fieldset className="vendor-fieldset">
               <legend>Product image</legend>
               <label className={`vendor-image-upload${previewUrl ? " has-image" : ""}`}>
                 {previewUrl ? <span className="vendor-image-preview" role="img" aria-label={`Preview of ${draft.name || "new product"}`} style={{ backgroundImage: `url(${previewUrl})` }} /> : <span className="vendor-image-placeholder"><ImagePlus size={31} /><strong>Choose a product image</strong><small>PNG or JPEG · up to 8 MB</small></span>}
-                <input type="file" accept="image/png,image/jpeg" onChange={(event) => setFile(event.target.files?.[0] ?? null)} disabled={pending} />
+                <input type="file" accept="image/png,image/jpeg" onChange={(event) => { setFile(event.target.files?.[0] ?? null); setFieldErrors((current) => ({ ...current, image: undefined })); }} disabled={pending} {...fieldAria("image")} />
                 <span className="vendor-image-upload-action">{previewUrl ? "Replace image" : "Browse files"}</span>
               </label>
+              {fieldError("image")}
               <p className="vendor-field-help">Use a clear square or 4:3 photograph. Location metadata is removed from JPEG uploads.</p>
             </fieldset>
 
             <fieldset className="vendor-fieldset vendor-form-grid">
               <legend>Product details</legend>
-              <label className="vendor-field vendor-field--full"><span>Name</span><input value={draft.name} onChange={(event) => update("name", event.target.value)} maxLength={120} required /></label>
-              <label className="vendor-field vendor-field--full"><span>Short description</span><input value={draft.shortDescription} onChange={(event) => update("shortDescription", event.target.value)} maxLength={180} required /><small>Shown on the kiosk product card.</small></label>
-              <label className="vendor-field vendor-field--full"><span>Full description</span><textarea value={draft.description} onChange={(event) => update("description", event.target.value)} maxLength={2000} rows={4} required /></label>
-              <label className="vendor-field vendor-field--full"><span>Category</span><input list="vendor-category-options" value={draft.category} onChange={(event) => update("category", event.target.value)} maxLength={80} required /><datalist id="vendor-category-options">{categories.map((category) => <option key={category} value={category} />)}</datalist></label>
-              <label className="vendor-field"><span>Price (₹)</span><input type="number" inputMode="decimal" min="0" step="0.01" value={draft.price} onChange={(event) => update("price", event.target.value)} required /></label>
-              <label className="vendor-field"><span>Compare-at price (₹)</span><input type="number" inputMode="decimal" min="0" step="0.01" value={draft.compareAtPrice} onChange={(event) => update("compareAtPrice", event.target.value)} placeholder="Optional" /></label>
-              <label className="vendor-field"><span>Stock quantity</span><input type="number" inputMode="numeric" min="0" step="1" value={draft.stock} onChange={(event) => update("stock", event.target.value)} required /></label>
-              <label className="vendor-field"><span>Preparation note</span><input value={draft.preparationTime} onChange={(event) => update("preparationTime", event.target.value)} maxLength={120} required /></label>
-              <label className="vendor-field vendor-field--full"><span>Search tags</span><input value={draft.tags} onChange={(event) => update("tags", event.target.value)} placeholder="personalised, wooden, anniversary" /><small>Separate tags with commas.</small></label>
-              <label className="vendor-field"><span>Occasions</span><input value={draft.occasionTags} onChange={(event) => update("occasionTags", event.target.value)} placeholder="Birthday, Wedding" /></label>
-              <label className="vendor-field"><span>Recipients</span><input value={draft.recipientTags} onChange={(event) => update("recipientTags", event.target.value)} placeholder="For Her, For Couple" /></label>
+              <label className="vendor-field vendor-field--full"><span>Name</span><input value={draft.name} onChange={(event) => update("name", event.target.value)} {...fieldAria("name")} maxLength={120} required />{fieldError("name")}</label>
+              <label className="vendor-field vendor-field--full"><span>Short description</span><input value={draft.shortDescription} onChange={(event) => update("shortDescription", event.target.value)} {...fieldAria("shortDescription")} maxLength={180} required /><small>Shown on the kiosk product card.</small>{fieldError("shortDescription")}</label>
+              <label className="vendor-field vendor-field--full"><span>Full description</span><textarea value={draft.description} onChange={(event) => update("description", event.target.value)} {...fieldAria("description")} maxLength={2000} rows={4} required />{fieldError("description")}</label>
+              <label className="vendor-field vendor-field--full"><span>Category</span><input list="vendor-category-options" value={draft.category} onChange={(event) => update("category", event.target.value)} {...fieldAria("category")} maxLength={80} required /><datalist id="vendor-category-options">{categories.map((category) => <option key={category} value={category} />)}</datalist>{fieldError("category")}</label>
+              <label className="vendor-field"><span>Price (₹)</span><input type="number" inputMode="decimal" min="0" step="0.01" value={draft.price} onChange={(event) => update("price", event.target.value)} {...fieldAria("price")} required />{fieldError("price")}</label>
+              <label className="vendor-field"><span>Compare-at price (₹)</span><input type="number" inputMode="decimal" min="0" step="0.01" value={draft.compareAtPrice} onChange={(event) => update("compareAtPrice", event.target.value)} {...fieldAria("compareAtPrice")} placeholder="Optional" />{fieldError("compareAtPrice")}</label>
+              <label className="vendor-field"><span>Stock quantity</span><input type="number" inputMode="numeric" min="0" step="1" value={draft.stock} onChange={(event) => update("stock", event.target.value)} {...fieldAria("stock")} required />{fieldError("stock")}</label>
+              <label className="vendor-field"><span>Preparation note</span><input value={draft.preparationTime} onChange={(event) => update("preparationTime", event.target.value)} {...fieldAria("preparationTime")} maxLength={120} required />{fieldError("preparationTime")}</label>
+              <label className="vendor-field vendor-field--full"><span>Search tags</span><input value={draft.tags} onChange={(event) => update("tags", event.target.value)} {...fieldAria("tags")} placeholder="personalised, wooden, anniversary" /><small>Separate tags with commas.</small>{fieldError("tags")}</label>
+              <label className="vendor-field"><span>Occasions</span><input value={draft.occasionTags} onChange={(event) => update("occasionTags", event.target.value)} {...fieldAria("occasionTags")} placeholder="Birthday, Wedding" />{fieldError("occasionTags")}</label>
+              <label className="vendor-field"><span>Recipients</span><input value={draft.recipientTags} onChange={(event) => update("recipientTags", event.target.value)} {...fieldAria("recipientTags")} placeholder="For Her, For Couple" />{fieldError("recipientTags")}</label>
             </fieldset>
 
             <fieldset className="vendor-fieldset vendor-options-editor">
@@ -676,8 +772,8 @@ export function VendorProductEditor({
 
             {product ? (
               <div className="vendor-archive-zone">
-                <div><strong>Archive this product</strong><p>It disappears from the kiosk, while previous order records keep their original product snapshot.</p></div>
-                <button className={confirmArchive ? "vendor-danger" : "vendor-quiet"} type="button" onClick={archive} disabled={pending || archiving}>
+                <div><strong>Archive this product</strong><p id="vendor-archive-consequence">{confirmArchive ? "Archiving removes this product from the kiosk and the catalogue and cannot be undone here. Previous order records keep their original product snapshot. Press Escape to keep it." : "It disappears from the kiosk, while previous order records keep their original product snapshot."}</p></div>
+                <button ref={archiveButtonRef} className={confirmArchive ? "vendor-danger" : "vendor-quiet"} type="button" onClick={archive} disabled={pending || archiving} aria-describedby="vendor-archive-consequence">
                   {archiving ? <LoaderCircle className="vendor-spin" size={17} /> : <Archive size={17} />}
                   {archiving ? "Archiving…" : confirmArchive ? "Confirm archive" : "Archive"}
                 </button>
