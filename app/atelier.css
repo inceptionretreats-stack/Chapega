@@ -5620,7 +5620,7 @@ select:focus-visible {
 
 @media (pointer: coarse) {
   html {
-    scroll-padding-top: calc(var(--header-height) + 20px);
+    scroll-padding-top: var(--sticky-header-offset, calc(var(--header-height) + 20px));
     scroll-padding-bottom: clamp(128px, 28dvh, 360px);
   }
 
