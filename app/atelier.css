@@ -728,6 +728,20 @@ summary:focus-visible,
   padding-top: 6px;
 }
 
+/* Sits in the bottom padding so it never shifts the welcome layout. */
+.welcome-screen {
+  position: relative;
+}
+
+.welcome-privacy-link {
+  position: absolute;
+  bottom: 6px;
+  left: var(--page-gutter);
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-decoration: underline;
+}
+
 .steps-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

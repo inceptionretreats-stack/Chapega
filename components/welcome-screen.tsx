@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import {
   ChevronRight,
   Gift,
@@ -98,6 +99,7 @@ export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, o
           ))}
         </ol>
       </nav>
+      <Link className="welcome-privacy-link" href="/privacy">Privacy notice</Link>
     </main>
   );
 }
