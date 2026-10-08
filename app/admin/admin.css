@@ -709,6 +709,12 @@
   align-items: start;
 }
 
+/* Grid children must be allowed to shrink so the table scrolls inside its
+   own wrapper instead of widening the page. */
+.admin-content-grid > * {
+  min-width: 0;
+}
+
 /* Vendors */
 
 .admin-vendors,
@@ -798,6 +804,7 @@
 }
 
 .admin-vendor-table-wrap {
+  position: relative; /* contain absolutely positioned .sr-only cells so they scroll with the table */
   width: 100%;
   margin-top: 13px;
   overflow-x: auto;
@@ -1252,7 +1259,7 @@
 
 @media (max-width: 1100px) {
   .admin-content-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-activity ol {
