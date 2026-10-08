@@ -178,6 +178,51 @@ function localUploadPath(storageKey: string): string {
   return target;
 }
 
+export type LocalUploadFile = Readonly<{
+  filePath: string;
+  size: number;
+  contentType: "image/png" | "image/jpeg";
+  /** The SHA-256 content hash in the file name, used as a strong ETag. */
+  hash: string;
+}>;
+
+/**
+ * Resolve a public request for a runtime upload to the local file, or null.
+ * Only canonical content-addressed names are served: lower-case hex, an
+ * optional lower-case vendor UUID directory, and .png/.jpg - the exact
+ * shapes saveVendorImage writes. Anything else is "not found".
+ */
+export async function findLocalVendorUpload(
+  segments: readonly string[],
+): Promise<LocalUploadFile | null> {
+  const requestPath = `/${VENDOR_PRODUCTS_DIRECTORY}/${segments.join("/")}`;
+  if (
+    segments.length < 1 ||
+    segments.length > 2 ||
+    segments.some((segment) => /[/\\]/.test(segment)) ||
+    requestPath !== canonicalUploadPath(requestPath) ||
+    !VENDOR_UPLOAD_PATH_PATTERN.test(requestPath)
+  ) {
+    return null;
+  }
+  const { storageKey } = validatedUpload(requestPath);
+  const filePath = localUploadPath(storageKey);
+  try {
+    const details = await stat(filePath);
+    if (!details.isFile()) return null;
+    const filename = path.basename(filePath);
+    return {
+      filePath,
+      size: details.size,
+      contentType: filename.endsWith(".png") ? "image/png" : "image/jpeg",
+      hash: filename.slice(0, 64),
+    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
+    throw storageUnavailable("The product image could not be read.", error);
+  }
+}
+
 function safelyResolvedPublicFile(
   directoryName: "products" | "generated-products" | "vendor-products",
   filename: string,
