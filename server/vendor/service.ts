@@ -272,8 +272,32 @@ function normalizedProductInput(
 export async function getKioskBootstrap(
   vendorSlug = DEFAULT_VENDOR_SLUG,
 ): Promise<KioskBootstrap> {
+  if (usesSupabaseBackend()) {
+    // Public and polled by every kiosk: read only the catalogue, never the
+    // tenant's accounts, sessions or order history.
+    const { readSupabaseKioskSnapshot } = await import(
+      "@/server/vendor/supabase-database"
+    );
+    const catalogue = await readSupabaseKioskSnapshot(vendorSlug);
+    return kioskBootstrap(catalogue.vendor, catalogue.settings, catalogue.products);
+  }
   const database = await readVendorDatabase({ vendorSlug });
   const { vendor, settings } = activeTenantBySlug(database, vendorSlug);
+  return kioskBootstrap(
+    vendor,
+    settings,
+    database.products.filter(
+      (product) =>
+        product.vendorId === vendor.id && product.visible && !product.archived,
+    ),
+  );
+}
+
+function kioskBootstrap(
+  vendor: VendorRecord,
+  settings: VendorSettingsRecord,
+  products: readonly VendorProductRecord[],
+): KioskBootstrap {
   return {
     vendor: {
       id: vendor.id,
@@ -281,16 +305,9 @@ export async function getKioskBootstrap(
       displayName: vendor.displayName,
     },
     revision: String(vendor.revision),
-    products: database.products
-      .filter(
-        (product) =>
-          product.vendorId === vendor.id &&
-          product.visible &&
-          !product.archived,
-      )
-      .map((product) =>
-        toPublicProduct(productDto(product), settings.lowStockThreshold),
-      ),
+    products: products.map((product) =>
+      toPublicProduct(productDto(product), settings.lowStockThreshold),
+    ),
     settings: publicSettings(settings),
     storeOpen: settings.storeOpen,
     syncedAt: new Date().toISOString(),

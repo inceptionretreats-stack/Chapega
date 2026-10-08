@@ -240,6 +240,43 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
     expect(row.stock).toBe(2);
   });
 
+  it("serves the public catalogue from visible products only (AUD-14)", async () => {
+    const base = {
+      shortDescription: "Catalogue reader check.",
+      description: "Used to verify the kiosk catalogue query.",
+      category: "Keepsakes",
+      pricePaise: 19_900,
+      image: "/generated-products/acrylic-sketch-lamp.png" as const,
+      stock: 4,
+      featured: false,
+      tags: [],
+      recipientTags: [],
+      occasionTags: [],
+      variants: [{ id: "small", name: "Small", priceAdjustmentPaise: 0, stock: 2 }],
+      preparationTime: "Same day",
+      giftWrapEligible: false,
+    };
+    const shown = await services.createVendorProduct(
+      { ...base, name: "Catalogue Shown", visible: true },
+      context,
+    );
+    const hidden = await services.createVendorProduct(
+      { ...base, name: "Catalogue Hidden", visible: false },
+      context,
+    );
+
+    const bootstrap = await services.getKioskBootstrap("chapega");
+    const ids = bootstrap.products.map((item) => item.id);
+    expect(ids).toContain(shown.id);
+    expect(ids).not.toContain(hidden.id);
+    expect(bootstrap.products.find((item) => item.id === shown.id)?.variants).toEqual(
+      shown.variants,
+    );
+    await expect(services.getKioskBootstrap(vendorB.slug)).resolves.toMatchObject({
+      vendor: { slug: vendorB.slug },
+    });
+  });
+
   it("lets a tenant bump only its own revision, never its identity or status (AUD-1)", async () => {
     const app = postgres(appUrl.toString(), clientOptions());
     try {

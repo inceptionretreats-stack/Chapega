@@ -1161,6 +1161,70 @@ export async function readSupabaseVendorDatabase(
   }
 }
 
+type CatalogueRow = {
+  revision: number | string | null;
+  vendors: VendorRow[];
+  settings: SettingsRow[];
+  products: ProductRow[];
+  variants: VariantRow[];
+};
+
+/**
+ * The public kiosk only needs the shop, its settings and its visible products.
+ * Unlike the full snapshot, this never loads accounts, sessions or orders.
+ */
+async function readCatalogueSnapshot(
+  sql: QueryClient,
+  vendorId: string,
+): Promise<SupabaseKioskSnapshot> {
+  const [row] = await sql<CatalogueRow[]>`
+    select
+      coalesce((
+        select max(state.revision) from private.app_state state
+        where state.vendor_id = ${vendorId}
+      ), 1) as revision,
+      coalesce((
+        select jsonb_agg(to_jsonb(vendor_row))
+        from (
+          select id, slug, display_name, status, revision, created_at, updated_at
+          from private.vendors where id = ${vendorId}
+        ) vendor_row
+      ), '[]'::jsonb) as vendors,
+      coalesce((
+        select jsonb_agg(to_jsonb(settings_row))
+        from (select * from private.shop_settings where vendor_id = ${vendorId}) settings_row
+      ), '[]'::jsonb) as settings,
+      coalesce((
+        select jsonb_agg(to_jsonb(product_row) order by product_row.created_at, product_row.id)
+        from (
+          select * from private.products
+          where vendor_id = ${vendorId} and visible and not archived
+        ) product_row
+      ), '[]'::jsonb) as products,
+      coalesce((
+        select jsonb_agg(to_jsonb(variant_row) order by variant_row.product_id, variant_row.position, variant_row.id)
+        from (
+          select variants.vendor_id, variants.product_id, variants.id, variants.name,
+                 variants.price_adjustment_paise, variants.stock, variants.position
+          from private.product_variants variants
+          join private.products products
+            on products.vendor_id = variants.vendor_id and products.id = variants.product_id
+          where variants.vendor_id = ${vendorId} and products.visible and not products.archived
+        ) variant_row
+      ), '[]'::jsonb) as variants
+  `;
+  const vendor = row?.vendors.map(vendorFromRow)[0];
+  const settings = row?.settings.map(settingsFromRow)[0];
+  if (!row || !vendor || !settings || vendor.status !== "active") throw vendorNotFound();
+  const thresholds = new Map([[vendorId, settings.lowStockThreshold]]);
+  return {
+    vendor,
+    revision: Number(row.revision),
+    settings,
+    products: productsFromRows(row.products, row.variants, thresholds),
+  };
+}
+
 export async function readSupabaseKioskSnapshot(
   vendorSlug = "chapega",
 ): Promise<SupabaseKioskSnapshot> {
@@ -1168,18 +1232,7 @@ export async function readSupabaseKioskSnapshot(
     const result = await getSupabasePostgres().begin(async (transaction) => {
       const access = await configureAccess(transaction, { vendorSlug });
       if (!access.vendorId) throw vendorNotFound();
-      const database = await readSnapshot(transaction, access);
-      const vendor = database.vendors[0];
-      const settings = database.settings[0];
-      if (!vendor || !settings || vendor.status !== "active") throw vendorNotFound();
-      return {
-        vendor,
-        revision: database.revision,
-        settings,
-        products: database.products.filter(
-          (product) => product.visible && !product.archived,
-        ),
-      };
+      return readCatalogueSnapshot(transaction, access.vendorId);
     });
     return structuredClone(result);
   } catch (error) {

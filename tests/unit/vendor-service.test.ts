@@ -11,12 +11,17 @@ const memory = vi.hoisted(() => ({
   auditCounter: 0,
   database: null as unknown,
   imageCheck: vi.fn(),
+  kioskSnapshot: vi.fn(),
   mutationActive: false,
+  supabase: false,
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/server/supabase/config", () => ({
-  usesSupabaseBackend: () => false,
+  usesSupabaseBackend: () => memory.supabase,
+}));
+vi.mock("@/server/vendor/supabase-database", () => ({
+  readSupabaseKioskSnapshot: memory.kioskSnapshot,
 }));
 vi.mock("@/server/vendor/image-lifecycle", () => ({
   assertProductImageExists: memory.imageCheck,
@@ -67,6 +72,7 @@ vi.mock("@/server/vendor/database", () => ({
 
 import {
   createVendorProduct,
+  getKioskBootstrap,
   getVendorBootstrap,
   recordKioskOrder,
   transitionVendorOrder,
@@ -432,6 +438,32 @@ describe("vendor service persistence rules", () => {
 
     expect(retry).toEqual(first);
     expect(currentDatabase().orders).toHaveLength(1);
+  });
+
+  it("serves the Supabase kiosk catalogue without loading the whole tenant (AUD-14)", async () => {
+    const tenant = currentDatabase();
+    const saved = memory.database;
+    memory.kioskSnapshot.mockResolvedValue({
+      vendor: tenant.vendors[0],
+      revision: 7,
+      settings: tenant.settings[0],
+      products: tenant.products,
+    });
+    memory.supabase = true;
+    // Any full-tenant read would now fail: the catalogue must come only from
+    // the dedicated catalogue reader.
+    memory.database = null;
+    try {
+      const bootstrap = await getKioskBootstrap("chapega");
+      expect(memory.kioskSnapshot).toHaveBeenCalledWith("chapega");
+      expect(bootstrap.products.map((item) => item.id)).toEqual(
+        tenant.products.map((item) => item.id),
+      );
+      expect(bootstrap.storeOpen).toBe(tenant.settings[0].storeOpen);
+    } finally {
+      memory.supabase = false;
+      memory.database = saved;
+    }
   });
 
   it("assigns its own order number and ignores the kiosk's suggestion (AUD-37)", async () => {
