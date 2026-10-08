@@ -278,3 +278,7 @@ CI runs all of these on every pull request, plus a dependency audit, coverage th
 - Set up error monitoring and a staging environment; document backups and rollback.
 - Integrate the WhatsApp Business Platform only if verified delivery/webhook status is required.
 - Run physical touch-screen and physical-phone acceptance tests on the final hardware and deployment.
+
+## Licence
+
+Proprietary: all rights reserved. See [LICENSE](LICENSE).
