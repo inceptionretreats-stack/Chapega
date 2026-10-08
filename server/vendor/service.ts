@@ -33,7 +33,6 @@ import type {
   PresenterSettings,
   Product,
   ProductAvailability,
-  ProductImagePath,
   ProductVariant,
 } from "@/types/kiosk";
 import type {
@@ -1031,8 +1030,4 @@ export async function updateVendorSettings(
     },
     { vendorId: context.vendor.id },
   );
-}
-
-export function imagePath(value: string): ProductImagePath {
-  return value as ProductImagePath;
 }
