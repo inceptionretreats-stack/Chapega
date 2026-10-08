@@ -95,6 +95,10 @@ the findings of the 2026-10-08 project audit.
   mode), is rate-limited, and is revalidated with an ETag (AUD-7, AUD-14).
 - Admin status changes are guarded by the status the admin saw, not the
   vendor revision (AUD-16).
+- The kiosk applies the catalogue the server rendered instead of fetching
+  it again on load, and its Vendor login links no longer prefetch. Mobile
+  LCP is 2.2 s under applied slow-4G and 4× CPU throttling; Lighthouse's
+  simulated estimate on localhost is 3.1 s (AUD-24).
 
 ### Fixed
 

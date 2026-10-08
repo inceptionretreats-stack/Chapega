@@ -47,6 +47,21 @@ marked **TO DECIDE** need an owner's decision before launch.
 - **Migrations** are forward-only. To undo one, write and review a new
   migration; never edit an applied one.
 
+## Mobile load speed
+
+Target: the kiosk home page reaches Largest Contentful Paint within 3 s on
+mobile. After each release, run PageSpeed Insights (mobile) against the
+live URL and check LCP.
+
+On 8 October 2026, measured against a local production build:
+- **Applied throttling** (slow 4G, 4× slower CPU): **2.2 s**.
+- **Lighthouse simulation on localhost:** 3.1 s. On localhost all the
+  JavaScript arrives before the first paint, so the simulation counts it
+  against the hero image.
+
+If the live figure goes over 3 s, check for new requests made while the
+page first loads, and for JavaScript added to the welcome screen.
+
 ## Health and logs
 
 - Liveness: `/api/healthz`. Readiness (the database answers): `/api/readyz`.
