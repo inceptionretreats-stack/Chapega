@@ -22,10 +22,11 @@ type WelcomeScreenProps = {
   onStart: () => void;
   /** False while the page is still hydrating: the buttons are inert until then. */
   ready?: boolean;
-  onSettings: () => void;
+  /** A real link, so it works even before the page has hydrated. */
+  vendorLoginHref: string;
 };
 
-export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, onStart, onSettings, ready = true }: WelcomeScreenProps) {
+export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, onStart, vendorLoginHref, ready = true }: WelcomeScreenProps) {
   const steps = [
     { icon: Gift, label: "Choose gifts" },
     { icon: ShoppingBag, label: "Review cart" },
@@ -45,10 +46,10 @@ export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, o
             {online ? <Wifi size={16} aria-hidden="true" /> : <WifiOff size={16} aria-hidden="true" />}
             <span>{online ? "Online" : "Offline"}</span>
           </div>
-          <button className="kiosk-vendor-access welcome-settings" onClick={onSettings} aria-label="Vendor login">
+          <Link className="kiosk-vendor-access welcome-settings" href={vendorLoginHref} aria-label="Vendor login">
             <LogIn size={19} aria-hidden="true" />
             <span>Vendor login</span>
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -63,9 +64,9 @@ export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, o
             <button className="primary-button" onClick={onStart} disabled={!ready}>
               Start Shopping <ChevronRight size={20} aria-hidden="true" />
             </button>
-            <button className="secondary-button" onClick={onSettings}>
+            <Link className="secondary-button" href={vendorLoginHref}>
               <LogIn size={18} aria-hidden="true" /> Vendor login
-            </button>
+            </Link>
           </div>
         </section>
 

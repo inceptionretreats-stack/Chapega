@@ -323,11 +323,10 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
     screen: useKioskStore.getState().screen,
   });
 
-  const openVendorStudio = () => router.push(
-    vendorSlug
-      ? `/vendor/login?vendor=${encodeURIComponent(normalizedVendorSlug)}`
-      : "/vendor/login",
-  );
+  const vendorLoginHref = vendorSlug
+    ? `/vendor/login?vendor=${encodeURIComponent(normalizedVendorSlug)}`
+    : "/vendor/login";
+  const openVendorStudio = () => router.push(vendorLoginHref);
 
   const openCart = () => {
     if (!store.cartItems.length) {
@@ -483,14 +482,14 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       // Server-rendered shell: the real welcome screen (including the LCP hero
       // image) is in the first HTML; its buttons wake up once hydrated.
       const { shopName, kioskName, showPreviewLabel } = initialBootstrap.settings;
-      return <WelcomeScreen shopName={shopName} kioskName={kioskName} showPreviewLabel={showPreviewLabel} online onStart={() => undefined} onSettings={() => undefined} ready={false} />;
+      return <WelcomeScreen shopName={shopName} kioskName={kioskName} showPreviewLabel={showPreviewLabel} online onStart={() => undefined} vendorLoginHref={vendorLoginHref} ready={false} />;
     }
     return <div className="loading-screen"><div className="loading-mark"><Gift size={44} /><span>Preparing this storefront…</span></div></div>;
   }
 
   const renderScreen = () => {
     if (store.screen === "welcome") {
-      return <WelcomeScreen shopName={store.settings.shopName} kioskName={store.settings.kioskName} showPreviewLabel={store.settings.showPreviewLabel} online={online} onStart={store.startShopping} onSettings={openVendorStudio} />;
+      return <WelcomeScreen shopName={store.settings.shopName} kioskName={store.settings.kioskName} showPreviewLabel={store.settings.showPreviewLabel} online={online} onStart={store.startShopping} vendorLoginHref={vendorLoginHref} />;
     }
 
     if (store.screen === "catalogue" || store.screen === "product-details") {
