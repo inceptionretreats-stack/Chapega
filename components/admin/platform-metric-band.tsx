@@ -44,6 +44,7 @@ export function PlatformMetricBand({ metrics }: MetricBandProps) {
           <div
             className="admin-metric"
             id={"id" in item ? item.id : undefined}
+            tabIndex={"id" in item ? -1 : undefined}
             key={item.label}
           >
             <span className="admin-metric__icon" aria-hidden="true">
