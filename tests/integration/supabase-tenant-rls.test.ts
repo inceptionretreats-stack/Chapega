@@ -86,6 +86,12 @@ function ownerContext(
   };
 }
 
+// CI sets CHAPEGA_IT_REQUIRED, so a missing database fails the job instead of
+// skipping the whole suite and reporting green.
+if (process.env.CHAPEGA_IT_REQUIRED === "true" && !ADMIN_URL) {
+  throw new Error("CHAPEGA_IT_ADMIN_URL is required when CHAPEGA_IT_REQUIRED=true.");
+}
+
 describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () => {
   const databaseName = `chapega_it_${Date.now()}`;
   let root: postgres.Sql;
