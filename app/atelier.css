@@ -196,6 +196,336 @@
   --shadow-success-2: #2da15e;
 }
 
+/* Theme selection. Every surface follows the system setting; Vendor Studio
+   and admin may pin a choice with data-theme="light" | "dark" on their route
+   wrapper (read from a cookie on the server, so there is no flash and no
+   inline script). :has() lets that wrapper re-theme the whole document,
+   including the page background and native controls. */
+:root {
+  color-scheme: light;
+  /* Theme-invariant: the QR card stays white so the code scans (see .qr-card). */
+  --qr-surface: #ffffff;
+}
+
+/* Dark palette: deep wine and plum surfaces, warm ivory text, gold accents.
+   The two blocks below (system preference, explicit choice) are identical;
+   keep them in sync. Text pairs are checked with axe in dark mode. */
+@media (prefers-color-scheme: dark) {
+  :root:not(:has([data-theme="light"])) {
+    color-scheme: dark;
+
+    /* Surfaces and fills */
+    --accent: #8b3548;
+    --accent-2: #a03e49;
+    --accent-3: #a03d54;
+    --accent-4: #b8636c;
+    --accent-5: #95364c;
+    --accent-6: #9b3a4f;
+    --accent-strong: #72293a;
+    --danger: #ba4a53;
+    --gold-fill: #c69b57;
+    --gold-fill-2: #9b6427;
+    --gold-fill-3: #3a2e14;
+    --gold-fill-4: #c9a360;
+    --scrim-1: #0b0608;
+    --scrim-2: #0b0608;
+    --scrim-3: #0b0608;
+    --scrim-4: #0b0608;
+    --success: #317c51;
+    --success-2: #286746;
+    --success-3: #2da15e;
+    --success-4: #3da45f;
+    --surface: #2f252a;
+    --surface-2: #281e23;
+    --surface-3: #21181d;
+    --surface-4: #251c20;
+    --surface-5: #292025;
+    --surface-6: #15281d;
+    --surface-7: #3c2126;
+    --surface-8: #4c2b30;
+    --surface-9: #17251c;
+    --surface-10: #3a2127;
+    --surface-11: #372023;
+    --surface-12: #21181c;
+    --surface-13: #483132;
+    --surface-14: #392024;
+    --surface-15: #2e2209;
+    --surface-16: #2d2316;
+    --surface-17: #342024;
+    --surface-18: #391f25;
+    --surface-19: #3d2b2c;
+    --surface-20: #23191e;
+    --surface-21: #321d20;
+    --surface-22: #452a2c;
+    --surface-23: #3c2125;
+    --surface-24: #122a1c;
+    --surface-danger: #321d22;
+    --surface-page: #231a1f;
+    --surface-rose: #432329;
+    --surface-rose-strong: #49262d;
+    --surface-success: #16261c;
+    --surface-tint: #301d1f;
+    --surface-tint-strong: #371f23;
+    --surface-warning: #292208;
+
+    /* Text and icons */
+    --text: #faeee6;
+    --text-2: #efe3db;
+    --text-3: #e8dbd4;
+    --text-4: #d5c9c1;
+    --text-5: #efe3db;
+    --text-6: #c4b8b1;
+    --text-7: #c6bab2;
+    --text-8: #e1d5ce;
+    --text-9: #dacec6;
+    --text-10: #cdc1ba;
+    --text-11: #e2d5ce;
+    --text-12: #c9bdb6;
+    --text-13: #e7dad3;
+    --text-14: #c7bbb4;
+    --text-15: #cdc1ba;
+    --text-accent: #fcc9cf;
+    --text-accent-2: #fbbdbd;
+    --text-accent-3: #ffcfd6;
+    --text-accent-4: #ffd9e0;
+    --text-accent-5: #d8b5ae;
+    --text-accent-6: #dcb6b7;
+    --text-accent-7: #fdc1c3;
+    --text-accent-8: #d8b4af;
+    --text-accent-9: #ecbcbe;
+    --text-accent-10: #e2bec3;
+    --text-accent-11: #f5b0b1;
+    --text-accent-12: #d5b0b5;
+    --text-accent-13: #e9b6b9;
+    --text-accent-14: #f5cfd4;
+    --text-accent-15: #d8b3b8;
+    --text-accent-16: #f6d2d8;
+    --text-accent-soft: #e3b6bd;
+    --text-accent-strong: #ffd6dc;
+    --text-danger: #f5b5b5;
+    --text-gold: #fbc794;
+    --text-gold-2: #ffcc9e;
+    --text-gold-3: #fbcfa5;
+    --text-gold-4: #f6bd84;
+    --text-gold-5: #f7bf87;
+    --text-gold-6: #f4d0aa;
+    --text-gold-7: #f4d0b5;
+    --text-gold-decor: #e5bc81;
+    --text-muted: #cec2ba;
+    --text-on-accent: #ffffff;
+    --text-success: #9ed2b0;
+    --text-success-2: #a8d0b5;
+    --text-success-3: #aacfb9;
+    --text-success-4: #a1d2b2;
+    --text-warning: #ffc991;
+
+    /* Borders, outlines and focus rings */
+    --border: #483636;
+    --border-2: #413232;
+    --border-3: #4b3a3b;
+    --border-4: #523c3e;
+    --border-5: #4b3739;
+    --border-6: #5b4144;
+    --border-7: #2a4335;
+    --border-8: #453435;
+    --border-9: #314135;
+    --border-10: #4b3736;
+    --border-11: #3b342b;
+    --border-12: #3c3237;
+    --border-13: #2b3e32;
+    --border-14: #4e393b;
+    --border-15: #604144;
+    --border-16: #614347;
+    --border-17: #563c41;
+    --border-accent: #e5a1aa;
+    --border-accent-2: #8f6f73;
+    --border-accent-3: #71464e;
+    --border-accent-4: #905e64;
+    --border-accent-5: #e69394;
+    --border-accent-6: #c6949d;
+    --border-accent-7: #86676c;
+    --border-accent-8: #d78a90;
+    --border-accent-9: #79565c;
+    --border-accent-10: #92686d;
+    --border-accent-11: #835e64;
+    --border-accent-soft: #d397a1;
+    --border-gold: #c69b57;
+    --border-gold-2: #5d523f;
+    --border-gold-3: #5f533d;
+    --border-rose: #53383d;
+    --border-strong: #573e42;
+
+    /* Shadows */
+    --shadow-1: #000000;
+    --shadow-accent: #000000;
+    --shadow-accent-2: #000000;
+    --shadow-accent-3: #000000;
+    --shadow-accent-4: #000000;
+    --shadow-accent-5: #000000;
+    --shadow-color: #000000;
+    --shadow-ink: #000000;
+    --shadow-success-1: #000000;
+    --shadow-success-2: #000000;
+  }
+}
+
+:root:has([data-theme="dark"]) {
+  color-scheme: dark;
+
+  /* Surfaces and fills */
+  --accent: #8b3548;
+  --accent-2: #a03e49;
+  --accent-3: #a03d54;
+  --accent-4: #b8636c;
+  --accent-5: #95364c;
+  --accent-6: #9b3a4f;
+  --accent-strong: #72293a;
+  --danger: #ba4a53;
+  --gold-fill: #c69b57;
+  --gold-fill-2: #9b6427;
+  --gold-fill-3: #3a2e14;
+  --gold-fill-4: #c9a360;
+  --scrim-1: #0b0608;
+  --scrim-2: #0b0608;
+  --scrim-3: #0b0608;
+  --scrim-4: #0b0608;
+  --success: #317c51;
+  --success-2: #286746;
+  --success-3: #2da15e;
+  --success-4: #3da45f;
+  --surface: #2f252a;
+  --surface-2: #281e23;
+  --surface-3: #21181d;
+  --surface-4: #251c20;
+  --surface-5: #292025;
+  --surface-6: #15281d;
+  --surface-7: #3c2126;
+  --surface-8: #4c2b30;
+  --surface-9: #17251c;
+  --surface-10: #3a2127;
+  --surface-11: #372023;
+  --surface-12: #21181c;
+  --surface-13: #483132;
+  --surface-14: #392024;
+  --surface-15: #2e2209;
+  --surface-16: #2d2316;
+  --surface-17: #342024;
+  --surface-18: #391f25;
+  --surface-19: #3d2b2c;
+  --surface-20: #23191e;
+  --surface-21: #321d20;
+  --surface-22: #452a2c;
+  --surface-23: #3c2125;
+  --surface-24: #122a1c;
+  --surface-danger: #321d22;
+  --surface-page: #231a1f;
+  --surface-rose: #432329;
+  --surface-rose-strong: #49262d;
+  --surface-success: #16261c;
+  --surface-tint: #301d1f;
+  --surface-tint-strong: #371f23;
+  --surface-warning: #292208;
+
+  /* Text and icons */
+  --text: #faeee6;
+  --text-2: #efe3db;
+  --text-3: #e8dbd4;
+  --text-4: #d5c9c1;
+  --text-5: #efe3db;
+  --text-6: #c4b8b1;
+  --text-7: #c6bab2;
+  --text-8: #e1d5ce;
+  --text-9: #dacec6;
+  --text-10: #cdc1ba;
+  --text-11: #e2d5ce;
+  --text-12: #c9bdb6;
+  --text-13: #e7dad3;
+  --text-14: #c7bbb4;
+  --text-15: #cdc1ba;
+  --text-accent: #fcc9cf;
+  --text-accent-2: #fbbdbd;
+  --text-accent-3: #ffcfd6;
+  --text-accent-4: #ffd9e0;
+  --text-accent-5: #d8b5ae;
+  --text-accent-6: #dcb6b7;
+  --text-accent-7: #fdc1c3;
+  --text-accent-8: #d8b4af;
+  --text-accent-9: #ecbcbe;
+  --text-accent-10: #e2bec3;
+  --text-accent-11: #f5b0b1;
+  --text-accent-12: #d5b0b5;
+  --text-accent-13: #e9b6b9;
+  --text-accent-14: #f5cfd4;
+  --text-accent-15: #d8b3b8;
+  --text-accent-16: #f6d2d8;
+  --text-accent-soft: #e3b6bd;
+  --text-accent-strong: #ffd6dc;
+  --text-danger: #f5b5b5;
+  --text-gold: #fbc794;
+  --text-gold-2: #ffcc9e;
+  --text-gold-3: #fbcfa5;
+  --text-gold-4: #f6bd84;
+  --text-gold-5: #f7bf87;
+  --text-gold-6: #f4d0aa;
+  --text-gold-7: #f4d0b5;
+  --text-gold-decor: #e5bc81;
+  --text-muted: #cec2ba;
+  --text-on-accent: #ffffff;
+  --text-success: #9ed2b0;
+  --text-success-2: #a8d0b5;
+  --text-success-3: #aacfb9;
+  --text-success-4: #a1d2b2;
+  --text-warning: #ffc991;
+
+  /* Borders, outlines and focus rings */
+  --border: #483636;
+  --border-2: #413232;
+  --border-3: #4b3a3b;
+  --border-4: #523c3e;
+  --border-5: #4b3739;
+  --border-6: #5b4144;
+  --border-7: #2a4335;
+  --border-8: #453435;
+  --border-9: #314135;
+  --border-10: #4b3736;
+  --border-11: #3b342b;
+  --border-12: #3c3237;
+  --border-13: #2b3e32;
+  --border-14: #4e393b;
+  --border-15: #604144;
+  --border-16: #614347;
+  --border-17: #563c41;
+  --border-accent: #e5a1aa;
+  --border-accent-2: #8f6f73;
+  --border-accent-3: #71464e;
+  --border-accent-4: #905e64;
+  --border-accent-5: #e69394;
+  --border-accent-6: #c6949d;
+  --border-accent-7: #86676c;
+  --border-accent-8: #d78a90;
+  --border-accent-9: #79565c;
+  --border-accent-10: #92686d;
+  --border-accent-11: #835e64;
+  --border-accent-soft: #d397a1;
+  --border-gold: #c69b57;
+  --border-gold-2: #5d523f;
+  --border-gold-3: #5f533d;
+  --border-rose: #53383d;
+  --border-strong: #573e42;
+
+  /* Shadows */
+  --shadow-1: #000000;
+  --shadow-accent: #000000;
+  --shadow-accent-2: #000000;
+  --shadow-accent-3: #000000;
+  --shadow-accent-4: #000000;
+  --shadow-accent-5: #000000;
+  --shadow-color: #000000;
+  --shadow-ink: #000000;
+  --shadow-success-1: #000000;
+  --shadow-success-2: #000000;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -2303,7 +2633,9 @@ summary:focus-visible,
   justify-self: center;
   padding: clamp(22px, 3vw, 38px);
   border-radius: 20px;
-  background: var(--surface);
+  /* --qr-surface is white in every theme: the padding is the QR quiet zone,
+     and the code must stay dark-on-light for phone cameras to scan it. */
+  background: var(--qr-surface);
   box-shadow: 0 10px 30px color-mix(in srgb, var(--shadow-ink) 8%, transparent);
 }
 
