@@ -573,6 +573,17 @@ function changed<T>(left: T, right: T): boolean {
   return JSON.stringify(left) !== JSON.stringify(right);
 }
 
+/** Every vendor column except the revision bookkeeping a tenant may update. */
+function vendorIdentityFields(vendor: VendorRecord) {
+  return {
+    id: vendor.id,
+    slug: vendor.slug,
+    displayName: vendor.displayName,
+    status: vendor.status,
+    createdAt: vendor.createdAt,
+  };
+}
+
 function assertTenantScoped(database: VendorDatabase, vendorId: string): void {
   const tenantIds = [
     ...database.vendors.map((record) => record.id),
@@ -605,6 +616,16 @@ async function persistVendorsAndIdentity(
   for (const vendor of next.vendors) {
     const previous = currentVendors.get(vendor.id);
     if (previous && !changed(previous, vendor)) continue;
+    if (previous && !changed(vendorIdentityFields(previous), vendorIdentityFields(vendor))) {
+      // Ordinary tenant writes only bump the revision. An upsert would need
+      // INSERT permission, which tenant policies deliberately don't grant.
+      await sql`
+        update private.vendors
+        set revision = ${vendor.revision}, updated_at = ${vendor.updatedAt}
+        where id = ${vendor.id}
+      `;
+      continue;
+    }
     await sql`
       insert into private.vendors
         (id, slug, display_name, status, revision, created_at, updated_at)

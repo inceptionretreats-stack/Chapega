@@ -14,11 +14,13 @@
     "supabase:import": "node --conditions=react-server --import tsx scripts/import-vendor-to-supabase.ts --confirm-import",
     "supabase:provision": "node --import tsx scripts/provision-supabase-role.ts --confirm-provision",
     "supabase:verify": "node --import tsx scripts/verify-supabase.ts",
+    "supabase:bootstrap-owner": "node --conditions=react-server --import tsx scripts/bootstrap-supabase-owner.ts --confirm-bootstrap",
     "vendor:password": "node --conditions=react-server --import tsx scripts/rotate-vendor-password.ts --confirm-rotation",
     "typecheck": "next typegen && tsc --noEmit --incremental false",
     "check": "npm run -s typecheck && npm run -s lint && vitest run --silent",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.mts",
     "test:e2e": "playwright test"
   },
   "dependencies": {
