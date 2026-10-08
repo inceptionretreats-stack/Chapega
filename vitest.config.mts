@@ -20,13 +20,14 @@ export default defineConfig({
       exclude: ["**/*.d.ts", "**/*.css", ".next/**"],
       reporter: ["text-summary", "json-summary", "lcov"],
       reportsDirectory: "coverage",
-      // Ratchet: set to the current suite level (rounded down) so regressions
+      // Ratchet: about one point under the current suite level (Linux CI can
+      // differ slightly from local runs) so regressions
       // fail CI. Raise these as coverage improves; never lower them.
       thresholds: {
-        statements: 33,
-        branches: 29,
-        functions: 32,
-        lines: 34,
+        statements: 60,
+        branches: 55,
+        functions: 59,
+        lines: 63,
       },
     },
   },
