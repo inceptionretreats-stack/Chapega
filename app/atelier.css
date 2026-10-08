@@ -728,6 +728,20 @@ summary:focus-visible,
   padding-top: 6px;
 }
 
+/* Sits in the bottom padding so it never shifts the welcome layout. */
+.welcome-screen {
+  position: relative;
+}
+
+.welcome-privacy-link {
+  position: absolute;
+  bottom: 6px;
+  left: var(--page-gutter);
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-decoration: underline;
+}
+
 .steps-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1834,13 +1848,15 @@ summary:focus-visible,
   box-shadow: 0 0 0 4px rgba(122, 38, 58, 0.08);
 }
 
-.field > small {
+.field > small,
+.field > [data-phone-error-region] > small {
   color: var(--muted);
   font-size: 0.76rem;
   line-height: 1.4;
 }
 
-.field > .field-error {
+.field > .field-error,
+.field > [data-phone-error-region] > .field-error {
   color: var(--red);
   font-weight: 700;
 }

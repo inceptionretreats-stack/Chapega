@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import {
   ChevronRight,
   Gift,
@@ -19,10 +20,12 @@ type WelcomeScreenProps = {
   showPreviewLabel: boolean;
   online: boolean;
   onStart: () => void;
+  /** False while the page is still hydrating: the buttons are inert until then. */
+  ready?: boolean;
   onSettings: () => void;
 };
 
-export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, onStart, onSettings }: WelcomeScreenProps) {
+export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, onStart, onSettings, ready = true }: WelcomeScreenProps) {
   const steps = [
     { icon: Gift, label: "Choose gifts" },
     { icon: ShoppingBag, label: "Review cart" },
@@ -57,7 +60,7 @@ export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, o
           </h1>
           <p className="welcome-lede">Choose your gifts from {shopName} and prepare the order on WhatsApp.</p>
           <div className="welcome-actions">
-            <button className="primary-button" onClick={onStart}>
+            <button className="primary-button" onClick={onStart} disabled={!ready}>
               Start Shopping <ChevronRight size={20} aria-hidden="true" />
             </button>
             <button className="secondary-button" onClick={onSettings}>
@@ -74,6 +77,7 @@ export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, o
             height={1086}
             sizes="(max-width: 900px) 100vw, 56vw"
             preload
+            fetchPriority="high"
           />
         </section>
       </div>
@@ -95,6 +99,7 @@ export function WelcomeScreen({ shopName, kioskName, showPreviewLabel, online, o
           ))}
         </ol>
       </nav>
+      <Link className="welcome-privacy-link" href="/privacy">Privacy notice</Link>
     </main>
   );
 }

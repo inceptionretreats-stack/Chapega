@@ -17,12 +17,10 @@ import {
 import { calculateCartTotals } from "@/domain/money";
 import {
   createOrder,
-  markOrderAsPresenterSent,
   redactOrderForHistory,
 } from "@/domain/order";
 import {
   normalizeWhatsAppNumber,
-  WhatsAppNumberError,
 } from "@/domain/whatsapp";
 import {
   type CartError,
@@ -39,7 +37,6 @@ import {
   type OrderResult,
   type PresenterSettings,
   type Product,
-  type SettingsResult,
 } from "@/types/kiosk";
 
 export const PRESENTER_SETTINGS_STORAGE_KEY =
@@ -49,8 +46,11 @@ export const ACTIVE_SESSION_STORAGE_KEY = "gift-kiosk-active-session";
 export const CATALOGUE_REVISION_STORAGE_KEY = "gift-kiosk-catalogue-revision";
 export const CURRENT_CATALOGUE_REVISION = "supplied-catalogue-2026-08-10-v1";
 export const MAX_ORDER_HISTORY = 20;
+const MAX_ORDER_ID_LENGTH = 100;
 export const KIOSK_IDLE_TIMEOUT_MS = 2 * 60 * 1_000;
 export const KIOSK_IDLE_WARNING_MS = 30 * 1_000;
+/** Upper bound for the QR privacy countdown, even after "keep open". */
+export const QR_MAX_TOTAL_SECONDS = 5 * 60;
 
 const LEGACY_DEFAULT_SHOP_NAMES: readonly string[] = Object.freeze([
   "Gift House",
@@ -83,10 +83,8 @@ const KIOSK_SCREENS: readonly KioskScreen[] = [
   "product-details",
   "cart",
   "customer",
-  "checkout",
   "review",
   "qr",
-  "approval",
 ];
 
 type StorageKind = "local" | "session";
@@ -383,9 +381,10 @@ function parseOrder(value: unknown): Order | null {
   const status = value.status;
   if (
     typeof value.id !== "string" ||
+    value.id.length < 1 ||
+    value.id.length > MAX_ORDER_ID_LENGTH ||
     typeof value.orderNumber !== "string" ||
-    value.id !== value.orderNumber ||
-    !/^GFT(?:-DEMO)?-\d{8}-\d{4}$/.test(value.orderNumber) ||
+    !/^GFT(?:-DEMO)?-\d{8}-\d{4,6}$/.test(value.orderNumber) ||
     typeof value.createdAt !== "string" ||
     Number.isNaN(Date.parse(value.createdAt)) ||
     typeof value.kioskName !== "string" ||
@@ -485,7 +484,32 @@ function parseOrder(value: unknown): Order | null {
   });
 }
 
+/**
+ * RFC 4122 v4 UUID. `crypto.randomUUID` only exists in secure contexts, and a
+ * kiosk may be served over plain HTTP on a LAN, so fall back to
+ * `getRandomValues`, which is available everywhere.
+ */
+function createIdempotencyKey(): string {
+  const webCrypto = globalThis.crypto;
+  if (typeof webCrypto?.randomUUID === "function") {
+    return webCrypto.randomUUID();
+  }
+  const bytes = webCrypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+  return [
+    hex.slice(0, 4).join(""),
+    hex.slice(4, 6).join(""),
+    hex.slice(6, 8).join(""),
+    hex.slice(8, 10).join(""),
+    hex.slice(10).join(""),
+  ].join("-");
+}
+
 type PendingOrderSubmission = Readonly<{
+  /** Sent as the idempotency key on every retry of this exact submission. */
+  idempotencyKey: string;
   order: Order;
   customer: CustomerDetails;
   items: readonly Readonly<{
@@ -531,7 +555,17 @@ function parsePendingOrderSubmission(
   }
   if (unitCount > 5) return null;
 
+  const storedKey = value.idempotencyKey;
+  const idempotencyKey =
+    typeof storedKey === "string" &&
+    storedKey.trim().length > 0 &&
+    storedKey.length <= MAX_ORDER_ID_LENGTH
+      ? storedKey
+      : // Sessions saved before the random key existed used the order id.
+        order.id;
+
   return Object.freeze({
+    idempotencyKey,
     order,
     customer: parseCustomer(value.customer),
     items: Object.freeze(items),
@@ -627,6 +661,7 @@ type PersistedSession = Readonly<{
   pendingSubmission: PendingOrderSubmission | null;
   currentOrder: Order | null;
   countdownSeconds: number;
+  qrExtended: boolean;
 }>;
 
 export interface KioskStoreState {
@@ -646,7 +681,7 @@ export interface KioskStoreState {
   pendingSubmission: PendingOrderSubmission | null;
   currentOrder: Order | null;
   countdownSeconds: number;
-  isCountdownPaused: boolean;
+  qrExtended: boolean;
   isCreatingOrder: boolean;
   lastCartError: CartError | null;
   lastOrderError: OrderError | null;
@@ -663,24 +698,15 @@ export interface KioskStoreState {
   updateCartQuantity: (lineKey: string, quantity: number) => CartResult;
   setCartGiftWrapped: (lineKey: string, giftWrapped: boolean) => CartResult;
   removeFromCart: (lineKey: string) => CartResult;
-  clearCart: () => void;
   clearCartError: () => void;
   updateCustomer: (details: Partial<CustomerDetails>) => void;
-  updateSettings: (settings: Partial<PresenterSettings>) => SettingsResult;
   createOrder: () => OrderResult;
   completeOrderCreation: (order: Order) => void;
   failOrderCreation: (error: OrderError) => void;
-  markCurrentOrderAsSent: () => void;
-  clearOrderHistory: () => void;
-  clearOrderError: () => void;
   tickCountdown: () => void;
-  pauseCountdown: () => void;
-  resumeCountdown: () => void;
-  resetCountdown: () => void;
   keepQrOpen: () => void;
   touchSession: () => void;
   resetSession: () => void;
-  resetAllLocalData: () => void;
 }
 
 type StoreSet = (
@@ -704,6 +730,7 @@ function persistedSession(state: KioskStoreState): PersistedSession {
     pendingSubmission: state.pendingSubmission,
     currentOrder: state.currentOrder,
     countdownSeconds: state.countdownSeconds,
+    qrExtended: state.qrExtended,
   };
 }
 
@@ -719,17 +746,6 @@ function persistSession(state: KioskStoreState, set: StoreSet): void {
       "session",
       kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, state.tenantKey),
       JSON.stringify(persistedSession(state)),
-    ),
-    set,
-  );
-}
-
-function persistSettings(state: KioskStoreState, set: StoreSet): void {
-  noteStorageResult(
-    writeStorage(
-      "local",
-      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, state.tenantKey),
-      JSON.stringify(state.settings),
     ),
     set,
   );
@@ -804,7 +820,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   pendingSubmission: null,
   currentOrder: null,
   countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-  isCountdownPaused: false,
+  qrExtended: false,
   isCreatingOrder: false,
   lastCartError: null,
   lastOrderError: null,
@@ -829,7 +845,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
@@ -879,7 +895,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     let pendingSubmission: PendingOrderSubmission | null = null;
     let currentOrder: Order | null = null;
     let countdownSeconds = settings.qrResetSeconds;
-    let isCountdownPaused = false;
+    let qrExtended = false;
 
     const sessionAge = isRecord(rawSession) && typeof rawSession.lastActivityAt === "number"
       ? Date.now() - rawSession.lastActivityAt
@@ -910,15 +926,17 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       ) {
         currentOrder = null;
       }
+      // The one-time extension is restored with the countdown it produced, so
+      // a reload can neither shorten it nor grant a second extension.
+      qrExtended = rawSession.qrExtended === true;
       countdownSeconds = boundedInteger(
         rawSession.countdownSeconds,
         settings.qrResetSeconds,
         0,
-        settings.qrResetSeconds,
+        qrExtended
+          ? Math.max(settings.qrResetSeconds, QR_MAX_TOTAL_SECONDS)
+          : settings.qrResetSeconds,
       );
-      // A pause is intentionally not restored. Reloading resumes the privacy
-      // countdown so customer details cannot remain on a public kiosk forever.
-      isCountdownPaused = false;
     } else if (isRecord(rawSession)) {
       removeStorage(
         "session",
@@ -931,9 +949,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     }
     if (screen === "qr" && !currentOrder) {
       screen = cartItems.length > 0 ? "review" : "welcome";
-    }
-    if (screen === "approval") {
-      screen = currentOrder ? "qr" : cartItems.length > 0 ? "review" : "welcome";
     }
 
     set({
@@ -956,7 +971,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission,
       currentOrder,
       countdownSeconds,
-      isCountdownPaused,
+      qrExtended,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
@@ -987,7 +1002,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     const activeCheckoutScreens: readonly KioskScreen[] = [
       "cart",
       "customer",
-      "checkout",
       "review",
     ];
     const reconciledScreen =
@@ -1015,7 +1029,12 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         : {}),
       countdownSeconds:
         state.screen === "qr"
-          ? Math.min(state.countdownSeconds, settings.qrResetSeconds)
+          ? Math.min(
+              state.countdownSeconds,
+              state.qrExtended
+                ? Math.max(settings.qrResetSeconds, QR_MAX_TOTAL_SECONDS)
+                : settings.qrResetSeconds,
+            )
           : settings.qrResetSeconds,
     });
     persistSession(get(), set);
@@ -1123,17 +1142,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       get,
     ),
 
-  clearCart: () => {
-    set({
-      cartItems: Object.freeze([]),
-      pendingSubmission: null,
-      currentOrder: null,
-      lastCartError: null,
-      lastOrderError: null,
-    });
-    persistSession(get(), set);
-  },
-
   clearCartError: () => set({ lastCartError: null }),
 
   updateCustomer: (details) => {
@@ -1154,102 +1162,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       lastOrderError: null,
     }));
     persistSession(get(), set);
-  },
-
-  updateSettings: (patch) => {
-    const current = get();
-    const merged = { ...current.settings, ...patch };
-    const countryCode = merged.defaultCountryCode
-      .replace(/\D/g, "")
-      .replace(/^0+/, "");
-    if (countryCode.length < 1 || countryCode.length > 3) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Enter a valid one-to-three digit country code.",
-        }),
-      };
-    }
-
-    if (!merged.shopName.trim() || !merged.kioskName.trim()) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Shop name and kiosk name are required.",
-        }),
-      };
-    }
-
-    if (
-      !Number.isSafeInteger(merged.maxCartQuantity) ||
-      merged.maxCartQuantity < 1 ||
-      merged.maxCartQuantity > 5 ||
-      merged.maxCartQuantity < getCartUnitCount(current.cartItems)
-    ) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message:
-            "The maximum cart quantity must be between 1 and 5 and cannot be below the current cart count.",
-        }),
-      };
-    }
-
-    if (
-      !Number.isSafeInteger(merged.giftWrapFeePaise) ||
-      merged.giftWrapFeePaise < 0 ||
-      merged.giftWrapFeePaise > 100_000 ||
-      !Number.isSafeInteger(merged.qrResetSeconds) ||
-      merged.qrResetSeconds < 15 ||
-      merged.qrResetSeconds > 3_600
-    ) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Enter valid gift-wrap and QR timeout values.",
-        }),
-      };
-    }
-
-    let ownerWhatsAppNumber = "";
-    if (merged.ownerWhatsAppNumber.trim()) {
-      try {
-        ownerWhatsAppNumber = normalizeWhatsAppNumber(
-          merged.ownerWhatsAppNumber,
-          countryCode,
-        );
-      } catch (caught) {
-        return {
-          ok: false,
-          error: Object.freeze({
-            code: "INVALID_OWNER_NUMBER",
-            message:
-              caught instanceof WhatsAppNumberError
-                ? caught.message
-                : "Enter a valid owner WhatsApp number.",
-          }),
-        };
-      }
-    }
-
-    const settings: PresenterSettings = Object.freeze({
-      shopName: merged.shopName.trim().slice(0, 80),
-      ownerWhatsAppNumber,
-      defaultCountryCode: countryCode,
-      kioskName: merged.kioskName.trim().slice(0, 80),
-      maxCartQuantity: merged.maxCartQuantity,
-      giftWrapFeePaise: merged.giftWrapFeePaise,
-      qrResetSeconds: merged.qrResetSeconds,
-      showPreviewLabel: merged.showPreviewLabel,
-    });
-    set({ settings, pendingSubmission: null });
-    persistSettings(get(), set);
-    persistSession(get(), set);
-    return { ok: true, value: settings };
   },
 
   createOrder: () => {
@@ -1283,6 +1195,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 
     set({
       pendingSubmission: Object.freeze({
+        idempotencyKey: createIdempotencyKey(),
         order: result.value,
         customer: state.customer,
         items: Object.freeze(
@@ -1316,7 +1229,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       orderHistory,
       screen: "qr",
       countdownSeconds: state.settings.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastOrderError: null,
     });
@@ -1332,45 +1245,9 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     persistSession(get(), set);
   },
 
-  markCurrentOrderAsSent: () => {
-    const currentOrder = get().currentOrder;
-    if (!currentOrder) {
-      return;
-    }
-
-    const markedOrder = markOrderAsPresenterSent(currentOrder);
-    const orderHistory = Object.freeze(
-      get().orderHistory.map((item) =>
-        item.orderNumber === markedOrder.orderNumber
-          ? Object.freeze({ ...item, status: markedOrder.status })
-          : item,
-      ),
-    );
-    set({ currentOrder: markedOrder, orderHistory });
-    persistHistory(get(), set);
-    persistSession(get(), set);
-  },
-
-  clearOrderHistory: () => {
-    set({ orderHistory: Object.freeze([]) });
-    noteStorageResult(
-      removeStorage(
-        "local",
-        kioskStorageKey(ORDERS_STORAGE_KEY, get().tenantKey),
-      ),
-      set,
-    );
-  },
-
-  clearOrderError: () => set({ lastOrderError: null }),
-
   tickCountdown: () => {
     const state = get();
-    if (
-      state.screen !== "qr" ||
-      !state.currentOrder ||
-      state.isCountdownPaused
-    ) {
+    if (state.screen !== "qr" || !state.currentOrder) {
       return;
     }
 
@@ -1383,23 +1260,22 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     persistSession(get(), set);
   },
 
-  pauseCountdown: () => {
-    set({ isCountdownPaused: true });
-    persistSession(get(), set);
-  },
-
-  resumeCountdown: () => {
-    set({ isCountdownPaused: false });
-    persistSession(get(), set);
-  },
-
-  resetCountdown: () => {
-    set({ countdownSeconds: get().settings.qrResetSeconds });
-    persistSession(get(), set);
-  },
-
+  // "Keep this screen open" adds one extra reset period, once, capped so the
+  // customer's details are never on screen for more than ~5 minutes in total.
+  // The countdown keeps running and ends the session as usual.
   keepQrOpen: () => {
-    set({ isCountdownPaused: true });
+    const state = get();
+    if (state.screen !== "qr" || !state.currentOrder || state.qrExtended) {
+      return;
+    }
+    const extended = Math.min(
+      state.countdownSeconds + state.settings.qrResetSeconds,
+      QR_MAX_TOTAL_SECONDS,
+    );
+    set({
+      qrExtended: true,
+      countdownSeconds: Math.max(state.countdownSeconds, extended),
+    });
     persistSession(get(), set);
   },
 
@@ -1418,7 +1294,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: get().settings.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
@@ -1428,43 +1304,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         "session",
         kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey),
       ),
-      set,
-    );
-  },
-
-  resetAllLocalData: () => {
-    set({
-      screen: "welcome",
-      searchQuery: "",
-      selectedCategory: "all",
-      selectedProductId: null,
-      cartItems: Object.freeze([]),
-      customer: EMPTY_CUSTOMER_DETAILS,
-      settings: DEFAULT_PRESENTER_SETTINGS,
-      storeOpen: true,
-      orderHistory: Object.freeze([]),
-      pendingSubmission: null,
-      currentOrder: null,
-      countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-      isCountdownPaused: false,
-      isCreatingOrder: false,
-      lastCartError: null,
-      lastOrderError: null,
-    });
-    const settingsRemoved = removeStorage(
-      "local",
-      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, get().tenantKey),
-    );
-    const historyRemoved = removeStorage(
-      "local",
-      kioskStorageKey(ORDERS_STORAGE_KEY, get().tenantKey),
-    );
-    const sessionRemoved = removeStorage(
-      "session",
-      kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey),
-    );
-    noteStorageResult(
-      settingsRemoved && historyRemoved && sessionRemoved,
       set,
     );
   },
@@ -1518,7 +1357,3 @@ export const selectVisibleProducts = (
       .includes(query);
   });
 };
-
-export const selectOwnerNumberIsConfigured = (
-  state: KioskStoreState,
-): boolean => Boolean(state.settings.ownerWhatsAppNumber);

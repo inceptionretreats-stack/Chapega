@@ -16,15 +16,23 @@ import {
   KIOSK_IDLE_WARNING_MS,
   useKioskStore,
 } from "@/store/kiosk-store";
-import { CartScreen } from "./cart-screen";
-import { CatalogueScreen } from "./catalogue-screen";
-import { CheckoutScreen } from "./checkout-screen";
-import { IdleSessionDialog } from "./idle-session-dialog";
+import { ShopUnavailable, type ShopUnavailableKind } from "./shop-unavailable";
 import { KioskHeader } from "./kiosk-header";
-import { ProductDetailModal } from "./product-detail-modal";
 import { QrErrorBoundary } from "./qr-error-boundary";
-import { ReviewScreen } from "./review-screen";
 import { WelcomeScreen } from "./welcome-screen";
+
+function ScreenLoading() {
+  return <div className="loading-screen"><div className="loading-mark"><Gift size={40} /><span>Loading…</span></div></div>;
+}
+
+// Screens after the welcome screen are split out so the first page only ships
+// the code it needs (keeps the hero LCP off a long hydration task).
+const CartScreen = dynamic(() => import("./cart-screen").then((m) => m.CartScreen), { loading: ScreenLoading });
+const CatalogueScreen = dynamic(() => import("./catalogue-screen").then((m) => m.CatalogueScreen), { loading: ScreenLoading });
+const CheckoutScreen = dynamic(() => import("./checkout-screen").then((m) => m.CheckoutScreen), { loading: ScreenLoading });
+const ReviewScreen = dynamic(() => import("./review-screen").then((m) => m.ReviewScreen), { loading: ScreenLoading });
+const ProductDetailModal = dynamic(() => import("./product-detail-modal").then((m) => m.ProductDetailModal));
+const IdleSessionDialog = dynamic(() => import("./idle-session-dialog").then((m) => m.IdleSessionDialog));
 
 const OrderReadyScreen = dynamic(
   () => import("./order-ready-screen").then((module) => module.OrderReadyScreen),
@@ -76,9 +84,11 @@ function kioskOrderFromVendor(order: VendorOrder): Order {
 
 type KioskAppProps = Readonly<{
   vendorSlug?: string;
+  /** Server-fetched bootstrap: lets the welcome screen render in the first HTML. */
+  initialBootstrap?: KioskBootstrap | null;
 }>;
 
-export function KioskApp({ vendorSlug }: KioskAppProps) {
+export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps) {
   const router = useRouter();
   const store = useKioskStore();
   const normalizedVendorSlug = (vendorSlug ?? "chapega")
@@ -90,7 +100,8 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
   const [browserOnline, setBrowserOnline] = useState(true);
   const [backendStatus, setBackendStatus] = useState<
     "checking" | "live" | "unavailable"
-  >("checking");
+  >(initialBootstrap ? "live" : "checking");
+  const [shopState, setShopState] = useState<ShopUnavailableKind | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
@@ -112,6 +123,11 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
 
   useEffect(() => {
     useKioskStore.getState().setTenant(normalizedVendorSlug);
+    // The server already resolved this shop: hydrate straight away instead of
+    // waiting for a round trip.
+    if (initialBootstrap && !useKioskStore.getState().hasHydrated) {
+      useKioskStore.getState().hydrate(initialBootstrap);
+    }
     let active = true;
     let requestVersion = 0;
     let currentController: AbortController | null = null;
@@ -127,9 +143,16 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
           cache: "no-store",
           signal: controller.signal,
         });
+        if (response.status === 404 || response.status === 403) {
+          // The shop does not exist or is suspended: never show a catalogue.
+          if (!active || version !== requestVersion) return;
+          setShopState(response.status === 404 ? "not-found" : "suspended");
+          return;
+        }
         if (!response.ok) throw new Error("Live catalogue unavailable");
         const bootstrap = (await response.json()) as KioskBootstrap;
         if (!active || version !== requestVersion) return;
+        setShopState(null);
         const state = useKioskStore.getState();
         const cartBefore = JSON.stringify(state.cartItems);
         if (!state.hasHydrated) state.hydrate(bootstrap);
@@ -152,7 +175,13 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
         if (!active || version !== requestVersion) return;
         setBackendStatus("unavailable");
         if (!useKioskStore.getState().hasHydrated) {
-          useKioskStore.getState().hydrate();
+          if (vendorSlug) {
+            // Only the default storefront may fall back to the bundled
+            // catalogue; another shop's customers must never see it.
+            setShopState("unreachable");
+          } else {
+            useKioskStore.getState().hydrate();
+          }
         }
       } finally {
         window.clearTimeout(timeout);
@@ -172,7 +201,8 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
       window.clearInterval(interval);
       window.removeEventListener("focus", refresh);
     };
-  }, [kioskApiBase, normalizedVendorSlug]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialBootstrap only seeds the first hydration
+  }, [kioskApiBase, normalizedVendorSlug, vendorSlug]);
 
   useEffect(() => {
     if (!store.hasHydrated) return;
@@ -282,10 +312,10 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
   }, [toast]);
 
   useEffect(() => {
-    if (store.screen !== "qr" || !store.currentOrder || store.isCountdownPaused) return;
+    if (store.screen !== "qr" || !store.currentOrder) return;
     const timer = window.setInterval(() => useKioskStore.getState().tickCountdown(), 1000);
     return () => window.clearInterval(timer);
-  }, [store.screen, store.currentOrder, store.isCountdownPaused]);
+  }, [store.screen, store.currentOrder]);
 
   const showToast = (message: string, tone: "success" | "error" = "success") => setToast({
     message,
@@ -378,8 +408,7 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          idempotencyKey: result.value.id,
-          orderNumber: result.value.orderNumber,
+          idempotencyKey: pendingSubmission.idempotencyKey,
           createdAt: result.value.createdAt,
           kioskName: result.value.kioskName,
           customer: pendingSubmission.customer,
@@ -444,10 +473,18 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
 
   let headerBack: (() => void) | undefined;
   if (store.screen === "cart") headerBack = () => store.setScreen("catalogue");
-  if (store.screen === "customer" || store.screen === "checkout") headerBack = () => store.setScreen("cart");
+  if (store.screen === "customer") headerBack = () => store.setScreen("cart");
   if (store.screen === "review") headerBack = () => store.setScreen("customer");
 
+  if (shopState) return <ShopUnavailable kind={shopState} />;
+
   if (!store.hasHydrated || store.tenantKey !== normalizedVendorSlug) {
+    if (initialBootstrap) {
+      // Server-rendered shell: the real welcome screen (including the LCP hero
+      // image) is in the first HTML; its buttons wake up once hydrated.
+      const { shopName, kioskName, showPreviewLabel } = initialBootstrap.settings;
+      return <WelcomeScreen shopName={shopName} kioskName={kioskName} showPreviewLabel={showPreviewLabel} online onStart={() => undefined} onSettings={() => undefined} ready={false} />;
+    }
     return <div className="loading-screen"><div className="loading-mark"><Gift size={44} /><span>Preparing this storefront…</span></div></div>;
   }
 
@@ -486,7 +523,7 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
       return <CartScreen cart={store.cartItems} products={store.products} unitCount={unitCount} maxUnits={store.settings.maxCartQuantity} totals={totals} giftWrapFeePaise={store.settings.giftWrapFeePaise} onQuantityChange={changeQuantity} onRemove={removeLine} onToggleWrap={toggleWrap} onContinueShopping={() => store.setScreen("catalogue")} onCheckout={() => store.setScreen("customer")} />;
     }
 
-    if (store.screen === "customer" || store.screen === "checkout") {
+    if (store.screen === "customer") {
       return <CheckoutScreen customer={store.customer} cart={store.cartItems} totals={totals} unitCount={unitCount} onChange={store.updateCustomer} onEditSelection={() => store.setScreen("cart")} onReview={() => store.setScreen("review")} />;
     }
 
@@ -498,7 +535,7 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
       if (!store.currentOrder) {
         return <main className="screen-page narrow"><div className="empty-state"><AlertCircle size={46} /><div><h2 data-screen-heading tabIndex={-1}>The prepared order could not be restored</h2><p>Your cart is still available. Return to review and generate the WhatsApp QR again.</p><button className="primary-button" onClick={() => store.setScreen(store.cartItems.length ? "review" : "catalogue")}>Return to order</button></div></div></main>;
       }
-      return <QrErrorBoundary key={store.currentOrder.id} order={store.currentOrder} onCopy={copyMessage} onStartNewOrder={store.resetSession}><OrderReadyScreen shopName={store.settings.shopName} order={store.currentOrder} products={store.products} secondsRemaining={store.countdownSeconds} paused={store.isCountdownPaused} copied={copied} copyError={copyError} onCopy={copyMessage} onTogglePause={store.isCountdownPaused ? store.resumeCountdown : store.keepQrOpen} onStartNewOrder={store.resetSession} /></QrErrorBoundary>;
+      return <QrErrorBoundary key={store.currentOrder.id} order={store.currentOrder} onCopy={copyMessage} onStartNewOrder={store.resetSession}><OrderReadyScreen shopName={store.settings.shopName} order={store.currentOrder} products={store.products} secondsRemaining={store.countdownSeconds} extended={store.qrExtended} copied={copied} copyError={copyError} onCopy={copyMessage} onKeepOpen={store.keepQrOpen} onStartNewOrder={store.resetSession} /></QrErrorBoundary>;
     }
 
     return null;

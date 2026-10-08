@@ -106,8 +106,24 @@ export function maskWhatsAppNumber(
   return `${"•".repeat(hiddenCount)}${suffix}`;
 }
 
+// Bidi embedding/override (U+202A-202E) and isolate (U+2066-2069) controls can
+// visually reorder the shop owner's WhatsApp text, so they are dropped.
+const BIDI_CONTROLS = /[‪-‮⁦-⁩]/g;
+// C0 and C1 controls other than tab/LF/CR (which \s collapses), including NEL.
+const OTHER_CONTROLS = /[\u0000-\u0008\u000E-\u001F\u007F-\u009F]/g;
+const LONE_SURROGATE =
+  /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+/** Removes invisible/unsafe characters and makes the string URL-encodable. */
+function sanitizeText(value: string): string {
+  return value
+    .replace(LONE_SURROGATE, "�")
+    .replace(BIDI_CONTROLS, "")
+    .replace(OTHER_CONTROLS, " ");
+}
+
 function compactText(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  return sanitizeText(value).replace(/\s+/g, " ").trim();
 }
 
 export function buildWhatsAppMessage(input: {
@@ -175,7 +191,7 @@ export function buildWhatsAppUrl(input: {
   defaultCountryCode?: string;
   message: string;
 }): string {
-  const message = input.message.trim();
+  const message = sanitizeText(input.message).trim();
   if (!message) {
     throw new Error("A WhatsApp order message is required.");
   }
