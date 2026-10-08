@@ -44,7 +44,9 @@ export function VendorStatusDialog({
           method: "PATCH",
           body: JSON.stringify({
             status: suspending ? "suspended" : "active",
-            revision: vendor.revision,
+            // Guarded by the status the admin saw; the vendor revision moves
+            // with every product edit and kiosk order.
+            expectedStatus: vendor.status,
           }),
         },
       );

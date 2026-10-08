@@ -250,15 +250,16 @@ export function AddVendorDialog({
                 onChange={(event) => update("temporaryPassword", event.target.value)}
                 autoComplete="new-password"
                 required
-                minLength={12}
-                maxLength={200}
+                // Mirrors server/security/password-policy.ts (NIST 800-63B).
+                minLength={15}
+                maxLength={128}
                 aria-invalid={Boolean(fieldErrors.temporaryPassword) || undefined}
                 aria-describedby={fieldErrors.temporaryPassword ? "admin-owner-password-error" : "admin-owner-password-help"}
               />
               {fieldErrors.temporaryPassword ? (
                 <small id="admin-owner-password-error">{fieldErrors.temporaryPassword}</small>
               ) : (
-                <small id="admin-owner-password-help">At least 12 characters with upper and lowercase letters and a number.</small>
+                <small id="admin-owner-password-help">At least 15 characters. A few unrelated words make a good passphrase.</small>
               )}
             </label>
           </div>
