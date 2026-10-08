@@ -3,8 +3,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  Eye,
-  EyeOff,
   Gift,
   LoaderCircle,
   LockKeyhole,
@@ -14,6 +12,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { PasswordToggle } from "../password-toggle";
 import { focusFirstInvalid } from "./vendor-shared";
 
 type LoginFormProps = {
@@ -185,16 +184,14 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   aria-invalid={Boolean(fieldErrors.password)}
                   aria-describedby={fieldErrors.password ? "vendor-password-error" : error ? "vendor-login-error" : undefined}
                 />
-                <button
-                  type="button"
+                <PasswordToggle
                   className="vendor-password-toggle"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  aria-controls="vendor-password"
-                  onClick={() => setShowPassword((visible) => !visible)}
+                  visible={showPassword}
+                  controls="vendor-password"
+                  onToggle={() => setShowPassword((visible) => !visible)}
                   disabled={pending || !authenticationAvailable}
-                >
-                  {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
-                </button>
+                  iconSize={19}
+                />
               </span>
               {fieldErrors.password ? <small id="vendor-password-error" className="vendor-field-error">{fieldErrors.password}</small> : null}
             </div>

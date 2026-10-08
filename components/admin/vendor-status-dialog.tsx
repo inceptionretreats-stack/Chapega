@@ -72,6 +72,7 @@ export function VendorStatusDialog({
       busy={pending}
       initialFocusRef={cancelRef}
       compact
+      role={suspending ? "alertdialog" : "dialog"}
     >
       <div className="admin-confirm-dialog">
         <span className={`admin-confirm-dialog__icon${suspending ? " is-danger" : ""}`} aria-hidden="true">

@@ -466,9 +466,13 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       await expect(timelineItems.nth(1)).toContainText("Prepared on kiosk");
 
       await orderDetail.getByRole("button", { name: "Cancel order" }).click();
-      await orderDetail
-        .getByRole("button", { name: "Confirm cancellation" })
-        .click();
+      // AUD-22: cancelling is now confirmed through an alertdialog that opens
+      // on the safe choice and states that stock is released.
+      const cancelDialog = page.getByRole("alertdialog", { name: /^Cancel order / });
+      await expect(cancelDialog).toContainText(/restores this order.s stock/);
+      await expect(cancelDialog.getByRole("button", { name: "Keep order" })).toBeFocused();
+      await cancelDialog.getByRole("button", { name: "Cancel order" }).click();
+      await expect(cancelDialog).toBeHidden();
       await page.getByRole("button", { name: /All orders/ }).click();
       await expect(
         orderDetail
@@ -531,7 +535,12 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
         .click();
       const editor = page.getByRole("dialog", { name: "Edit product" });
       await editor.getByRole("button", { name: "Archive", exact: true }).click();
-      await editor.getByRole("button", { name: "Confirm archive" }).click();
+      // AUD-22: archiving is now confirmed through an alertdialog.
+      const archiveDialog = page.getByRole("alertdialog", { name: "Archive this product?" });
+      await expect(archiveDialog).toContainText("cannot be undone");
+      await expect(archiveDialog.getByRole("button", { name: "Cancel" })).toBeFocused();
+      await archiveDialog.getByRole("button", { name: "Archive product" }).click();
+      await expect(archiveDialog).toBeHidden();
       await expect(editor).toBeHidden();
       await expect(
         page.getByText("Product archived. Past order snapshots remain unchanged."),

@@ -26,6 +26,7 @@ import type {
   AdminVendorSummary,
 } from "@/types/admin";
 import { backgroundRefreshHeaders } from "@/domain/session-activity";
+import { ThemeControl } from "../theme-control";
 import { AddVendorDialog } from "./add-vendor-dialog";
 import { AdminActivityRail } from "./admin-activity-rail";
 import { adminRequest, AdminClientError } from "./admin-client";
@@ -243,6 +244,7 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
             {accountOpen ? (
               <div className="admin-account__menu" id="admin-account-menu">
                 <div><strong>{data.user.name}</strong><span>{data.user.email}</span></div>
+                <ThemeControl className="admin-theme-control" />
                 <button type="button" onClick={logout} disabled={loggingOut}>
                   {loggingOut ? <LoaderCircle className="admin-spin" size={18} /> : <LogOut size={18} />}
                   {loggingOut ? "Signing out…" : "Sign out"}

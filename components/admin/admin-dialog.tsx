@@ -15,6 +15,8 @@ type AdminDialogProps = {
   busy?: boolean;
   initialFocusRef?: React.RefObject<HTMLElement | null>;
   compact?: boolean;
+  /** "alertdialog" for confirmations of destructive actions. */
+  role?: "dialog" | "alertdialog";
 };
 
 const FOCUSABLE =
@@ -28,6 +30,7 @@ export function AdminDialog({
   busy = false,
   initialFocusRef,
   compact = false,
+  role = "dialog",
 }: AdminDialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -102,14 +105,15 @@ export function AdminDialog({
       <div
         ref={panelRef}
         className={`admin-dialog${compact ? " admin-dialog--compact" : ""}`}
-        role="dialog"
+        role={role}
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         aria-busy={busy}
         tabIndex={-1}
       >
-        <header className="admin-dialog__header">
+        {/* A div, not <header>: inside a dialog a header is a second banner landmark. */}
+        <div className="admin-dialog__header">
           <div>
             <h2 id={titleId}>{title}</h2>
             <p id={descriptionId}>{description}</p>
@@ -124,7 +128,7 @@ export function AdminDialog({
           >
             <X size={20} />
           </button>
-        </header>
+        </div>
         {children}
       </div>
     </div>

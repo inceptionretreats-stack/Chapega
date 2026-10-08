@@ -26,7 +26,7 @@ export class QrErrorBoundary extends Component<QrErrorBoundaryProps, QrErrorBoun
     return (
       <main className="screen-page narrow">
         <section className="surface-panel panel-padding" aria-labelledby="qr-fallback-title">
-          <AlertTriangle size={38} color="#A46218" />
+          <AlertTriangle size={38} className="icon-warning" />
           <h1 id="qr-fallback-title" className="screen-heading" style={{ marginTop: 16 }}>The QR could not be displayed</h1>
           <p className="screen-subtitle">Your prepared order is still safe. Use the same WhatsApp link below or copy the exact message and continue on your phone.</p>
           <div className="notice" style={{ marginTop: 18 }}><strong>{this.props.order.orderNumber}</strong></div>

@@ -31,6 +31,7 @@ import type {
   VendorSettings as VendorSettingsType,
 } from "@/types/vendor";
 import { backgroundRefreshHeaders } from "@/domain/session-activity";
+import { ThemeControl } from "../theme-control";
 import { vendorRequest, VendorClientError } from "./vendor-client";
 import { VendorDashboard } from "./vendor-dashboard";
 import { VendorOrders } from "./vendor-orders";
@@ -418,6 +419,7 @@ export function VendorPortal({ initialData }: PortalProps) {
           })}
         </nav>
         <div className="vendor-sidebar-note" aria-hidden="true"><Store size={23} /><p>Beautiful gifts.<br />Brighter days.</p></div>
+        <ThemeControl className="vendor-theme-control" />
         <button className="vendor-signout" type="button" onClick={logout} disabled={loggingOut} aria-label="Sign out of Vendor Studio">{loggingOut ? <LoaderCircle className="vendor-spin" size={19} /> : <LogOut size={19} />} {loggingOut ? "Signing out…" : "Sign out"}</button>
       </aside>
       {mobileMenu ? <button className="vendor-sidebar-scrim" type="button" onClick={() => closeMobileMenu()} aria-hidden="true" tabIndex={-1} /> : null}

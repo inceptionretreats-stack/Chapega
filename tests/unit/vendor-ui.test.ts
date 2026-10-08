@@ -4,7 +4,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { VendorDashboard } from "@/components/vendor/vendor-dashboard";
 import { VendorOrders } from "@/components/vendor/vendor-orders";
 import { VendorSettings } from "@/components/vendor/vendor-settings";
@@ -24,6 +24,17 @@ vi.mock("next/image", async () => {
 });
 
 afterEach(cleanup);
+
+// The confirmation dialog's focus handling reads (pointer: coarse); jsdom has
+// no matchMedia.
+beforeEach(() => {
+  window.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  })) as unknown as typeof window.matchMedia;
+});
 
 const settings: VendorSettingsType = {
   shopName: "Chapega.com",
@@ -187,15 +198,14 @@ describe("Vendor Studio state safeguards", () => {
       "aria-pressed",
       "true",
     );
+    // AUD-22: the confirmation is now an alertdialog named for the order.
     await user.click(screen.getByRole("button", { name: "Cancel order" }));
     expect(
-      screen.getByRole("button", { name: "Confirm cancellation" }),
+      screen.getByRole("alertdialog", { name: /GFT-001/ }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /GFT-002/ }));
-    expect(
-      screen.queryByRole("button", { name: "Confirm cancellation" }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Cancel order" }),
     ).toBeInTheDocument();

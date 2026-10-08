@@ -3,8 +3,6 @@
 import {
   ArrowLeft,
   ArrowRight,
-  Eye,
-  EyeOff,
   LoaderCircle,
   LockKeyhole,
   Mail,
@@ -14,6 +12,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { PasswordToggle } from "../password-toggle";
 import { AdminSkipLink, focusFirstInvalid } from "./admin-shared";
 
 type AdminLoginFormProps = {
@@ -152,8 +151,10 @@ export function AdminLoginForm({
               {fieldErrors.email ? <small id="admin-email-error">{fieldErrors.email}</small> : null}
             </label>
 
-            <label className="admin-field">
-              <span>Password</span>
+            {/* A div with label[for], not a wrapping label: the show/hide
+                button must not become part of the password's name. */}
+            <div className="admin-field">
+              <label htmlFor="admin-password">Password</label>
               <span className="admin-login-input">
                 <LockKeyhole size={19} aria-hidden="true" />
                 <input
@@ -174,18 +175,16 @@ export function AdminLoginForm({
                   aria-invalid={Boolean(fieldErrors.password)}
                   aria-describedby={fieldErrors.password ? "admin-password-error" : error ? "admin-login-error" : undefined}
                 />
-                <button
-                  type="button"
+                <PasswordToggle
                   className="admin-password-toggle"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  onClick={() => setShowPassword((visible) => !visible)}
+                  visible={showPassword}
+                  controls="admin-password"
+                  onToggle={() => setShowPassword((visible) => !visible)}
                   disabled={pending || !authenticationAvailable}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                />
               </span>
               {fieldErrors.password ? <small id="admin-password-error">{fieldErrors.password}</small> : null}
-            </label>
+            </div>
 
             {error ? <p id="admin-login-error" ref={errorRef} tabIndex={-1} className="admin-form-error" role="alert">{error}</p> : null}
 

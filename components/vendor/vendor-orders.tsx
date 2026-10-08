@@ -20,6 +20,7 @@ import {
   VENDOR_ORDER_LABELS,
 } from "@/domain/vendor";
 import type { VendorOrder, VendorOrderStatus } from "@/types/vendor";
+import { ConfirmDialog } from "../confirm-dialog";
 import { vendorRequest } from "./vendor-client";
 import {
   formatVendorDate,
@@ -45,7 +46,6 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
   const [confirmCancelOrderId, setConfirmCancelOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [focusAfterSave, setFocusAfterSave] = useState(false);
-  const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
   const listHeadingRef = useRef<HTMLHeadingElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
@@ -85,20 +85,6 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
     if (focusOrderId) onFocusOrderHandled?.();
   }, [focusOrderId, onFocusOrderHandled]);
 
-  // Escape backs out of the inline cancellation confirmation and returns
-  // focus to the button that started it.
-  useEffect(() => {
-    if (!confirmCancelOrderId) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || event.defaultPrevented) return;
-      event.preventDefault();
-      setConfirmCancelOrderId(null);
-      window.requestAnimationFrame(() => cancelButtonRef.current?.focus());
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [confirmCancelOrderId]);
-
   // The action button that was clicked is disabled (or removed) while saving,
   // which drops focus to <body>. Land on the order detail once the saved order
   // arrives, or on the list heading if no detail remains.
@@ -129,6 +115,8 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
       setConfirmCancelOrderId(null);
       setFocusAfterSave(true);
     } catch (caught) {
+      // Close any confirmation so the announced error can take focus.
+      setConfirmCancelOrderId(null);
       setError(caught instanceof Error ? caught.message : "The order could not be updated.");
     } finally {
       setPending(false);
@@ -227,21 +215,29 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
                     {pending ? "Updating…" : nextStatus === "confirmed" ? "Confirm order" : `Mark as ${VENDOR_ORDER_LABELS[nextStatus].toLowerCase()}`}
                   </button>
                 ) : null}
-                {confirmingSelectedCancellation ? (
-                  <p id="vendor-cancel-consequence" className="vendor-field-help">
-                    {selected.inventoryCommitted
-                      ? "Cancelling restores this order’s stock to the catalogue and cannot be undone. Press Escape to keep the order."
-                      : "No stock was reserved for this order. Cancelling cannot be undone. Press Escape to keep the order."}
-                  </p>
-                ) : null}
-                <button ref={cancelButtonRef} className={confirmingSelectedCancellation ? "vendor-danger" : "vendor-quiet"} type="button" onClick={() => confirmingSelectedCancellation ? transition("cancelled") : setConfirmCancelOrderId(selected.id)} disabled={pending} aria-describedby={confirmingSelectedCancellation ? "vendor-cancel-consequence" : undefined}>
-                  <X size={17} /> {confirmingSelectedCancellation ? "Confirm cancellation" : "Cancel order"}
+                <button className="vendor-quiet" type="button" onClick={() => setConfirmCancelOrderId(selected.id)} disabled={pending} aria-haspopup="dialog">
+                  <X size={17} /> Cancel order
                 </button>
               </footer>
             ) : null}
           </aside>
         ) : null}
       </div>
+
+      {confirmingSelectedCancellation && selected ? (
+        <ConfirmDialog
+          title={`Cancel order ${selected.orderNumber}?`}
+          description={selected.inventoryCommitted
+            ? "Cancelling restores this order’s stock to the catalogue and cannot be undone. The customer is not notified automatically."
+            : "No stock was reserved for this order. Cancelling cannot be undone. The customer is not notified automatically."}
+          confirmLabel="Cancel order"
+          pendingLabel="Cancelling…"
+          cancelLabel="Keep order"
+          pending={pending}
+          onConfirm={() => void transition("cancelled")}
+          onCancel={() => setConfirmCancelOrderId(null)}
+        />
+      ) : null}
     </div>
   );
 }
