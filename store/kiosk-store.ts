@@ -49,6 +49,7 @@ export const ACTIVE_SESSION_STORAGE_KEY = "gift-kiosk-active-session";
 export const CATALOGUE_REVISION_STORAGE_KEY = "gift-kiosk-catalogue-revision";
 export const CURRENT_CATALOGUE_REVISION = "supplied-catalogue-2026-08-10-v1";
 export const MAX_ORDER_HISTORY = 20;
+const MAX_ORDER_ID_LENGTH = 100;
 export const KIOSK_IDLE_TIMEOUT_MS = 2 * 60 * 1_000;
 export const KIOSK_IDLE_WARNING_MS = 30 * 1_000;
 
@@ -383,9 +384,10 @@ function parseOrder(value: unknown): Order | null {
   const status = value.status;
   if (
     typeof value.id !== "string" ||
+    value.id.length < 1 ||
+    value.id.length > MAX_ORDER_ID_LENGTH ||
     typeof value.orderNumber !== "string" ||
-    value.id !== value.orderNumber ||
-    !/^GFT(?:-DEMO)?-\d{8}-\d{4}$/.test(value.orderNumber) ||
+    !/^GFT(?:-DEMO)?-\d{8}-\d{4,6}$/.test(value.orderNumber) ||
     typeof value.createdAt !== "string" ||
     Number.isNaN(Date.parse(value.createdAt)) ||
     typeof value.kioskName !== "string" ||
@@ -485,7 +487,32 @@ function parseOrder(value: unknown): Order | null {
   });
 }
 
+/**
+ * RFC 4122 v4 UUID. `crypto.randomUUID` only exists in secure contexts, and a
+ * kiosk may be served over plain HTTP on a LAN, so fall back to
+ * `getRandomValues`, which is available everywhere.
+ */
+function createIdempotencyKey(): string {
+  const webCrypto = globalThis.crypto;
+  if (typeof webCrypto?.randomUUID === "function") {
+    return webCrypto.randomUUID();
+  }
+  const bytes = webCrypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+  return [
+    hex.slice(0, 4).join(""),
+    hex.slice(4, 6).join(""),
+    hex.slice(6, 8).join(""),
+    hex.slice(8, 10).join(""),
+    hex.slice(10).join(""),
+  ].join("-");
+}
+
 type PendingOrderSubmission = Readonly<{
+  /** Sent as the idempotency key on every retry of this exact submission. */
+  idempotencyKey: string;
   order: Order;
   customer: CustomerDetails;
   items: readonly Readonly<{
@@ -531,7 +558,17 @@ function parsePendingOrderSubmission(
   }
   if (unitCount > 5) return null;
 
+  const storedKey = value.idempotencyKey;
+  const idempotencyKey =
+    typeof storedKey === "string" &&
+    storedKey.trim().length > 0 &&
+    storedKey.length <= MAX_ORDER_ID_LENGTH
+      ? storedKey
+      : // Sessions saved before the random key existed used the order id.
+        order.id;
+
   return Object.freeze({
+    idempotencyKey,
     order,
     customer: parseCustomer(value.customer),
     items: Object.freeze(items),
@@ -1283,6 +1320,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 
     set({
       pendingSubmission: Object.freeze({
+        idempotencyKey: createIdempotencyKey(),
         order: result.value,
         customer: state.customer,
         items: Object.freeze(

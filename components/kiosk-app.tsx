@@ -378,8 +378,7 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
         body: JSON.stringify({
-          idempotencyKey: result.value.id,
-          orderNumber: result.value.orderNumber,
+          idempotencyKey: pendingSubmission.idempotencyKey,
           createdAt: result.value.createdAt,
           kioskName: result.value.kioskName,
           customer: pendingSubmission.customer,
