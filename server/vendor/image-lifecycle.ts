@@ -84,15 +84,21 @@ function isMissingStorageObject(error: {
   );
 }
 
+/** Keep the storage failure as the cause so apiError can log it. */
+function storageUnavailable(message: string, cause: unknown): VendorServiceError {
+  const error = new VendorServiceError(503, "IMAGE_STORAGE_UNAVAILABLE", message);
+  error.cause = cause;
+  return error;
+}
+
 async function removeSupabaseObject(storageKey: string): Promise<void> {
   const { error } = await getSupabaseAdmin().storage
     .from(VENDOR_PRODUCTS_BUCKET)
     .remove([storageKey]);
   if (error && !isMissingStorageObject(error)) {
-    throw new VendorServiceError(
-      503,
-      "IMAGE_STORAGE_UNAVAILABLE",
+    throw storageUnavailable(
       "The product image could not be deleted. Please try again.",
+      error,
     );
   }
 }
@@ -132,10 +138,9 @@ async function deleteUnusedSupabaseImage(
     });
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
-    throw new VendorServiceError(
-      503,
-      "IMAGE_STORAGE_UNAVAILABLE",
+    throw storageUnavailable(
       "The product image could not be deleted. Please try again.",
+      error,
     );
   }
 }
@@ -179,10 +184,9 @@ async function localFileExists(filePath: string): Promise<boolean> {
     return (await stat(filePath)).isFile();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-    throw new VendorServiceError(
-      503,
-      "IMAGE_STORAGE_UNAVAILABLE",
+    throw storageUnavailable(
       "The product image could not be checked. Please try again.",
+      error,
     );
   }
 }
@@ -198,19 +202,17 @@ async function supabaseObjectExists(filename: string): Promise<boolean> {
       error.status !== 400 &&
       !isMissingStorageObject(error)
     ) {
-      throw new VendorServiceError(
-        503,
-        "IMAGE_STORAGE_UNAVAILABLE",
+      throw storageUnavailable(
         "The product image could not be checked. Please try again.",
+        error,
       );
     }
     return false;
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
-    throw new VendorServiceError(
-      503,
-      "IMAGE_STORAGE_UNAVAILABLE",
+    throw storageUnavailable(
       "The product image could not be checked. Please try again.",
+      error,
     );
   }
 }
@@ -276,10 +278,9 @@ async function removeLocalObject(filename: string): Promise<void> {
     await unlink(localUploadPath(filename));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw new VendorServiceError(
-      503,
-      "IMAGE_STORAGE_UNAVAILABLE",
+    throw storageUnavailable(
       "The product image could not be deleted. Please try again.",
+      error,
     );
   }
 }

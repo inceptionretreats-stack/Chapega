@@ -14,20 +14,31 @@ import { AdminServiceError } from "@/server/admin/errors";
 import { adminLoginSchema } from "@/server/admin/schemas";
 import { sha256 } from "@/server/vendor/crypto";
 import { consumeRateLimit, resetRateLimit } from "@/server/vendor/rate-limit";
+import { logger } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertAdminSameOrigin(request);
     const input = await parseAdminJson(request, adminLoginSchema);
     const address = adminClientAddress(request);
-    const accountBucket = `admin-login-account:${address}:${sha256(input.email)}`;
+    const emailHash = sha256(input.email);
+    const accountBucket = `admin-login-account:${address}:${emailHash}`;
     const [addressRate, accountRate] = await Promise.all([
       consumeRateLimit(`admin-login-address:${address}`, 30, 15 * 60 * 1_000),
       consumeRateLimit(accountBucket, 6, 15 * 60 * 1_000),
     ]);
     if (!addressRate.allowed || !accountRate.allowed) {
+      logger.warn("security.rate_limited", {
+        scope: "admin-login",
+        emailHash: emailHash.slice(0, 16),
+        retryAfterSeconds: Math.max(
+          addressRate.retryAfterSeconds,
+          accountRate.retryAfterSeconds,
+        ),
+      });
       const response = adminJsonResponse(
         {
           error: {
@@ -46,6 +57,10 @@ export async function POST(request: NextRequest) {
 
     const login = await authenticateAdminLogin(input.email, input.password);
     if (!login) {
+      logger.warn("auth.login_failed", {
+        scope: "admin",
+        emailHash: emailHash.slice(0, 16),
+      });
       throw new AdminServiceError(
         401,
         "INVALID_ADMIN_CREDENTIALS",
@@ -66,4 +81,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return adminApiError(error);
   }
-}
+});

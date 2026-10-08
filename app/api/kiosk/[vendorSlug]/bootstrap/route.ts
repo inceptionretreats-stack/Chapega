@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { apiError, jsonResponse } from "@/server/vendor/api";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { getKioskBootstrap } from "@/server/vendor/service";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,11 +18,11 @@ function normalizedVendorSlug(value: string): string {
   return slug;
 }
 
-export async function GET(_request: NextRequest, context: Context) {
+export const GET = withRequestContext(async function GET(_request: NextRequest, context: Context) {
   try {
     const { vendorSlug } = await context.params;
     return jsonResponse(await getKioskBootstrap(normalizedVendorSlug(vendorSlug)));
   } catch (error) {
     return apiError(error);
   }
-}
+});

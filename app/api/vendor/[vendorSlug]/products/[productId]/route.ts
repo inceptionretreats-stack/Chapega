@@ -9,11 +9,12 @@ import {
 } from "@/server/vendor/api";
 import { vendorProductSchema } from "@/server/vendor/schemas";
 import { archiveVendorProduct, updateVendorProduct } from "@/server/vendor/service";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 type Context = Readonly<{ params: Promise<{ vendorSlug: string; productId: string }> }>;
 
-export async function PATCH(request: NextRequest, context: Context) {
+export const PATCH = withRequestContext(async function PATCH(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const [params, input] = await Promise.all([
@@ -27,9 +28,9 @@ export async function PATCH(request: NextRequest, context: Context) {
   } catch (error) {
     return apiError(error);
   }
-}
+});
 
-export async function DELETE(request: NextRequest, context: Context) {
+export const DELETE = withRequestContext(async function DELETE(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const [params, input] = await Promise.all([
@@ -42,4 +43,4 @@ export async function DELETE(request: NextRequest, context: Context) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

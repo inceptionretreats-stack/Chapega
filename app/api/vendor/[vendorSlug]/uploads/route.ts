@@ -10,6 +10,7 @@ import {
 import { VendorServiceError } from "@/server/vendor/errors";
 import { deleteUnusedVendorImage, VENDOR_UPLOAD_PATH_PATTERN } from "@/server/vendor/image-lifecycle";
 import { saveVendorImage } from "@/server/vendor/images";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 type Context = Readonly<{ params: Promise<{ vendorSlug: string }> }>;
@@ -24,7 +25,7 @@ function assertCatalogueAccess(canManageCatalogue: boolean): void {
   }
 }
 
-export async function POST(request: NextRequest, context: Context) {
+export const POST = withRequestContext(async function POST(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const { vendorSlug } = await context.params;
@@ -43,9 +44,9 @@ export async function POST(request: NextRequest, context: Context) {
   } catch (error) {
     return apiError(error);
   }
-}
+});
 
-export async function DELETE(request: NextRequest, context: Context) {
+export const DELETE = withRequestContext(async function DELETE(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const [params, input] = await Promise.all([
@@ -61,4 +62,4 @@ export async function DELETE(request: NextRequest, context: Context) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

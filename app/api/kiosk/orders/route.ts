@@ -10,10 +10,12 @@ import { VendorServiceError } from "@/server/vendor/errors";
 import { consumeRateLimit } from "@/server/vendor/rate-limit";
 import { kioskOrderSubmissionSchema } from "@/server/vendor/schemas";
 import { recordKioskOrder } from "@/server/vendor/service";
+import { logger } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const rate = await consumeRateLimit(
@@ -22,6 +24,10 @@ export async function POST(request: NextRequest) {
       60 * 1_000,
     );
     if (!rate.allowed) {
+      logger.warn("security.rate_limited", {
+        scope: "kiosk-order",
+        retryAfterSeconds: rate.retryAfterSeconds,
+      });
       throw new VendorServiceError(
         429,
         "RATE_LIMITED",
@@ -33,4 +39,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

@@ -11,6 +11,8 @@ import {
   updateAdminVendorStatusSchema,
 } from "@/server/admin/schemas";
 import { updateAdminVendorStatus } from "@/server/admin/service";
+import { logger } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
@@ -18,17 +20,26 @@ type RouteContext = Readonly<{
   params: Promise<{ vendorId: string }>;
 }>;
 
-export async function PATCH(request: NextRequest, context: RouteContext) {
+export const PATCH = withRequestContext(async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     assertAdminSameOrigin(request);
     const admin = await requireRequestAdmin(request);
     const { vendorId: rawVendorId } = await context.params;
     const vendorId = adminVendorIdSchema.parse(rawVendorId);
     const input = await parseAdminJson(request, updateAdminVendorStatusSchema);
-    return adminJsonResponse(
-      await updateAdminVendorStatus(admin, vendorId, input.status, input.revision),
+    const result = await updateAdminVendorStatus(
+      admin,
+      vendorId,
+      input.status,
+      input.revision,
     );
+    logger.info("admin.vendor_status_changed", {
+      actorId: admin.user.id,
+      vendorId,
+      status: input.status,
+    });
+    return adminJsonResponse(result);
   } catch (error) {
     return adminApiError(error);
   }
-}
+});

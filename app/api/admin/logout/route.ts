@@ -8,10 +8,11 @@ import {
   adminJsonResponse,
   assertAdminSameOrigin,
 } from "@/server/admin/api";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertAdminSameOrigin(request);
     const token = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
@@ -38,4 +39,4 @@ export async function POST(request: NextRequest) {
     });
     return response;
   }
-}
+});

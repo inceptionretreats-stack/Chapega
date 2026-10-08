@@ -17,10 +17,12 @@ import {
   resetRateLimit,
 } from "@/server/vendor/rate-limit";
 import { loginSchema } from "@/server/vendor/schemas";
+import { logger } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const input = await parseJson(request, loginSchema);
@@ -30,9 +32,18 @@ export async function POST(request: NextRequest) {
       30,
       15 * 60 * 1_000,
     );
-    const rateBucket = `login-account:${address}:${sha256(input.email.trim().toLocaleLowerCase("en-IN"))}`;
+    const emailHash = sha256(input.email.trim().toLocaleLowerCase("en-IN"));
+    const rateBucket = `login-account:${address}:${emailHash}`;
     const accountRate = await consumeRateLimit(rateBucket, 6, 15 * 60 * 1_000);
     if (!addressRate.allowed || !accountRate.allowed) {
+      logger.warn("security.rate_limited", {
+        scope: "vendor-login",
+        emailHash: emailHash.slice(0, 16),
+        retryAfterSeconds: Math.max(
+          addressRate.retryAfterSeconds,
+          accountRate.retryAfterSeconds,
+        ),
+      });
       const response = jsonResponse(
         {
           error: {
@@ -59,6 +70,10 @@ export async function POST(request: NextRequest) {
       input.vendorSlug,
     );
     if (!login) {
+      logger.warn("auth.login_failed", {
+        scope: "vendor",
+        emailHash: emailHash.slice(0, 16),
+      });
       throw new VendorServiceError(
         401,
         "INVALID_CREDENTIALS",
@@ -79,4 +94,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

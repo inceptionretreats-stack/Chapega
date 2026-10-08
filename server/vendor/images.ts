@@ -21,6 +21,13 @@ type SanitizedImage = Readonly<{
   height: number;
 }>;
 
+/** Keep the storage/database failure as the cause so apiError can log it. */
+function storageUnavailable(message: string, cause: unknown): VendorServiceError {
+  const error = new VendorServiceError(503, "IMAGE_STORAGE_UNAVAILABLE", message);
+  error.cause = cause;
+  return error;
+}
+
 function validateDimensions(width: number, height: number): void {
   if (
     !Number.isSafeInteger(width) ||
@@ -195,10 +202,9 @@ export async function saveVendorImage(file: File, vendorId?: string, createdBy?:
         upsert: false,
       });
     if (error && !/duplicate|already exists/i.test(error.message)) {
-      throw new VendorServiceError(
-        503,
-        "IMAGE_STORAGE_UNAVAILABLE",
+      throw storageUnavailable(
         "The product image could not be stored. Please try again.",
+        error,
       );
     }
     if (vendorId) {
@@ -229,11 +235,10 @@ export async function saveVendorImage(file: File, vendorId?: string, createdBy?:
             on conflict (storage_bucket, object_path) do nothing
           `;
         });
-      } catch {
-        throw new VendorServiceError(
-          503,
-          "IMAGE_STORAGE_UNAVAILABLE",
+      } catch (registrationError) {
+        throw storageUnavailable(
           "The product image was stored but could not be registered. Please try again.",
+          registrationError,
         );
       }
     }

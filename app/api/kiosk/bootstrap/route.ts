@@ -1,13 +1,18 @@
-import { jsonResponse } from "@/server/vendor/api";
+import { apiError, jsonResponse } from "@/server/vendor/api";
+import { VendorServiceError } from "@/server/vendor/errors";
 import { getKioskBootstrap } from "@/server/vendor/service";
+import { logger, serializeError } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withRequestContext(async function GET() {
   try {
     return jsonResponse(await getKioskBootstrap());
-  } catch {
+  } catch (error) {
+    if (error instanceof VendorServiceError) return apiError(error);
+    logger.error("kiosk.catalogue_unavailable", { error: serializeError(error) });
     return jsonResponse(
       {
         error: {
@@ -18,4 +23,4 @@ export async function GET() {
       503,
     );
   }
-}
+});

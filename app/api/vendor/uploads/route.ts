@@ -13,6 +13,7 @@ import {
   VENDOR_UPLOAD_PATH_PATTERN,
 } from "@/server/vendor/image-lifecycle";
 import { saveVendorImage } from "@/server/vendor/images";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,7 @@ function assertCanManageImages(canManageCatalogue: boolean): void {
   }
 }
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const access = await requireVendorRequest(request);
@@ -50,9 +51,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return apiError(error);
   }
-}
+});
 
-export async function DELETE(request: NextRequest) {
+export const DELETE = withRequestContext(async function DELETE(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const access = await requireVendorRequest(request);
@@ -65,4 +66,4 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

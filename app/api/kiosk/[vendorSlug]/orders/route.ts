@@ -10,6 +10,8 @@ import { VendorServiceError } from "@/server/vendor/errors";
 import { consumeRateLimit } from "@/server/vendor/rate-limit";
 import { kioskOrderSubmissionSchema } from "@/server/vendor/schemas";
 import { recordKioskOrder } from "@/server/vendor/service";
+import { logger } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
@@ -24,7 +26,7 @@ function normalizedVendorSlug(value: string): string {
   return slug;
 }
 
-export async function POST(request: NextRequest, context: Context) {
+export const POST = withRequestContext(async function POST(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const [{ vendorSlug }, input] = await Promise.all([
@@ -38,6 +40,11 @@ export async function POST(request: NextRequest, context: Context) {
       60 * 1_000,
     );
     if (!rate.allowed) {
+      logger.warn("security.rate_limited", {
+        scope: "kiosk-order",
+        vendorSlug: slug,
+        retryAfterSeconds: rate.retryAfterSeconds,
+      });
       throw new VendorServiceError(
         429,
         "RATE_LIMITED",
@@ -48,4 +55,4 @@ export async function POST(request: NextRequest, context: Context) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

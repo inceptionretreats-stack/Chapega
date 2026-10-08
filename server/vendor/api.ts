@@ -4,6 +4,7 @@ import { isIP } from "node:net";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
+import { logger, serializeError } from "@/server/observability/logger";
 import { getRequestVendorContext } from "@/server/vendor/auth";
 import { VendorServiceError } from "@/server/vendor/errors";
 import type { VendorAccessContext } from "@/types/vendor";
@@ -20,6 +21,10 @@ export function jsonResponse(data: unknown, status = 200): NextResponse {
 export function assertSameOrigin(request: NextRequest): void {
   const fetchSite = request.headers.get("sec-fetch-site");
   if (fetchSite === "cross-site") {
+    logger.warn("security.origin_rejected", {
+      reason: "cross-site",
+      path: request.nextUrl.pathname,
+    });
     throw new VendorServiceError(
       403,
       "CROSS_SITE_REQUEST",
@@ -28,6 +33,11 @@ export function assertSameOrigin(request: NextRequest): void {
   }
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) {
+    logger.warn("security.origin_rejected", {
+      reason: "origin-mismatch",
+      origin: origin.slice(0, 200),
+      path: request.nextUrl.pathname,
+    });
     throw new VendorServiceError(403, "INVALID_ORIGIN", "Request rejected.");
   }
 }
@@ -106,6 +116,13 @@ export function clientAddress(request: NextRequest): string {
 
 export function apiError(error: unknown): NextResponse {
   if (error instanceof VendorServiceError) {
+    if (error.status >= 500) {
+      logger.error("api.dependency_failed", {
+        status: error.status,
+        code: error.code,
+        error: serializeError(error),
+      });
+    }
     return jsonResponse(
       { error: { code: error.code, message: error.message } },
       error.status,
@@ -123,7 +140,7 @@ export function apiError(error: unknown): NextResponse {
       400,
     );
   }
-  console.error("Vendor API request failed", error);
+  logger.error("api.unhandled_error", { error: serializeError(error) });
   return jsonResponse(
     {
       error: {

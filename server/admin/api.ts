@@ -4,6 +4,7 @@ import { isIP } from "node:net";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
+import { logger, serializeError } from "@/server/observability/logger";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { AdminServiceError } from "./errors";
 
@@ -18,10 +19,19 @@ export function adminJsonResponse(data: unknown, status = 200): NextResponse {
 
 export function assertAdminSameOrigin(request: NextRequest): void {
   if (request.headers.get("sec-fetch-site") === "cross-site") {
+    logger.warn("security.origin_rejected", {
+      reason: "cross-site",
+      path: request.nextUrl.pathname,
+    });
     throw new AdminServiceError(403, "CROSS_SITE_REQUEST", "Request rejected.");
   }
   const origin = request.headers.get("origin");
   if (origin && origin !== request.nextUrl.origin) {
+    logger.warn("security.origin_rejected", {
+      reason: "origin-mismatch",
+      origin: origin.slice(0, 200),
+      path: request.nextUrl.pathname,
+    });
     throw new AdminServiceError(403, "INVALID_ORIGIN", "Request rejected.");
   }
 }
@@ -71,6 +81,13 @@ export function adminClientAddress(request: NextRequest): string {
 
 export function adminApiError(error: unknown): NextResponse {
   if (error instanceof AdminServiceError || error instanceof VendorServiceError) {
+    if (error.status >= 500) {
+      logger.error("api.dependency_failed", {
+        status: error.status,
+        code: error.code,
+        error: serializeError(error),
+      });
+    }
     return adminJsonResponse(
       { error: { code: error.code, message: error.message } },
       error.status,
@@ -88,7 +105,7 @@ export function adminApiError(error: unknown): NextResponse {
       400,
     );
   }
-  console.error("Platform admin request failed", error);
+  logger.error("api.unhandled_error", { error: serializeError(error) });
   return adminJsonResponse(
     {
       error: {
