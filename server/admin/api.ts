@@ -1,9 +1,12 @@
 import "server-only";
 
-import { isIP } from "node:net";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
+import {
+  clientAddressLabel,
+  sameOriginRejection,
+} from "@/server/http/request-identity";
 import { logger, serializeError } from "@/server/observability/logger";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { AdminServiceError } from "./errors";
@@ -17,22 +20,11 @@ export function adminJsonResponse(data: unknown, status = 200): NextResponse {
   return response;
 }
 
+/** Same CSRF rule as the vendor API (see server/http/request-identity). */
 export function assertAdminSameOrigin(request: NextRequest): void {
-  if (request.headers.get("sec-fetch-site") === "cross-site") {
-    logger.warn("security.origin_rejected", {
-      reason: "cross-site",
-      path: request.nextUrl.pathname,
-    });
-    throw new AdminServiceError(403, "CROSS_SITE_REQUEST", "Request rejected.");
-  }
-  const origin = request.headers.get("origin");
-  if (origin && origin !== request.nextUrl.origin) {
-    logger.warn("security.origin_rejected", {
-      reason: "origin-mismatch",
-      origin: origin.slice(0, 200),
-      path: request.nextUrl.pathname,
-    });
-    throw new AdminServiceError(403, "INVALID_ORIGIN", "Request rejected.");
+  const rejection = sameOriginRejection(request);
+  if (rejection) {
+    throw new AdminServiceError(403, rejection.code, "Request rejected.");
   }
 }
 
@@ -58,25 +50,7 @@ export async function parseAdminJson<T>(
 }
 
 export function adminClientAddress(request: NextRequest): string {
-  const proxyPreference = process.env.TRUST_PROXY_HEADERS;
-  if (proxyPreference === "false") return "direct";
-  const onVercel = process.env.VERCEL === "1";
-  if (!onVercel && proxyPreference !== "true") return "direct";
-  const candidates = onVercel
-    ? [
-        request.headers.get("x-vercel-forwarded-for"),
-        request.headers.get("x-forwarded-for"),
-        request.headers.get("x-real-ip"),
-      ]
-    : [
-        request.headers.get("x-forwarded-for"),
-        request.headers.get("x-real-ip"),
-      ];
-  for (const candidate of candidates) {
-    const address = candidate?.split(",", 1)[0]?.trim();
-    if (address && isIP(address)) return address;
-  }
-  return "proxy";
+  return clientAddressLabel(request);
 }
 
 export function adminApiError(error: unknown): NextResponse {
