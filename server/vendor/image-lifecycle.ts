@@ -49,15 +49,30 @@ function validatedUpload(imagePath: string): ValidatedUpload {
   };
 }
 
+/**
+ * Upload paths are content-addressed lower-case hex. The path pattern is
+ * case-insensitive for compatibility, so every comparison and every storage
+ * key uses the lower-case form: otherwise `/vendor-products/ABC….png` would
+ * pass the in-use check (no exact match) and then delete the in-use
+ * `abc….png` on a case-insensitive filesystem.
+ */
+function canonicalUploadPath(imagePath: string): string {
+  return imagePath.toLowerCase();
+}
+
+function sameImage(stored: string | undefined, canonicalPath: string): boolean {
+  return typeof stored === "string" && stored.toLowerCase() === canonicalPath;
+}
+
 function imageIsReferenced(
   database: Pick<VendorDatabase, "products" | "orders">,
   imagePath: string,
   vendorId: string,
 ): boolean {
   return (
-    database.products.some((product) => (product.vendorId ?? LEGACY_DEFAULT_VENDOR_ID) === vendorId && product.image === imagePath) ||
+    database.products.some((product) => (product.vendorId ?? LEGACY_DEFAULT_VENDOR_ID) === vendorId && sameImage(product.image, imagePath)) ||
     database.orders.some((order) => (order.vendorId ?? LEGACY_DEFAULT_VENDOR_ID) === vendorId &&
-      order.items.some((item) => item.image === imagePath),
+      order.items.some((item) => sameImage(item.image, imagePath)),
     )
   );
 }
@@ -121,10 +136,10 @@ async function deleteUnusedSupabaseImage(
         select (
           exists (
             select 1 from private.products
-            where vendor_id = ${vendorId} and image = ${imagePath}
+            where vendor_id = ${vendorId} and lower(image) = ${imagePath}
           ) or exists (
             select 1 from private.order_items
-            where vendor_id = ${vendorId} and image = ${imagePath}
+            where vendor_id = ${vendorId} and lower(image) = ${imagePath}
           )
         ) as referenced
       `;
@@ -133,7 +148,7 @@ async function deleteUnusedSupabaseImage(
       await transaction`
         delete from private.vendor_assets
         where vendor_id = ${vendorId}::uuid
-          and public_path = ${imagePath}
+          and lower(public_path) = ${imagePath}
       `;
     });
   } catch (error) {
@@ -234,6 +249,15 @@ export async function assertProductImageExists(
     const filename = bundledMatch[2];
     exists = await localFileExists(safelyResolvedPublicFile(directory, filename));
   } else if (VENDOR_UPLOAD_PATH_PATTERN.test(imagePath)) {
+    if (imagePath !== canonicalUploadPath(imagePath)) {
+      // Products must store the canonical path returned by the upload so
+      // the in-use check used by deletion always recognises it.
+      throw new VendorServiceError(
+        400,
+        "INVALID_IMAGE_PATH",
+        "Use the image path exactly as returned by the upload.",
+      );
+    }
     const { storageKey, pathVendorId } = validatedUpload(imagePath);
     if (
       requestedVendorId &&
@@ -307,8 +331,10 @@ export async function deleteUnusedVendorImage(
   requestedPath: string,
   requestedVendorId?: string,
 ): Promise<Readonly<{ path: ProductImagePath }>> {
-  const { storageKey, pathVendorId } = validatedUpload(requestedPath);
-  const imagePath = requestedPath as VendorUploadPath;
+  // Normalize first: the reference check, the storage key and the response
+  // all use the canonical lower-case path.
+  const imagePath = canonicalUploadPath(requestedPath) as VendorUploadPath;
+  const { storageKey, pathVendorId } = validatedUpload(imagePath);
   const vendorId = requestedVendorId ?? pathVendorId ?? LEGACY_DEFAULT_VENDOR_ID;
   if (pathVendorId && pathVendorId !== vendorId.toLocaleLowerCase("en-IN")) {
     throw new VendorServiceError(403, "FORBIDDEN", "This image belongs to another vendor.");

@@ -21,7 +21,8 @@ vi.mock("@/server/vendor/images", () => ({
   saveVendorImage: mocks.saveVendorImage,
 }));
 
-import { DELETE } from "@/app/api/vendor/uploads/route";
+import { DELETE, POST } from "@/app/api/vendor/uploads/route";
+import { POST as scopedPost } from "@/app/api/vendor/[vendorSlug]/uploads/route";
 
 const owner: VendorUser = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -147,4 +148,44 @@ describe("DELETE /api/vendor/uploads", () => {
     expect(mocks.getRequestVendorContext).not.toHaveBeenCalled();
     expect(mocks.deleteUnusedVendorImage).not.toHaveBeenCalled();
   });
+});
+
+describe("POST upload body validation", () => {
+  const handlers = [
+    ["unscoped", (request: NextRequest) => POST(request)],
+    [
+      "scoped",
+      (request: NextRequest) =>
+        scopedPost(request, { params: Promise.resolve({ vendorSlug: "chapega" }) }),
+    ],
+  ] as const;
+
+  function upload(contentType: string, body: string): NextRequest {
+    return new NextRequest("http://localhost/api/vendor/uploads", {
+      method: "POST",
+      headers: { "content-type": contentType, origin: "http://localhost" },
+      body,
+    });
+  }
+
+  for (const [label, handler] of handlers) {
+    it(`answers 400 (not 500) for a non-multipart ${label} upload`, async () => {
+      const response = await handler(upload("application/json", '{"image":"x"}'));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "INVALID_UPLOAD" },
+      });
+      expect(mocks.saveVendorImage).not.toHaveBeenCalled();
+    });
+
+    it(`answers 400 for a malformed multipart ${label} upload`, async () => {
+      const response = await handler(
+        upload("multipart/form-data; boundary=missing", "not really multipart"),
+      );
+
+      expect(response.status).toBe(400);
+      expect(mocks.saveVendorImage).not.toHaveBeenCalled();
+    });
+  }
 });

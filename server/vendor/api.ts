@@ -123,11 +123,30 @@ export async function parseMultipart(
   request: NextRequest,
   maxBytes = MAX_UPLOAD_BYTES,
 ): Promise<FormData> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!/^multipart\/form-data\s*;/i.test(contentType)) {
+    await request.body?.cancel().catch(() => undefined);
+    throw new VendorServiceError(
+      400,
+      "INVALID_UPLOAD",
+      "Upload the image as a multipart form.",
+    );
+  }
   try {
     return await readMultipartWithLimit(request, maxBytes);
   } catch (error) {
     if (error instanceof RequestBodyTooLargeError) {
       throw new VendorServiceError(413, "PAYLOAD_TOO_LARGE", "Image is too large.");
+    }
+    if (error instanceof TypeError) {
+      // The platform parser rejects malformed multipart bodies with TypeError.
+      const invalid = new VendorServiceError(
+        400,
+        "INVALID_UPLOAD",
+        "The upload could not be read. Choose the image again.",
+      );
+      invalid.cause = error;
+      throw invalid;
     }
     throw error;
   }

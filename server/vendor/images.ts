@@ -46,38 +46,67 @@ function validateDimensions(width: number, height: number): void {
   }
 }
 
+/**
+ * PNG chunks that survive sanitising: the critical chunks plus the ancillary
+ * chunks that affect how pixels look (transparency, gamma, chromaticities,
+ * sRGB intent, ICC profile, pixel density). Everything else - text, EXIF,
+ * timestamps, APNG animation, private/unknown ancillary chunks - is dropped,
+ * as is anything after IEND. Unknown critical chunks make the file invalid.
+ */
+const PNG_KEPT_CHUNKS = new Set([
+  "IHDR",
+  "PLTE",
+  "IDAT",
+  "IEND",
+  "tRNS",
+  "gAMA",
+  "cHRM",
+  "sRGB",
+  "iCCP",
+  "pHYs",
+]);
+
+function invalidPng(message = "The PNG file is invalid."): VendorServiceError {
+  return new VendorServiceError(400, "INVALID_IMAGE", message);
+}
+
 function sanitizePng(buffer: Buffer): SanitizedImage {
   const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
   if (buffer.length < 33 || !buffer.subarray(0, 8).equals(signature)) {
-    throw new VendorServiceError(400, "INVALID_IMAGE", "The PNG file is invalid.");
+    throw invalidPng();
   }
   const chunks: Buffer[] = [buffer.subarray(0, 8)];
-  const removable = new Set(["eXIf", "tEXt", "zTXt", "iTXt"]);
   let offset = 8;
   let width = 0;
   let height = 0;
   let foundEnd = false;
+  let foundData = false;
   while (offset + 12 <= buffer.length) {
     const length = buffer.readUInt32BE(offset);
     const end = offset + 12 + length;
-    if (end > buffer.length) {
-      throw new VendorServiceError(400, "INVALID_IMAGE", "The PNG file is incomplete.");
-    }
-    const type = buffer.toString("ascii", offset + 4, offset + 8);
+    if (end > buffer.length) throw invalidPng("The PNG file is incomplete.");
+    const type = buffer.toString("latin1", offset + 4, offset + 8);
+    if (!/^[A-Za-z]{4}$/.test(type)) throw invalidPng();
+    if (offset === 8 && type !== "IHDR") throw invalidPng();
     if (type === "IHDR") {
+      if (length < 8) throw invalidPng();
       width = buffer.readUInt32BE(offset + 8);
       height = buffer.readUInt32BE(offset + 12);
     }
-    if (!removable.has(type)) chunks.push(buffer.subarray(offset, end));
+    if (type === "IDAT") foundData = true;
+    if (PNG_KEPT_CHUNKS.has(type)) {
+      chunks.push(buffer.subarray(offset, end));
+    } else if ((type.charCodeAt(0) & 0x20) === 0) {
+      // Upper-case first letter: a critical chunk we do not understand.
+      throw invalidPng("The PNG file uses an unsupported feature.");
+    }
     offset = end;
     if (type === "IEND") {
       foundEnd = true;
       break;
     }
   }
-  if (!foundEnd || !width || !height) {
-    throw new VendorServiceError(400, "INVALID_IMAGE", "The PNG file is invalid.");
-  }
+  if (!foundEnd || !foundData || !width || !height) throw invalidPng();
   validateDimensions(width, height);
   return { buffer: Buffer.concat(chunks), extension: "png", width, height };
 }
@@ -87,64 +116,104 @@ const SOF_MARKERS = new Set([
   0xcf,
 ]);
 
+function invalidJpeg(message = "The JPEG file is invalid."): VendorServiceError {
+  return new VendorServiceError(400, "INVALID_IMAGE", message);
+}
+
+function startsWith(payload: Buffer, signature: string): boolean {
+  return payload.subarray(0, signature.length).toString("latin1") === signature;
+}
+
+/**
+ * APPn segments that are needed to display the image correctly: the JFIF/JFXX
+ * header (APP0), an ICC colour profile (APP2 "ICC_PROFILE"; dropping it
+ * shifts colours of wide-gamut phone photos) and the Adobe colour-transform
+ * flag (APP14). Every other APPn (EXIF/GPS, XMP, MPF thumbnails, IPTC, maker
+ * notes, …) and every COM comment is removed.
+ */
+function keepApplicationSegment(marker: number, payload: Buffer): boolean {
+  if (marker === 0xe0) return startsWith(payload, "JFIF\0") || startsWith(payload, "JFXX\0");
+  if (marker === 0xe2) return startsWith(payload, "ICC_PROFILE\0");
+  if (marker === 0xee) return startsWith(payload, "Adobe");
+  return false;
+}
+
 function sanitizeJpeg(buffer: Buffer): SanitizedImage {
   if (buffer.length < 16 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
-    throw new VendorServiceError(400, "INVALID_IMAGE", "The JPEG file is invalid.");
+    throw invalidJpeg();
   }
   const chunks: Buffer[] = [buffer.subarray(0, 2)];
   let offset = 2;
   let width = 0;
   let height = 0;
-  let foundScan = false;
+  let scans = 0;
+  let foundEnd = false;
 
   while (offset < buffer.length) {
-    const markerStart = offset;
-    if (buffer[offset] !== 0xff) {
-      throw new VendorServiceError(400, "INVALID_IMAGE", "The JPEG file is malformed.");
-    }
+    if (buffer[offset] !== 0xff) throw invalidJpeg("The JPEG file is malformed.");
     while (offset < buffer.length && buffer[offset] === 0xff) offset += 1;
+    if (offset >= buffer.length) break;
     const marker = buffer[offset];
     offset += 1;
     if (marker === 0xd9) {
-      chunks.push(buffer.subarray(markerStart, offset));
-      break;
-    }
-    if (marker === 0xda) {
-      chunks.push(buffer.subarray(markerStart));
-      foundScan = true;
+      // End of image: everything after it (appended files, motion-photo
+      // payloads, trailers) is discarded.
+      chunks.push(Buffer.from([0xff, 0xd9]));
+      foundEnd = true;
       break;
     }
     if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
-      chunks.push(buffer.subarray(markerStart, offset));
+      chunks.push(Buffer.from([0xff, marker]));
       continue;
     }
-    if (offset + 2 > buffer.length) {
-      throw new VendorServiceError(400, "INVALID_IMAGE", "The JPEG file is incomplete.");
-    }
+    if (offset + 2 > buffer.length) throw invalidJpeg("The JPEG file is incomplete.");
     const segmentLength = buffer.readUInt16BE(offset);
     const segmentEnd = offset + segmentLength;
     if (segmentLength < 2 || segmentEnd > buffer.length) {
-      throw new VendorServiceError(400, "INVALID_IMAGE", "The JPEG file is incomplete.");
+      throw invalidJpeg("The JPEG file is incomplete.");
     }
     if (SOF_MARKERS.has(marker)) {
-      if (segmentLength < 7) {
-        throw new VendorServiceError(400, "INVALID_IMAGE", "The JPEG dimensions are invalid.");
-      }
+      if (segmentLength < 7) throw invalidJpeg("The JPEG dimensions are invalid.");
       height = buffer.readUInt16BE(offset + 3);
       width = buffer.readUInt16BE(offset + 5);
     }
-    // APP1 commonly carries EXIF/GPS and APP13 commonly carries IPTC metadata.
-    if (marker !== 0xe1 && marker !== 0xed) {
-      chunks.push(buffer.subarray(markerStart, segmentEnd));
-    }
+    const payload = buffer.subarray(offset + 2, segmentEnd);
+    const isApplication = marker >= 0xe0 && marker <= 0xef;
+    const keep = isApplication
+      ? keepApplicationSegment(marker, payload)
+      : marker !== 0xfe;
+    if (keep) chunks.push(Buffer.from([0xff, marker]), buffer.subarray(offset, segmentEnd));
     offset = segmentEnd;
+
+    if (marker === 0xda) {
+      // Entropy-coded scan data runs until the next real marker; 0xFF00 is a
+      // stuffed byte and RST0-7 markers belong to the scan. Progressive JPEGs
+      // continue with further tables and scans, which the loop handles.
+      scans += 1;
+      const scanStart = offset;
+      while (offset < buffer.length) {
+        if (buffer[offset] === 0xff) {
+          const next = buffer[offset + 1];
+          if (next === 0x00 || (next !== undefined && next >= 0xd0 && next <= 0xd7)) {
+            offset += 2;
+            continue;
+          }
+          break;
+        }
+        offset += 1;
+      }
+      chunks.push(buffer.subarray(scanStart, offset));
+    }
   }
 
-  if (!foundScan || !width || !height) {
-    throw new VendorServiceError(400, "INVALID_IMAGE", "The JPEG file is invalid.");
-  }
+  if (!foundEnd || scans === 0 || !width || !height) throw invalidJpeg();
   validateDimensions(width, height);
   return { buffer: Buffer.concat(chunks), extension: "jpg", width, height };
+}
+
+/** Exported for tests; uploads go through saveVendorImage. */
+export function sanitizeVendorImage(buffer: Buffer, mimeType: string): SanitizedImage {
+  return sanitizeImage(buffer, mimeType);
 }
 
 function sanitizeImage(buffer: Buffer, mimeType: string): SanitizedImage {

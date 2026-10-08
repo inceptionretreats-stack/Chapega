@@ -254,3 +254,49 @@ describe("unused vendor-image deletion", () => {
     });
   });
 });
+
+describe("upload path case normalization", () => {
+  const upperCasePath = `/vendor-products/${hash.toUpperCase()}.png`;
+
+  it("refuses to delete an in-use image addressed with upper-case hex", async () => {
+    state.database = database([
+      { image: imagePath, archived: false } as VendorDatabase["products"][number],
+    ]);
+
+    await expect(deleteUnusedVendorImage(upperCasePath)).rejects.toMatchObject({
+      status: 409,
+      code: "IMAGE_IN_USE",
+    });
+    expect(state.unlink).not.toHaveBeenCalled();
+  });
+
+  it("deletes the canonical lower-case object when the image is unused", async () => {
+    await expect(deleteUnusedVendorImage(upperCasePath)).resolves.toEqual({
+      path: imagePath,
+    });
+    expect(state.unlink).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), "public", "vendor-products", `${hash}.png`),
+    );
+
+    state.backend = "supabase";
+    await deleteUnusedVendorImage(upperCasePath);
+    expect(state.remove).toHaveBeenCalledWith([`${hash}.png`]);
+  });
+
+  it("treats legacy upper-case references as in use", async () => {
+    state.database = database([
+      { image: upperCasePath, archived: false } as VendorDatabase["products"][number],
+    ]);
+
+    await expect(deleteUnusedVendorImage(imagePath)).rejects.toMatchObject({
+      status: 409,
+      code: "IMAGE_IN_USE",
+    });
+  });
+
+  it("only lets products reference the canonical lower-case path", async () => {
+    await expect(
+      assertProductImageExists(upperCasePath as never),
+    ).rejects.toMatchObject({ status: 400, code: "INVALID_IMAGE_PATH" });
+  });
+});
