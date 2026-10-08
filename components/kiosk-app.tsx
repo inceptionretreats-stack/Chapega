@@ -282,10 +282,10 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
   }, [toast]);
 
   useEffect(() => {
-    if (store.screen !== "qr" || !store.currentOrder || store.isCountdownPaused) return;
+    if (store.screen !== "qr" || !store.currentOrder) return;
     const timer = window.setInterval(() => useKioskStore.getState().tickCountdown(), 1000);
     return () => window.clearInterval(timer);
-  }, [store.screen, store.currentOrder, store.isCountdownPaused]);
+  }, [store.screen, store.currentOrder]);
 
   const showToast = (message: string, tone: "success" | "error" = "success") => setToast({
     message,
@@ -497,7 +497,7 @@ export function KioskApp({ vendorSlug }: KioskAppProps) {
       if (!store.currentOrder) {
         return <main className="screen-page narrow"><div className="empty-state"><AlertCircle size={46} /><div><h2 data-screen-heading tabIndex={-1}>The prepared order could not be restored</h2><p>Your cart is still available. Return to review and generate the WhatsApp QR again.</p><button className="primary-button" onClick={() => store.setScreen(store.cartItems.length ? "review" : "catalogue")}>Return to order</button></div></div></main>;
       }
-      return <QrErrorBoundary key={store.currentOrder.id} order={store.currentOrder} onCopy={copyMessage} onStartNewOrder={store.resetSession}><OrderReadyScreen shopName={store.settings.shopName} order={store.currentOrder} products={store.products} secondsRemaining={store.countdownSeconds} paused={store.isCountdownPaused} copied={copied} copyError={copyError} onCopy={copyMessage} onTogglePause={store.isCountdownPaused ? store.resumeCountdown : store.keepQrOpen} onStartNewOrder={store.resetSession} /></QrErrorBoundary>;
+      return <QrErrorBoundary key={store.currentOrder.id} order={store.currentOrder} onCopy={copyMessage} onStartNewOrder={store.resetSession}><OrderReadyScreen shopName={store.settings.shopName} order={store.currentOrder} products={store.products} secondsRemaining={store.countdownSeconds} extended={store.qrExtended} copied={copied} copyError={copyError} onCopy={copyMessage} onKeepOpen={store.keepQrOpen} onStartNewOrder={store.resetSession} /></QrErrorBoundary>;
     }
 
     return null;

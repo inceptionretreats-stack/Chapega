@@ -9,7 +9,6 @@ import {
   ExternalLink,
   MessageCircle,
   Pause,
-  Play,
   RefreshCcw,
   ShieldCheck,
 } from "lucide-react";
@@ -23,11 +22,11 @@ type OrderReadyScreenProps = {
   order: Order;
   products: readonly Product[];
   secondsRemaining: number;
-  paused: boolean;
+  extended: boolean;
   copied: boolean;
   copyError: string | null;
   onCopy: () => void;
-  onTogglePause: () => void;
+  onKeepOpen: () => void;
   onStartNewOrder: () => void;
 };
 
@@ -53,14 +52,14 @@ export function OrderReadyScreen({
   order,
   products,
   secondsRemaining,
-  paused,
+  extended,
   copied,
   copyError,
   onCopy,
-  onTogglePause,
+  onKeepOpen,
   onStartNewOrder,
 }: OrderReadyScreenProps) {
-  const finalWarning = !paused && secondsRemaining <= 15;
+  const finalWarning = secondsRemaining <= 15;
   return (
     <main className="order-ready-page">
       <CheckoutStepper active={4} />
@@ -97,9 +96,9 @@ export function OrderReadyScreen({
         <div className="expiry-row">
           <Clock3 size={22} aria-hidden="true" />
           <span>This kiosk screen will reset in</span>
-          <strong className="countdown-ring" role="timer" aria-label={paused ? "Automatic reset paused" : `${secondsRemaining} seconds until reset`}>{paused ? "Paused" : formatCountdown(secondsRemaining)}</strong>
+          <strong className="countdown-ring" role="timer" aria-label={`${secondsRemaining} seconds until reset`}>{formatCountdown(secondsRemaining)}</strong>
         </div>
-        <button className="text-button qr-pause" aria-pressed={paused} onClick={onTogglePause}>{paused ? <Play size={17} /> : <Pause size={17} />}{paused ? "Resume reset" : "Keep this screen open"}</button>
+        <button className="text-button qr-pause" disabled={extended} onClick={onKeepOpen}><Pause size={17} />{extended ? "Extra time added" : "Keep this screen open"}</button>
       </div>
       {finalWarning ? <div className="error-notice order-ready-warning" role="alert">Resetting soon</div> : null}
 

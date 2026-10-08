@@ -52,6 +52,8 @@ export const MAX_ORDER_HISTORY = 20;
 const MAX_ORDER_ID_LENGTH = 100;
 export const KIOSK_IDLE_TIMEOUT_MS = 2 * 60 * 1_000;
 export const KIOSK_IDLE_WARNING_MS = 30 * 1_000;
+/** Upper bound for the QR privacy countdown, even after "keep open". */
+export const QR_MAX_TOTAL_SECONDS = 5 * 60;
 
 const LEGACY_DEFAULT_SHOP_NAMES: readonly string[] = Object.freeze([
   "Gift House",
@@ -664,6 +666,7 @@ type PersistedSession = Readonly<{
   pendingSubmission: PendingOrderSubmission | null;
   currentOrder: Order | null;
   countdownSeconds: number;
+  qrExtended: boolean;
 }>;
 
 export interface KioskStoreState {
@@ -683,7 +686,7 @@ export interface KioskStoreState {
   pendingSubmission: PendingOrderSubmission | null;
   currentOrder: Order | null;
   countdownSeconds: number;
-  isCountdownPaused: boolean;
+  qrExtended: boolean;
   isCreatingOrder: boolean;
   lastCartError: CartError | null;
   lastOrderError: OrderError | null;
@@ -711,9 +714,6 @@ export interface KioskStoreState {
   clearOrderHistory: () => void;
   clearOrderError: () => void;
   tickCountdown: () => void;
-  pauseCountdown: () => void;
-  resumeCountdown: () => void;
-  resetCountdown: () => void;
   keepQrOpen: () => void;
   touchSession: () => void;
   resetSession: () => void;
@@ -741,6 +741,7 @@ function persistedSession(state: KioskStoreState): PersistedSession {
     pendingSubmission: state.pendingSubmission,
     currentOrder: state.currentOrder,
     countdownSeconds: state.countdownSeconds,
+    qrExtended: state.qrExtended,
   };
 }
 
@@ -841,7 +842,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   pendingSubmission: null,
   currentOrder: null,
   countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-  isCountdownPaused: false,
+  qrExtended: false,
   isCreatingOrder: false,
   lastCartError: null,
   lastOrderError: null,
@@ -866,7 +867,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
@@ -916,7 +917,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     let pendingSubmission: PendingOrderSubmission | null = null;
     let currentOrder: Order | null = null;
     let countdownSeconds = settings.qrResetSeconds;
-    let isCountdownPaused = false;
+    let qrExtended = false;
 
     const sessionAge = isRecord(rawSession) && typeof rawSession.lastActivityAt === "number"
       ? Date.now() - rawSession.lastActivityAt
@@ -947,15 +948,17 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       ) {
         currentOrder = null;
       }
+      // The one-time extension is restored with the countdown it produced, so
+      // a reload can neither shorten it nor grant a second extension.
+      qrExtended = rawSession.qrExtended === true;
       countdownSeconds = boundedInteger(
         rawSession.countdownSeconds,
         settings.qrResetSeconds,
         0,
-        settings.qrResetSeconds,
+        qrExtended
+          ? Math.max(settings.qrResetSeconds, QR_MAX_TOTAL_SECONDS)
+          : settings.qrResetSeconds,
       );
-      // A pause is intentionally not restored. Reloading resumes the privacy
-      // countdown so customer details cannot remain on a public kiosk forever.
-      isCountdownPaused = false;
     } else if (isRecord(rawSession)) {
       removeStorage(
         "session",
@@ -993,7 +996,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission,
       currentOrder,
       countdownSeconds,
-      isCountdownPaused,
+      qrExtended,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
@@ -1052,7 +1055,12 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         : {}),
       countdownSeconds:
         state.screen === "qr"
-          ? Math.min(state.countdownSeconds, settings.qrResetSeconds)
+          ? Math.min(
+              state.countdownSeconds,
+              state.qrExtended
+                ? Math.max(settings.qrResetSeconds, QR_MAX_TOTAL_SECONDS)
+                : settings.qrResetSeconds,
+            )
           : settings.qrResetSeconds,
     });
     persistSession(get(), set);
@@ -1354,7 +1362,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       orderHistory,
       screen: "qr",
       countdownSeconds: state.settings.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastOrderError: null,
     });
@@ -1404,11 +1412,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 
   tickCountdown: () => {
     const state = get();
-    if (
-      state.screen !== "qr" ||
-      !state.currentOrder ||
-      state.isCountdownPaused
-    ) {
+    if (state.screen !== "qr" || !state.currentOrder) {
       return;
     }
 
@@ -1421,23 +1425,22 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     persistSession(get(), set);
   },
 
-  pauseCountdown: () => {
-    set({ isCountdownPaused: true });
-    persistSession(get(), set);
-  },
-
-  resumeCountdown: () => {
-    set({ isCountdownPaused: false });
-    persistSession(get(), set);
-  },
-
-  resetCountdown: () => {
-    set({ countdownSeconds: get().settings.qrResetSeconds });
-    persistSession(get(), set);
-  },
-
+  // "Keep this screen open" adds one extra reset period, once, capped so the
+  // customer's details are never on screen for more than ~5 minutes in total.
+  // The countdown keeps running and ends the session as usual.
   keepQrOpen: () => {
-    set({ isCountdownPaused: true });
+    const state = get();
+    if (state.screen !== "qr" || !state.currentOrder || state.qrExtended) {
+      return;
+    }
+    const extended = Math.min(
+      state.countdownSeconds + state.settings.qrResetSeconds,
+      QR_MAX_TOTAL_SECONDS,
+    );
+    set({
+      qrExtended: true,
+      countdownSeconds: Math.max(state.countdownSeconds, extended),
+    });
     persistSession(get(), set);
   },
 
@@ -1456,7 +1459,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: get().settings.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
@@ -1484,7 +1487,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
