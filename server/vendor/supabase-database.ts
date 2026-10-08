@@ -315,6 +315,14 @@ async function configureAccess(
   sql: QueryClient,
   access: VendorDatabaseAccess | undefined,
 ): Promise<ResolvedAccess> {
+  // Transaction-local limits, so a held lock or slow query fails fast even when
+  // the role has no defaults (and behind a transaction-mode pooler).
+  await sql`
+    select
+      set_config('statement_timeout', '15s', true),
+      set_config('lock_timeout', '5s', true),
+      set_config('idle_in_transaction_session_timeout', '15s', true)
+  `;
   const platformSessionHash = access?.platformSessionHash?.trim() || undefined;
   if (platformSessionHash) {
     await setTransactionSetting(sql, "app.session_hash", platformSessionHash);
@@ -1156,7 +1164,7 @@ export async function readSupabaseVendorDatabase(
     });
     return structuredClone(result);
   } catch (error) {
-    if (error instanceof VendorServiceError) throw error;
+    if (isApplicationError(error)) throw error;
     throw backendUnavailable("The Supabase database could not be reached.", error);
   }
 }
@@ -1236,7 +1244,7 @@ export async function readSupabaseKioskSnapshot(
     });
     return structuredClone(result);
   } catch (error) {
-    if (error instanceof VendorServiceError) throw error;
+    if (isApplicationError(error)) throw error;
     throw backendUnavailable("The Supabase database could not be reached.", error);
   }
 }
@@ -1249,6 +1257,11 @@ export async function updateSupabaseVendorDatabase<T>(
     const transactionResult = await getSupabasePostgres().begin(async (transaction) => {
       const resolved = await configureAccess(transaction, access);
       if (resolved.platformSessionHash) {
+        // Platform changes (creating vendors) are rare; serialize them so the
+        // duplicate slug/email checks see each other's writes.
+        await transaction`
+          select pg_advisory_xact_lock(hashtextextended('chapega.platform-mutation', 0))
+        `;
         if (resolved.vendorId) {
           await transaction`
             select revision
@@ -1285,9 +1298,40 @@ export async function updateSupabaseVendorDatabase<T>(
     });
     return transactionResult.value;
   } catch (error) {
-    if (error instanceof VendorServiceError) throw error;
+    if (isApplicationError(error)) throw error;
+    if (isUniqueViolation(error)) {
+      const conflict = new VendorServiceError(
+        409,
+        "ALREADY_EXISTS",
+        "That record was just created by another session. Refresh and try again.",
+      );
+      conflict.cause = error;
+      throw conflict;
+    }
     throw backendUnavailable("The Supabase update could not be completed.", error);
   }
+}
+
+/**
+ * Errors the services raise on purpose (vendor and admin service errors) carry
+ * an HTTP status and must reach the caller unchanged; wrapping them as 503 hid
+ * every validation error raised inside a Supabase transaction.
+ */
+function isApplicationError(error: unknown): boolean {
+  return (
+    error instanceof VendorServiceError ||
+    (error instanceof Error &&
+      typeof (error as { status?: unknown }).status === "number" &&
+      typeof (error as { code?: unknown }).code === "string")
+  );
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { code?: unknown }).code === "23505"
+  );
 }
 
 function scopedSource(source: VendorDatabase, vendorId: string): VendorDatabase {

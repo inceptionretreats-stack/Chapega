@@ -13,6 +13,19 @@ const runtime = globalThis as typeof globalThis & {
 };
 const shared = runtime[runtimeKey] ?? (runtime[runtimeKey] = {});
 
+// Storage calls can run while a tenant's row lock is held, so a stalled
+// request must not hold that lock indefinitely.
+const STORAGE_TIMEOUT_MS = 10_000;
+
+function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  const timeout = AbortSignal.timeout(STORAGE_TIMEOUT_MS);
+  const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+  return fetch(input, { ...init, signal });
+}
+
 export function getSupabaseAdmin(): SupabaseClient {
   if (shared.client) return shared.client;
   const { projectUrl, secretKey } = getSupabaseConfiguration();
@@ -22,6 +35,7 @@ export function getSupabaseAdmin(): SupabaseClient {
       detectSessionInUrl: false,
       persistSession: false,
     },
+    global: { fetch: fetchWithTimeout },
   });
   return shared.client;
 }

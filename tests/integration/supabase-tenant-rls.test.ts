@@ -53,6 +53,17 @@ async function blanketPolicies(sql: postgres.Sql): Promise<string[]> {
   return rows.map((row) => row.name);
 }
 
+/** Closes the app's cached pool so the next query opens fresh sessions. */
+async function resetApplicationPool(): Promise<void> {
+  const { getSupabasePostgres } = await import("@/server/supabase/postgres");
+  await getSupabasePostgres().end({ timeout: 5 });
+  const runtime = globalThis as typeof globalThis & {
+    __chapegaSupabasePostgresRuntime?: { client?: unknown };
+  };
+  const shared = runtime.__chapegaSupabasePostgresRuntime;
+  if (shared) shared.client = undefined;
+}
+
 function ownerContext(
   vendor: VendorIdentity,
   userId: string,
@@ -80,6 +91,7 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
   let root: postgres.Sql;
   let admin: postgres.Sql;
   let appUrl: URL;
+  let testDatabaseUrl = "";
   let blanketBeforeRepair: string[] = [];
   let services: Services;
   let context: VendorAccessContext;
@@ -90,7 +102,8 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
     await root.unsafe(`create database ${databaseName}`);
     const databaseUrl = new URL(ADMIN_URL!);
     databaseUrl.pathname = `/${databaseName}`;
-    admin = postgres(databaseUrl.toString(), clientOptions());
+    testDatabaseUrl = databaseUrl.toString();
+    admin = postgres(testDatabaseUrl, clientOptions());
 
     await admin.unsafe(SUPABASE_STUBS);
     const migrations = readdirSync(MIGRATIONS_DIR)
@@ -326,6 +339,78 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
     } finally {
       await app.end({ timeout: 5 });
     }
+  });
+
+  it("fails fast instead of hanging when the tenant lock is held (AUD-26)", async () => {
+    // Prove the application sets its own timeouts: drop the role-level defaults
+    // that provisioning adds, and reconnect so the pool can't inherit them.
+    await admin.unsafe("alter role chapega_app reset all");
+    await resetApplicationPool();
+    const holderClient = postgres(testDatabaseUrl, clientOptions());
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    const holder = holderClient.begin(async (sql) => {
+      await sql`select revision from private.app_state where vendor_id = ${CHAPEGA_ID} for update`;
+      await held;
+    });
+    try {
+      // Give the blocking transaction time to take the row lock.
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const started = Date.now();
+      const order = services.recordKioskOrder(
+        {
+          idempotencyKey: randomUUID(),
+          kioskName: "Integration Desk",
+          customer: { customerName: "Blocked", customerPhone: "", giftNote: "", orderNote: "" },
+          items: [],
+        },
+        "chapega",
+      );
+      const hung = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("still waiting after 12 s")), 12_000),
+      );
+      await expect(Promise.race([order, hung])).rejects.toMatchObject({ status: 503 });
+      expect(Date.now() - started).toBeLessThan(10_000);
+    } finally {
+      release();
+      await holder;
+      await holderClient.end({ timeout: 5 });
+      const { provisionRuntimeRole } = await import("@/scripts/provision-supabase-role");
+      await provisionRuntimeRole(admin, APP_PASSWORD);
+      await resetApplicationPool();
+    }
+  });
+
+  it("answers a duplicate concurrent vendor creation with 409, not 503 (AUD-26)", async () => {
+    const [owner] = await admin<{ id: string }[]>`
+      select id from private.vendor_users where email = ${OWNER.email}`;
+    const sessionHash = createHash("sha256").update(randomUUID()).digest("hex");
+    await admin`
+      insert into private.vendor_sessions
+        (id_hash, user_id, session_scope, active_vendor_id, created_at, expires_at)
+      values (${sessionHash}, ${owner.id}, 'platform', null, now(), now() + interval '1 hour')
+    `;
+    const { createAdminVendor } = await import("@/server/admin/service");
+    const attempt = (email: string) =>
+      createAdminVendor(
+        { user: { id: owner.id, email: OWNER.email, name: OWNER.name, role: "super_admin" }, sessionHash },
+        {
+          displayName: "Race Shop",
+          slug: "race-shop",
+          ownerName: "Race Owner",
+          ownerEmail: email,
+          ownerWhatsAppNumber: "9876501299",
+          temporaryPassword: "Race-Shop-Owner-Pass-2026",
+        },
+      );
+    const results = await Promise.allSettled([
+      attempt("race-one@integration.test"),
+      attempt("race-two@integration.test"),
+    ]);
+    const statuses = results.map((result) =>
+      result.status === "fulfilled" ? 201 : (result.reason as { status?: number }).status,
+    );
+    expect(statuses.sort()).toEqual([201, 409]);
   });
 
   it("refuses to bootstrap a second super administrator (AUD-3)", async () => {
