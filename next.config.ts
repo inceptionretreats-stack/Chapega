@@ -10,8 +10,56 @@ import {
 const dataBackend = selectVendorDataBackend(process.env);
 const supabaseOrigin =
   dataBackend === "supabase" ? supabaseProjectOrigin(process.env) : undefined;
+const isDevelopment = process.env.NODE_ENV === "development";
+
+/**
+ * Content Security Policy, sent as Report-Only first: violations are logged
+ * in the browser console without blocking anything. Without per-request
+ * nonces (which would force dynamic rendering of every page) Next.js needs
+ * inline scripts for its bootstrap data and inline styles for style props.
+ * Once a release shows no reports, move it to the enforced header.
+ */
+function reportOnlyContentSecurityPolicy(): string {
+  const imageSources = ["'self'", "data:", "blob:", supabaseOrigin].filter(Boolean);
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    `img-src ${imageSources.join(" ")}`,
+    "font-src 'self' data:",
+    `connect-src 'self'${isDevelopment ? " ws: wss:" : ""}`,
+    "media-src 'self'",
+    "worker-src 'self' blob:",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; ");
+}
+
+const securityHeaders = [
+  // Clickjacking: Studio and admin must never be framed.
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+  {
+    key: "Content-Security-Policy-Report-Only",
+    value: reportOnlyContentSecurityPolicy(),
+  },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  // Browsers ignore HSTS over plain HTTP; never pin localhost in development.
+  ...(isDevelopment
+    ? []
+    : [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]),
+];
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/(.*)", headers: securityHeaders }];
+  },
   async rewrites() {
     return {
       beforeFiles: [
