@@ -455,6 +455,64 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
     expect(purged.sessions_deleted).toBeGreaterThanOrEqual(1);
   });
 
+  it("removes customer details from finished orders only after the chosen period (AUD-12)", async () => {
+    const [product] = await admin<{ id: string }[]>`
+      select products.id from private.products products
+      where products.vendor_id = ${CHAPEGA_ID} and products.visible and products.stock > 0
+        and not exists (
+          select 1 from private.product_variants variants
+          where variants.vendor_id = products.vendor_id and variants.product_id = products.id
+        )
+      limit 1`;
+    const order = await services.recordKioskOrder(
+      {
+        idempotencyKey: randomUUID(),
+        kioskName: "Integration Desk",
+        customer: {
+          customerName: "Retention Customer",
+          customerPhone: "98765 43210",
+          giftNote: "Happy birthday",
+          orderNote: "Call first",
+        },
+        items: [{ productId: product.id, quantity: 1, giftWrapped: false }],
+      },
+      "chapega",
+    );
+    await admin`
+      update private.orders
+      set status = 'cancelled',
+          created_at = now() - interval '401 days',
+          updated_at = now() - interval '400 days'
+      where vendor_id = ${CHAPEGA_ID} and id = ${order.id}
+    `;
+
+    await expect(
+      admin`select * from private.redact_order_personal_data(interval '7 days')`,
+    ).rejects.toThrow(/30 days/);
+    const [result] = await admin<{ orders_redacted: number }[]>`
+      select orders_redacted::int from private.redact_order_personal_data(interval '365 days')`;
+    expect(result.orders_redacted).toBeGreaterThanOrEqual(1);
+
+    const [row] = await admin<{
+      customer_name: string; customer_phone: string; gift_note: string;
+      order_note: string; whatsapp_message: string; whatsapp_url: string;
+    }[]>`
+      select customer_name, customer_phone, gift_note, order_note, whatsapp_message, whatsapp_url
+      from private.orders where vendor_id = ${CHAPEGA_ID} and id = ${order.id}`;
+    expect(row).toMatchObject({ customer_name: "", customer_phone: "", gift_note: "", order_note: "" });
+    expect(row.whatsapp_message).not.toContain("Retention Customer");
+    expect(row.whatsapp_url).toMatch(/^https:\/\/wa\.me\/\d+$/);
+
+    const app = postgres(appUrl.toString(), clientOptions());
+    try {
+      await expect(
+        app`select * from private.redact_order_personal_data(interval '365 days')`,
+      ).rejects.toMatchObject({ code: "42501" });
+    } finally {
+      await app.end({ timeout: 5 });
+    }
+  });
+
   it("refuses to bootstrap a second super administrator (AUD-3)", async () => {
     const { bootstrapFirstOwner } = await import("@/scripts/bootstrap-supabase-owner");
     const { derivePasswordHash } = await import("@/server/vendor/crypto");
