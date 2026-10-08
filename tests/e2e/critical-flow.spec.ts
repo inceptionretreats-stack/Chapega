@@ -250,6 +250,10 @@ test("customer completes the kiosk WhatsApp QR handoff and starts a clean order"
   expect(logoutResponse.ok()).toBe(true);
 
   await page.getByRole("button", { name: "Start new order" }).click();
+  // Starting over asks first, so a stray tap cannot wipe the customer's QR.
+  const startOver = page.getByRole("alertdialog", { name: "Start a new order?" });
+  await expect(startOver.getByRole("button", { name: "Keep this QR" })).toBeFocused();
+  await startOver.getByRole("button", { name: "Start new order" }).click();
   await expect(
     page.getByRole("heading", { name: "Find the Perfect Gift" }),
   ).toBeVisible();

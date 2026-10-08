@@ -12,10 +12,12 @@ import {
   RefreshCcw,
   ShieldCheck,
 } from "lucide-react";
+import { useState } from "react";
 import { formatInr } from "@/domain/money";
 import { maskWhatsAppNumber } from "@/domain/whatsapp";
 import type { Order, Product } from "@/types/kiosk";
 import { CheckoutStepper, HandoffStatusRail } from "./checkout-stepper";
+import { ConfirmDialog } from "./confirm-dialog";
 
 type OrderReadyScreenProps = {
   shopName: string;
@@ -60,6 +62,8 @@ export function OrderReadyScreen({
   onStartNewOrder,
 }: OrderReadyScreenProps) {
   const finalWarning = secondsRemaining <= 15;
+  // A stray tap would wipe the customer's QR, so starting over asks first.
+  const [confirmingNewOrder, setConfirmingNewOrder] = useState(false);
   return (
     <main className="order-ready-page">
       <CheckoutStepper active={4} />
@@ -106,7 +110,7 @@ export function OrderReadyScreen({
         <a className="whatsapp-button" href={order.whatsappUrl} target="_blank" rel="noopener noreferrer"><MessageCircle size={20} /> Open WhatsApp <ExternalLink size={16} /></a>
         <button className="quiet-button" onClick={onCopy} aria-live="polite">{copied ? <Check size={17} /> : <Clipboard size={17} />}{copied ? "Message copied" : "Copy message"}</button>
         <span className="qr-actions__or" aria-hidden="true">OR</span>
-        <button className="quiet-button" onClick={onStartNewOrder}><RefreshCcw size={17} /> Start new order</button>
+        <button className="quiet-button" onClick={() => setConfirmingNewOrder(true)}><RefreshCcw size={17} /> Start new order</button>
       </div>
       {copyError ? <div className="error-notice qr-copy-error" role="alert">{copyError}</div> : null}
 
@@ -143,6 +147,19 @@ export function OrderReadyScreen({
           </div>
         </div>
       </details>
+      {confirmingNewOrder ? (
+        <ConfirmDialog
+          title="Start a new order?"
+          description="This clears this QR code and the order details from the screen. Make sure the message has been sent on WhatsApp first."
+          confirmLabel="Start new order"
+          cancelLabel="Keep this QR"
+          onConfirm={() => {
+            setConfirmingNewOrder(false);
+            onStartNewOrder();
+          }}
+          onCancel={() => setConfirmingNewOrder(false)}
+        />
+      ) : null}
     </main>
   );
 }
