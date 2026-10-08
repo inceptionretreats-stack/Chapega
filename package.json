@@ -9,7 +9,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint app components data domain server scripts store types tests vitest.config.mts playwright.config.ts next.config.ts",
+    "lint": "eslint app components data domain server scripts store types tests vitest.config.mts vitest.integration.config.mts vitest.setup.ts instrumentation.ts playwright.config.ts next.config.ts",
     "supabase:import:check": "node --conditions=react-server --import tsx scripts/import-vendor-to-supabase.ts --dry-run",
     "supabase:import": "node --conditions=react-server --import tsx scripts/import-vendor-to-supabase.ts --confirm-import",
     "supabase:provision": "node --import tsx scripts/provision-supabase-role.ts --confirm-provision",
