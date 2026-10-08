@@ -28,8 +28,6 @@ type LoginFieldErrors = Readonly<{
 
 export function VendorLoginForm({ authenticationAvailable, previewCredentials, requestedVendorSlug }: LoginFormProps) {
   const router = useRouter();
-  const [email, setEmail] = useState(previewCredentials?.email ?? "");
-  const [password, setPassword] = useState(previewCredentials?.password ?? "");
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +36,11 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (pending || !authenticationAvailable) return;
+    // Inputs are uncontrolled (preview values are only defaultValue) so text
+    // typed before hydration is never overwritten; read them from the form.
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "");
+    const password = String(form.get("password") ?? "");
     setPending(true);
     setError(null);
     setFieldErrors({});
@@ -131,9 +134,8 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   name="email"
                   type="email"
                   autoComplete="username"
-                  value={email}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
+                  defaultValue={previewCredentials?.email ?? ""}
+                  onChange={() => {
                     if (error) setError(null);
                     if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined }));
                   }}
@@ -157,9 +159,8 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   name="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value);
+                  defaultValue={previewCredentials?.password ?? ""}
+                  onChange={() => {
                     if (error) setError(null);
                     if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: undefined }));
                   }}
