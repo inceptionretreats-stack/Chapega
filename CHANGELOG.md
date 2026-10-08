@@ -67,6 +67,18 @@ the findings of the 2026-10-08 project audit.
   expired sessions and redact customer details from old orders (AUD-12,
   AUD-38).
 - Per-route titles, app icons and a web manifest (AUD-31).
+- Dark mode for Vendor Studio and admin: follows the device, with a
+  System / Light / Dark switch remembered in a cookie. The public kiosk
+  stays light (AUD-32).
+- One accessible confirm dialog for archiving a product, cancelling an
+  order, suspending a shop and starting a new kiosk order from the QR
+  screen (AUD-22).
+- Show / hide password on both sign-in forms and on Add vendor, and
+  placeholders instead of a full-page loader, shown only after 300 ms
+  (AUD-32).
+- Prettier, a lint-staged pre-commit hook, and a pull request template
+  (AUD-34).
+- An all-rights-reserved `LICENSE` (AUD-33).
 - Real-Postgres integration suite for row-level security, run in CI
   (AUD-1, AUD-2).
 - Playwright runs on Chromium, Firefox, WebKit, mobile Chrome and mobile
@@ -100,6 +112,12 @@ the findings of the 2026-10-08 project audit.
 - Focus handling, landmarks and error announcements in the kiosk, Vendor
   Studio and admin (AUD-22).
 - Horizontal page scrolling at tablet widths (AUD-23).
+- Text below 4.5:1 contrast (kiosk step labels, old prices, Studio's
+  secondary text) and touch controls under 44 px (AUD-22).
+- Hover styles stuck on touch screens, and anchor or focus scrolling hidden
+  under sticky headers (AUD-32).
+- Hydration replaced the server-rendered welcome screen, so the hero image
+  only counted as painted after JavaScript ran (AUD-24).
 - Typed login input was overwritten on hydration (AUD-39).
 - Admin navigation destinations and the vendor slug field (AUD-40).
 - The README quick start and its credentials were wrong (AUD-33).

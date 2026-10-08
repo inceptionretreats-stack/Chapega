@@ -32,6 +32,8 @@ The interface keeps the existing ivory, blush, burgundy, and gold brand palette.
 - Stock deduction exactly once at confirmation, with release when a confirmed order is cancelled
 - Shop identity, WhatsApp destination, ordering limits, wrapping fee, QR timeout, low-stock threshold, and open/closed controls
 - Automatic refresh when the tab regains focus and every 30 seconds while it is visible
+- Light and dark themes: follows the device by default, with a System / Light / Dark switch in the sidebar (the admin portal has the same switch in its account menu). The public kiosk always stays light.
+- Archiving, cancelling and suspending ask for confirmation in an accessible dialog
 
 ### Super admin
 
