@@ -140,7 +140,9 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       const timeout = window.setTimeout(() => controller.abort(), 4_000);
       try {
         const response = await fetch(`${kioskApiBase}/bootstrap`, {
-          cache: "no-store",
+          // Revalidate every time: an unchanged catalogue comes back as a
+          // body-less 304 against its ETag instead of the full payload.
+          cache: "no-cache",
           signal: controller.signal,
         });
         if (response.status === 404 || response.status === 403) {
