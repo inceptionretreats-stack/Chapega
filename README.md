@@ -13,7 +13,8 @@ The interface keeps the existing ivory, blush, burgundy, and gold brand palette.
 - Search, category filters, product details, variants, gift wrap, and a five-unit hard limit
 - Server-authoritative order validation and integer-paise total calculation
 - Server-assigned order numbers (`GFT-YYYYMMDD-NNNN`) and idempotent submission with a random key, so a retry or reload never creates a second order
-- Customer name, phone, gift note, order note, and Pay Later / Pay at Counter selection; control and bidirectional-override characters are stripped before the text reaches WhatsApp
+- Optional customer name, phone, gift note and order note; control and bidirectional-override characters are stripped before the text reaches WhatsApp
+- Pay Later / Pay at Counter is the only payment method: nothing is collected online
 - Exact WhatsApp Click-to-Chat message, scannable QR, copy fallback, and a privacy countdown whose pause is capped
 - A privacy notice at `/privacy` (a **draft with placeholders**: complete it before launch)
 - Responsive layouts for kiosk landscape, tablet, and phone sizes
@@ -211,11 +212,11 @@ The local backend is for one persistent Node.js process only. Do not use it on s
    npm run supabase:verify
    ```
 
-4. If you are moving an existing local store, import its catalogue, orders and images. The importer verifies the snapshot checksum, uploads content-addressed runtime images, and replaces normalized rows in one transaction; its checksum ledger makes a repeated run a no-op. Accounts and sessions are never imported.
+4. If you are moving an existing local store, import one shop at a time (`--vendor=` names it, so an import can never replace another tenant): its catalogue, orders and images. The importer verifies the snapshot checksum, uploads content-addressed runtime images, and replaces normalized rows in one transaction; its checksum ledger makes a repeated run a no-op. Accounts and sessions are never imported.
 
    ```bash
-   npm run supabase:import:check
-   npm run supabase:import
+   npm run supabase:import:check -- --vendor=chapega
+   npm run supabase:import -- --vendor=chapega
    ```
 
 5. Create the first platform owner. Set `VENDOR_EMAIL`, `VENDOR_PASSWORD` and `VENDOR_NAME` in `.env.local` (the password must meet the policy above), then run it once for the shop that person owns. It refuses if a super admin already exists.
