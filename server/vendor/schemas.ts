@@ -4,8 +4,28 @@ import { normalizeWhatsAppNumber } from "@/domain/whatsapp";
 import type { ProductImagePath } from "@/types/kiosk";
 
 const trimmed = (maximum: number) => z.string().trim().min(1).max(maximum);
-const optionalTrimmed = (maximum: number) =>
-  z.string().trim().max(maximum).optional().default("");
+
+// Direction overrides/isolates and control characters (tab and line breaks
+// excepted) can spoof or garble the WhatsApp message; unpaired surrogates make
+// URL encoding throw. Customer-facing text is normalised before validation.
+const UNSAFE_CHARACTERS =
+  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F‪-‮⁦-⁩]/g;
+const LONE_SURROGATE =
+  /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+export function safeText(value: string): string {
+  return value.replace(LONE_SURROGATE, "�").replace(UNSAFE_CHARACTERS, "");
+}
+
+const safeTrimmed = (maximum: number) =>
+  z.string().transform(safeText).pipe(trimmed(maximum));
+const safeOptionalTrimmed = (maximum: number) =>
+  z
+    .string()
+    .transform(safeText)
+    .pipe(z.string().trim().max(maximum))
+    .optional()
+    .default("");
 
 export const vendorSlugSchema = z
   .string()
@@ -143,10 +163,10 @@ export const vendorSettingsSchema = z
 
 const customerSchema = z
   .object({
-    customerName: optionalTrimmed(80),
-    customerPhone: optionalTrimmed(30),
-    giftNote: optionalTrimmed(240),
-    orderNote: optionalTrimmed(240),
+    customerName: safeOptionalTrimmed(80),
+    customerPhone: safeOptionalTrimmed(30),
+    giftNote: safeOptionalTrimmed(240),
+    orderNote: safeOptionalTrimmed(240),
   })
   .strict()
   .superRefine((value, context) => {
@@ -170,7 +190,7 @@ export const kioskOrderSubmissionSchema = z
       .max(40)
       .optional(),
     createdAt: z.string().datetime().optional(),
-    kioskName: trimmed(80),
+    kioskName: safeTrimmed(80),
     customer: customerSchema,
     items: z
       .array(

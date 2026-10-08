@@ -191,6 +191,24 @@ describe("vendor input validation", () => {
         items: [{ ...order.items[0], quantity: 6 }],
       }).success,
     ).toBe(false);
+
+    // AUD-36: direction overrides, control characters and broken surrogates
+    // must never reach the WhatsApp message or crash its URL encoding.
+    const unsafe = kioskOrderSubmissionSchema.parse({
+      ...order,
+      kioskName: "Desk‮ A",
+      customer: {
+        ...order.customer,
+        customerName: "Asha\u0085⁦ R",
+        giftNote: "Love \uD800you",
+        orderNote: "Gift\u0007 wrap",
+      },
+    });
+    expect(unsafe.kioskName).toBe("Desk A");
+    expect(unsafe.customer.customerName).toBe("Asha R");
+    expect(unsafe.customer.giftNote).toBe("Love �you");
+    expect(unsafe.customer.orderNote).toBe("Gift wrap");
+    expect(() => encodeURIComponent(unsafe.customer.giftNote)).not.toThrow();
   });
 
   it("accepts only bounded, versioned shop settings", () => {
