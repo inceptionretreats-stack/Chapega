@@ -167,7 +167,7 @@ Vendor endpoints exist in two forms: `/api/vendor/<vendor-slug>/…` acts on tha
 
 - Authenticated and PII-bearing responses are private and `no-store`. Cookie-authenticated mutations reject cross-site requests by comparing `Origin` with the host the browser addressed.
 - Request bodies are size-limited while they stream; an oversized upload is cut off with 413 instead of being buffered.
-- Sign-in is throttled without hard lockouts: a few free attempts per account, then a doubling delay (vendor up to 5 minutes, admin slower), plus per-address and instance-wide caps. Every 429 carries `Retry-After`. Kiosk ordering and catalogue reads are capped per shop.
+- Sign-in is throttled without hard lockouts: a few free attempts per account, then a doubling delay of at most 5 minutes (admin accounts get fewer free attempts), plus per-address and instance-wide caps. Every 429 carries `Retry-After`. Kiosk ordering and catalogue reads are capped per shop.
 - Passwords are hashed with scrypt at the OWASP parameters (N=2^17, r=8, p=1); only hashed session tokens are stored.
 - Responses carry `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`, HSTS outside development, and a **report-only** Content Security Policy. Move the CSP to enforcing once a release shows no violations.
 - Every API response carries an `X-Request-Id`, and server logs are structured JSON lines with the same ID.

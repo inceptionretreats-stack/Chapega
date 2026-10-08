@@ -8,13 +8,20 @@ the findings of the 2026-10-08 project audit.
 
 ### Before you deploy
 
-- Apply the new migrations in order (`npx supabase db push --linked`):
+- **Deploy the app first, then apply the migrations straight away.** The
+  old app saves through `INSERT ... ON CONFLICT` on `private.vendors`, which
+  only the blanket policies allowed. Migration `20261008120000` removes
+  them, so applying it first would fail every order and edit until the new
+  app is live. The new app works on the old schema.
+- Then apply the migrations in order (`npx supabase db push --linked`):
   `20261008120000` (tenant policy repair), `20261008121000` (schema
   hygiene), `20261008122000` (order data retention) and `20261008130000`
-  (auth hardening). Without the last one, Supabase sessions end 30 minutes
-  after sign-in.
-- Re-run `npm run supabase:provision`. It no longer re-grants anything
+  (auth hardening). Until the last one is applied, Supabase sessions end
+  30 minutes after sign-in.
+- Then re-run `npm run supabase:provision`. It no longer grants anything
   and refuses to run while a blanket policy exists.
+- After this release, never roll the app back to an earlier build. Roll
+  forward instead (see `docs/RUNBOOK.md`).
 - On a new database, create the first owner with
   `npm run supabase:bootstrap-owner -- --vendor=<slug>`.
 - Passwords issued from now on must be 15–128 characters and not common
