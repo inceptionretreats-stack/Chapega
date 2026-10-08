@@ -138,17 +138,42 @@ describe("admin status dialog (AUD-22)", () => {
     );
   });
 
+  // Intended change (AUD-22): destructive confirmations are alertdialogs.
+  it("is an alertdialog that states the consequence of suspending", async () => {
+    render(
+      createElement(VendorStatusDialog, {
+        vendor: makeAdminVendor(),
+        onClose: vi.fn(),
+        onSaved: vi.fn(),
+      }),
+    );
+    const dialog = await screen.findByRole("alertdialog", { name: "Suspend vendor" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    expect(dialog).toHaveAccessibleDescription(/stop new kiosk orders/i);
+    expect(dialog).toHaveTextContent(/preserved/i);
+  });
+
+  it("returns focus to the opener after Escape", async () => {
+    render(createElement(AdminPortal, { initialData: makeAdminBootstrap() }));
+    const opener = screen.getAllByRole("button", { name: /suspend chapega\.com/i })[0];
+    await userEvent.click(opener);
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    await waitFor(() => expect(opener).toHaveFocus());
+  });
+
   it("returns focus to a stable region when the opener was removed", async () => {
     const data = makeAdminBootstrap();
     stubFailure(500, { code: "SERVER", message: "x" });
     render(createElement(AdminPortal, { initialData: data }));
     const opener = screen.getAllByRole("button", { name: /suspend chapega\.com/i })[0];
     await userEvent.click(opener);
-    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
     // The opener disappears (for example the list re-renders); closing must not drop focus to <body>.
     opener.remove();
     await userEvent.keyboard("{Escape}");
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     await waitFor(() => expect(document.activeElement).not.toBe(document.body));
   });
 });

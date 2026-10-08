@@ -12,6 +12,10 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
+// Open modals, innermost last. Only the top modal handles Escape and Tab, so
+// a confirmation stacked over the product editor closes on its own.
+const modalStack: symbol[] = [];
+
 function getFocusableElements(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
     (element) => element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0,
@@ -35,6 +39,9 @@ export function useModalFocus<
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    const token = Symbol("modal");
+    modalStack.push(token);
 
     const previousBodyOverflow = document.body.style.overflow;
     const previousBodyPaddingRight = document.body.style.paddingRight;
@@ -60,6 +67,7 @@ export function useModalFocus<
     });
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (modalStack[modalStack.length - 1] !== token) return;
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
@@ -93,6 +101,8 @@ export function useModalFocus<
     document.addEventListener("keydown", handleKeyDown, true);
 
     return () => {
+      const index = modalStack.lastIndexOf(token);
+      if (index !== -1) modalStack.splice(index, 1);
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handleKeyDown, true);
       document.body.style.overflow = previousBodyOverflow;

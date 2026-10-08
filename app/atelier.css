@@ -2438,6 +2438,114 @@ summary:focus-visible,
   width: min(100%, 1060px);
 }
 
+/* Confirmation for destructive actions (shared by Vendor Studio and kiosk). */
+.confirm-dialog-backdrop {
+  position: fixed;
+  z-index: 220;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 20px;
+  background: rgba(79, 38, 48, 0.32);
+  backdrop-filter: blur(3px);
+}
+
+.confirm-dialog {
+  width: min(100%, 440px);
+  padding: 26px 26px 22px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: var(--shadow-float);
+  color: var(--ink);
+  font-family: var(--font-ui);
+}
+
+.confirm-dialog:focus {
+  outline: none;
+}
+
+.confirm-dialog__icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  margin-bottom: 14px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--red-soft);
+  color: var(--red);
+}
+
+.confirm-dialog h2 {
+  color: var(--wine-deep);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.confirm-dialog p {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.confirm-dialog__cancel,
+.confirm-dialog__confirm {
+  display: inline-flex;
+  min-height: 46px;
+  flex: 1 1 140px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 750;
+}
+
+.confirm-dialog__cancel {
+  border-color: var(--line-strong);
+  background: var(--paper);
+  color: var(--wine);
+}
+
+.confirm-dialog__confirm {
+  background: var(--red);
+  color: #fff;
+}
+
+.confirm-dialog__spin {
+  animation: confirm-dialog-spin 900ms linear infinite;
+}
+
+@keyframes confirm-dialog-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .confirm-dialog__cancel:not(:disabled):hover {
+    border-color: var(--wine-soft);
+    background: var(--blush-50);
+  }
+
+  .confirm-dialog__confirm:not(:disabled):hover {
+    background: #8f2e3b;
+  }
+}
+
 .kiosk-idle-panel {
   width: min(100%, 520px);
   padding: clamp(30px, 5vw, 48px);

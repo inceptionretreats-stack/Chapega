@@ -17,6 +17,7 @@ import type {
   VendorProduct,
   VendorProductInput,
 } from "@/types/vendor";
+import { ConfirmDialog } from "../confirm-dialog";
 import { useModalFocus } from "../use-modal-focus";
 import {
   commaSeparated,
@@ -350,18 +351,13 @@ export function VendorProductEditor({
   const drawerRef = useRef<HTMLElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
-  const archiveButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : product?.image), [file, product?.image]);
 
+  // While the archive confirmation is open it sits on top of the modal stack
+  // and handles Escape itself.
   useModalFocus(drawerRef, closeButtonRef, () => {
-    if (pending || archiving) return;
-    // Escape first backs out of the inline archive confirmation.
-    if (confirmArchive) {
-      setConfirmArchive(false);
-      window.requestAnimationFrame(() => archiveButtonRef.current?.focus());
-      return;
-    }
+    if (pending || archiving || confirmArchive) return;
     onClose();
   });
 
@@ -561,10 +557,6 @@ export function VendorProductEditor({
 
   const archive = async () => {
     if (!product || archiving) return;
-    if (!confirmArchive) {
-      setConfirmArchive(true);
-      return;
-    }
     setArchiving(true);
     setError(null);
     setFieldErrors({});
@@ -579,6 +571,8 @@ export function VendorProductEditor({
       );
       onClose();
     } catch (caught) {
+      // Close the confirmation so the editor's error summary takes focus.
+      setConfirmArchive(false);
       setError(caught instanceof Error ? caught.message : "The product could not be archived.");
       setFailureCount((count) => count + 1);
     } finally {
@@ -587,6 +581,7 @@ export function VendorProductEditor({
   };
 
   return (
+    <>
     <div className="vendor-drawer-backdrop" role="presentation" onMouseDown={(event) => {
       if (event.currentTarget === event.target && !pending && !archiving) onClose();
     }}>
@@ -772,10 +767,10 @@ export function VendorProductEditor({
 
             {product ? (
               <div className="vendor-archive-zone">
-                <div><strong>Archive this product</strong><p id="vendor-archive-consequence">{confirmArchive ? "Archiving removes this product from the kiosk and the catalogue and cannot be undone here. Previous order records keep their original product snapshot. Press Escape to keep it." : "It disappears from the kiosk, while previous order records keep their original product snapshot."}</p></div>
-                <button ref={archiveButtonRef} className={confirmArchive ? "vendor-danger" : "vendor-quiet"} type="button" onClick={archive} disabled={pending || archiving} aria-describedby="vendor-archive-consequence">
-                  {archiving ? <LoaderCircle className="vendor-spin" size={17} /> : <Archive size={17} />}
-                  {archiving ? "Archiving…" : confirmArchive ? "Confirm archive" : "Archive"}
+                <div><strong>Archive this product</strong><p id="vendor-archive-consequence">It disappears from the kiosk, while previous order records keep their original product snapshot.</p></div>
+                <button className="vendor-quiet" type="button" onClick={() => setConfirmArchive(true)} disabled={pending || archiving} aria-describedby="vendor-archive-consequence" aria-haspopup="dialog">
+                  <Archive size={17} />
+                  Archive
                 </button>
               </div>
             ) : null}
@@ -791,5 +786,17 @@ export function VendorProductEditor({
         </form>
       </aside>
     </div>
+    {confirmArchive && product ? (
+      <ConfirmDialog
+        title="Archive this product?"
+        description={`“${product.name}” will be removed from the kiosk and the catalogue. This cannot be undone here. Previous order records keep their original product snapshot.`}
+        confirmLabel="Archive product"
+        pendingLabel="Archiving…"
+        pending={archiving}
+        onConfirm={archive}
+        onCancel={() => setConfirmArchive(false)}
+      />
+    ) : null}
+    </>
   );
 }
