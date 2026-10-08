@@ -14,6 +14,7 @@ import {
 } from "@/server/http/request-identity";
 import { logger, serializeError } from "@/server/observability/logger";
 import { VendorServiceError } from "@/server/vendor/errors";
+import { RateLimitExceededError } from "@/server/vendor/rate-limit";
 import { AdminServiceError } from "./errors";
 
 const MAX_JSON_BYTES = 64 * 1024;
@@ -66,10 +67,14 @@ export function adminApiError(error: unknown): NextResponse {
         error: serializeError(error),
       });
     }
-    return adminJsonResponse(
+    const response = adminJsonResponse(
       { error: { code: error.code, message: error.message } },
       error.status,
     );
+    if (error instanceof RateLimitExceededError) {
+      response.headers.set("Retry-After", String(error.retryAfterSeconds));
+    }
+    return response;
   }
   if (error instanceof ZodError) {
     return adminJsonResponse(

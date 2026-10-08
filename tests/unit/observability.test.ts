@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
   sqlQuery: vi.fn(),
   readLocalVendorDatabase: vi.fn(),
   authenticateVendorLogin: vi.fn(),
-  consumeRateLimit: vi.fn(),
+  reserveProgressiveAttempt: vi.fn(),
   resetRateLimit: vi.fn(),
   requireAdmin: vi.fn(),
   updateAdminVendorStatus: vi.fn(),
@@ -25,6 +25,7 @@ vi.mock("@/server/supabase/postgres", () => ({
   getSupabasePostgres: () => mocks.sqlQuery,
 }));
 vi.mock("@/server/vendor/database", () => ({
+  DEFAULT_VENDOR_SLUG: "chapega",
   readLocalVendorDatabase: mocks.readLocalVendorDatabase,
 }));
 vi.mock("@/server/vendor/auth", () => ({
@@ -34,7 +35,7 @@ vi.mock("@/server/vendor/auth", () => ({
 }));
 vi.mock("@/server/vendor/rate-limit", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/server/vendor/rate-limit")>()),
-  consumeRateLimit: mocks.consumeRateLimit,
+  reserveProgressiveAttempt: mocks.reserveProgressiveAttempt,
   resetRateLimit: mocks.resetRateLimit,
 }));
 vi.mock("@/server/admin/auth", () => ({
@@ -64,7 +65,7 @@ beforeEach(() => {
     lines.push({ ...(JSON.parse(line) as LogLine), level });
   });
   mocks.usesSupabaseBackend.mockReturnValue(false);
-  mocks.consumeRateLimit.mockResolvedValue({ allowed: true, retryAfterSeconds: 0 });
+  mocks.reserveProgressiveAttempt.mockResolvedValue({ allowed: true, retryAfterSeconds: 0 });
   mocks.resetRateLimit.mockResolvedValue(undefined);
   resetReadinessCache();
 });
@@ -257,7 +258,7 @@ describe("security event logging", () => {
   });
 
   it("records rate-limit rejections and origin rejections", async () => {
-    mocks.consumeRateLimit.mockResolvedValue({ allowed: false, retryAfterSeconds: 42 });
+    mocks.reserveProgressiveAttempt.mockResolvedValue({ allowed: false, retryAfterSeconds: 42 });
     const limited = await vendorLogin(
       new NextRequest("http://localhost/api/vendor/login", {
         method: "POST",
