@@ -74,16 +74,6 @@ async function signIn(page: Page, email: string, password: string) {
 // test surfaces its real error instead of hanging for the full test timeout.
 const CLEANUP_REQUEST_TIMEOUT_MS = 5_000;
 
-function chooseUnusedOrderNumber(orders: readonly VendorOrder[]): string {
-  const date = new Date().toISOString().slice(0, 10).replaceAll("-", "");
-  const used = new Set(orders.map((order) => order.orderNumber));
-  for (let suffix = 9_999; suffix >= 0; suffix -= 1) {
-    const candidate = `GFT-${date}-${String(suffix).padStart(4, "0")}`;
-    if (!used.has(candidate)) return candidate;
-  }
-  throw new Error("No unused order number remains for today's E2E run.");
-}
-
 async function vendorBootstrap(page: Page): Promise<VendorBootstrap> {
   const response = await page.request.get("/api/vendor/bootstrap");
   expect(response.ok()).toBe(true);
@@ -371,15 +361,12 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
     });
 
     const beforeOrder = await vendorBootstrap(page);
-    const orderNumber = chooseUnusedOrderNumber(beforeOrder.orders);
 
     await test.step("receive, confirm, and cancel a kiosk order", async () => {
       const orderResponse = await page.request.post("/api/kiosk/orders", {
         headers: { origin },
         data: {
           idempotencyKey,
-          orderNumber,
-          createdAt: new Date().toISOString(),
           kioskName: beforeOrder.settings.kioskName,
           customer: {
             customerName: "E2E Vendor Customer",
@@ -400,8 +387,10 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       const preparedOrder = ((await orderResponse.json()) as {
         order: VendorOrder;
       }).order;
+      // The server assigns the display number; use the one it returned.
+      const orderNumber = preparedOrder.orderNumber;
+      expect(orderNumber).toMatch(/^GFT-\d{8}-\d{4,6}$/);
       expect(preparedOrder).toMatchObject({
-        orderNumber,
         status: "prepared",
         inventoryCommitted: false,
       });

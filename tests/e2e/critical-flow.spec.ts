@@ -204,11 +204,11 @@ test("customer completes the kiosk WhatsApp QR handoff and starts a clean order"
   });
 
   const orderNumberElement = page.getByText(
-    /^GFT-\d{8}-\d{4}$/,
+    /^GFT-\d{8}-\d{4,6}$/,
   );
   await expect(orderNumberElement).toBeVisible();
   const orderNumber = (await orderNumberElement.textContent())?.trim();
-  expect(orderNumber).toMatch(/^GFT-\d{8}-\d{4}$/);
+  expect(orderNumber).toMatch(/^GFT-\d{8}-\d{4,6}$/);
 
   const qr = page.getByTestId("whatsapp-qr");
   await expect(qr).toBeVisible();
