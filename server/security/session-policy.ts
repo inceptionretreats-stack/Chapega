@@ -38,13 +38,24 @@ export const SESSION_SETTINGS = {
   adminHours: { name: "ADMIN_SESSION_HOURS", fallback: 8, min: 1, max: 24 },
 } as const satisfies Record<string, Range>;
 
-function numberSetting(range: Range): number {
+/**
+ * Problems with one session setting, or null. Invalid values are refused at
+ * startup (server/config/startup.ts) rather than silently replaced.
+ */
+export function sessionSettingProblem(range: Range): string | null {
   const raw = process.env[range.name]?.trim();
-  if (!raw) return range.fallback;
+  if (!raw) return null;
   const value = Number(raw);
   return Number.isFinite(value) && value >= range.min && value <= range.max
-    ? value
-    : range.fallback;
+    ? null
+    : `${range.name} must be a number between ${range.min} and ${range.max} (got "${raw.slice(0, 40)}").`;
+}
+
+function numberSetting(range: Range): number {
+  const problem = sessionSettingProblem(range);
+  if (problem) throw new Error(problem);
+  const raw = process.env[range.name]?.trim();
+  return raw ? Number(raw) : range.fallback;
 }
 
 function policy(idleMinutes: number, hours: number): SessionPolicy {
