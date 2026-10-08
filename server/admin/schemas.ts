@@ -19,6 +19,57 @@ const newPasswordSchema = z.string().superRefine((value, context) => {
   if (problem) context.addIssue({ code: "custom", message: problem });
 });
 
+/**
+ * Slugs that would collide with fixed routes beside a [vendorSlug] segment
+ * (/vendor/login, /api/vendor/products, /api/kiosk/bootstrap, …) or with
+ * top-level and operational paths. A shop with one of these slugs would
+ * render the static route instead of its Studio or kiosk.
+ */
+export const RESERVED_VENDOR_SLUGS: ReadonlySet<string> = new Set([
+  // Static siblings of [vendorSlug] in app/vendor, app/api/vendor, app/api/kiosk
+  "login",
+  "logout",
+  "select",
+  "bootstrap",
+  "orders",
+  "products",
+  "settings",
+  "uploads",
+  // Top-level route segments and API namespaces
+  "admin",
+  "api",
+  "kiosk",
+  "vendor",
+  "vendors",
+  "vendor-products",
+  "healthz",
+  "readyz",
+  "generated-products",
+  // Reserved for platform features and well-known paths
+  "account",
+  "accounts",
+  "assets",
+  "auth",
+  "chapega",
+  "dashboard",
+  "help",
+  "new",
+  "null",
+  "platform",
+  "public",
+  "register",
+  "signin",
+  "signup",
+  "static",
+  "status",
+  "studio",
+  "support",
+  "system",
+  "team",
+  "undefined",
+  "www",
+]);
+
 export const createAdminVendorSchema = z.object({
   displayName: z.string().trim().min(2).max(80),
   slug: z
@@ -30,6 +81,10 @@ export const createAdminVendorSchema = z.object({
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       "Use lowercase letters, numbers and single hyphens.",
+    )
+    .refine(
+      (value) => !RESERVED_VENDOR_SLUGS.has(value),
+      "This web address is reserved by Chapega. Choose another one.",
     ),
   ownerName: z.string().trim().min(2).max(80),
   ownerEmail: z.string().trim().toLowerCase().email().max(160),
