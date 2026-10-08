@@ -20,6 +20,11 @@ vi.mock("@/server/admin/config", () => ({
   }),
 }));
 vi.mock("@/server/vendor/crypto", () => ({
+  DUMMY_PASSWORD_SALT: "dummy-salt",
+  DUMMY_PASSWORD_HASH: "dummy-hash",
+  // Fixture hashes ("hash") stand for hashes with outdated parameters.
+  passwordHashNeedsRehash: (hash: string) => hash === "hash",
+  derivePasswordHash: async () => ({ salt: "upgraded-salt", hash: "scrypt$upgraded" }),
   randomToken: () => "test-admin-token",
   sha256: (value: string) => `hash:${value}`,
   // The stored hash "matches" the published preview and placeholder passwords
@@ -183,6 +188,23 @@ describe("platform administrator authentication", () => {
       user: { id: adminId, role: "super_admin" },
       sessionHash: "hash:test-admin-token",
     });
+  });
+
+  it("upgrades a hash with outdated parameters after a successful sign-in", async () => {
+    await authenticateAdminLogin("admin@example.com", "CorrectPassword1");
+
+    const admin = (memory.database as VendorDatabase).users.find(
+      (user) => user.id === adminId,
+    );
+    expect(admin).toMatchObject({
+      passwordSalt: "upgraded-salt",
+      passwordHash: "scrypt$upgraded",
+    });
+    // Other accounts are untouched.
+    expect(
+      (memory.database as VendorDatabase).users.find((user) => user.id === vendorUserId)
+        ?.passwordHash,
+    ).toBe("hash");
   });
 
   it("hashes the password outside the serialized local write queue", async () => {

@@ -1,10 +1,22 @@
 import "server-only";
 
 import { z } from "zod";
+import { newPasswordProblem } from "@/server/security/password-policy";
 
 export const adminLoginSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(160),
   password: z.string().min(8).max(200),
+});
+
+/**
+ * New temporary passwords follow the NIST-based policy in
+ * server/security/password-policy.ts (15-128 characters, no composition
+ * rules, common/published values refused). Sign-in schemas keep accepting
+ * existing shorter passwords.
+ */
+const newPasswordSchema = z.string().superRefine((value, context) => {
+  const problem = newPasswordProblem(value);
+  if (problem) context.addIssue({ code: "custom", message: problem });
 });
 
 export const createAdminVendorSchema = z.object({
@@ -22,13 +34,17 @@ export const createAdminVendorSchema = z.object({
   ownerName: z.string().trim().min(2).max(80),
   ownerEmail: z.string().trim().toLowerCase().email().max(160),
   ownerWhatsAppNumber: z.string().trim().min(8).max(24),
-  temporaryPassword: z
-    .string()
-    .min(12)
-    .max(200)
-    .refine((value) => /[a-z]/.test(value), "Add a lowercase letter.")
-    .refine((value) => /[A-Z]/.test(value), "Add an uppercase letter.")
-    .refine((value) => /\d/.test(value), "Add a number."),
+  temporaryPassword: newPasswordSchema,
+}).superRefine((value, context) => {
+  // Context-free problems were already reported on the field itself.
+  if (newPasswordProblem(value.temporaryPassword)) return;
+  const problem = newPasswordProblem(value.temporaryPassword, {
+    email: value.ownerEmail,
+    name: value.ownerName,
+  });
+  if (problem) {
+    context.addIssue({ code: "custom", path: ["temporaryPassword"], message: problem });
+  }
 });
 
 export const updateAdminVendorStatusSchema = z.object({

@@ -7,7 +7,12 @@ import type {
   VendorRecord,
   VendorUserRecord,
 } from "@/server/vendor/database";
-import { verifyPassword } from "@/server/vendor/crypto";
+import { logger, serializeError } from "@/server/observability/logger";
+import {
+  derivePasswordHash,
+  passwordHashNeedsRehash,
+  verifyPassword,
+} from "@/server/vendor/crypto";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { vendorUserFromDatabase } from "@/server/vendor/auth";
 import type { PlatformAdminUser } from "@/types/admin";
@@ -176,6 +181,44 @@ async function credentialsStillValid(
   return current;
 }
 
+type Rehash = Readonly<{ salt: string; hash: string }>;
+
+/** Compute an upgraded hash (outside any transaction) when one is due. */
+async function rehashIfNeeded(
+  password: string,
+  user: CredentialUserRow,
+): Promise<Rehash | null> {
+  return passwordHashNeedsRehash(user.password_hash)
+    ? derivePasswordHash(password)
+    : null;
+}
+
+/**
+ * Store the upgraded hash through private.rehash_own_password (migration
+ * 20261008130000_auth_hardening). It runs in a savepoint so a missing or
+ * failing function only skips the upgrade and never fails the sign-in.
+ */
+async function storeRehash(
+  transaction: postgres.TransactionSql,
+  user: CredentialUserRow,
+  rehash: Rehash,
+): Promise<void> {
+  try {
+    await transaction.savepoint(async (savepoint) => {
+      await savepoint`
+        select private.rehash_own_password(
+          ${user.id}::uuid, ${user.password_hash}, ${rehash.salt}, ${rehash.hash}
+        )
+      `;
+    });
+  } catch (error) {
+    logger.warn("auth.password_rehash_failed", {
+      userId: user.id,
+      error: serializeError(error),
+    });
+  }
+}
+
 async function membershipsForUser(
   sql: QueryClient,
   userId: string,
@@ -280,6 +323,7 @@ export async function authenticateSupabaseVendorLogin(
     candidate?.password_hash ?? input.dummyHash,
   );
   if (!candidate || !candidate.active || !valid) return null;
+  const rehash = await rehashIfNeeded(input.password, candidate);
 
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
@@ -289,6 +333,7 @@ export async function authenticateSupabaseVendorLogin(
       `;
       const user = await credentialsStillValid(transaction, candidate);
       if (!user) return null;
+      if (rehash) await storeRehash(transaction, user, rehash);
       const memberships = await membershipsForUser(transaction, user.id);
       const vendor = await activeVendorForLogin(
         transaction,
@@ -449,6 +494,7 @@ export async function authenticateSupabasePlatformLogin(
   ) {
     return null;
   }
+  const rehash = await rehashIfNeeded(input.password, candidate);
 
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
@@ -458,6 +504,7 @@ export async function authenticateSupabasePlatformLogin(
       `;
       const user = await credentialsStillValid(transaction, candidate);
       if (!user || user.platform_role !== "super_admin") return null;
+      if (rehash) await storeRehash(transaction, user, rehash);
       await transaction`
         delete from private.vendor_sessions
         where user_id = ${user.id} and session_scope = 'platform'

@@ -19,6 +19,8 @@ const state = vi.hoisted(() => ({
   /** Simulates a password rotation that lands while the hash is computed. */
   rotateDuringVerify: false,
   writes: [] as string[],
+  rehashCalls: [] as unknown[][],
+  rehashFails: false,
 }));
 
 const userId = "11111111-1111-4111-8111-111111111111";
@@ -101,9 +103,17 @@ vi.mock("@/server/supabase/postgres", () => ({
             },
           ];
         }
+        if (text.includes("private.rehash_own_password")) {
+          state.rehashCalls.push(values);
+          if (state.rehashFails) throw new Error("function private.rehash_own_password does not exist");
+          return [{ rehash_own_password: true }];
+        }
         if (/^(insert|delete|update)/.test(text)) state.writes.push(text.split(" ").slice(0, 3).join(" "));
         return [];
       };
+      Object.assign(transaction, {
+        savepoint: async <S,>(inner: (savepoint: unknown) => Promise<S>) => inner(transaction),
+      });
       try {
         return await operation(transaction);
       } finally {
@@ -136,6 +146,8 @@ beforeEach(() => {
   state.verifyCalls = [];
   state.rotateDuringVerify = false;
   state.writes = [];
+  state.rehashCalls = [];
+  state.rehashFails = false;
   state.users = new Map([["owner@example.com", baseUser()]]);
 });
 
@@ -157,6 +169,26 @@ describe.each([
     ).resolves.toBeNull();
     expect(state.verifyCalls).toEqual([{ salt: "dummy-salt", hash: "dummy-hash" }]);
     expect(state.transactionsDuringVerify).toEqual([0]);
+  });
+
+  it("upgrades an outdated hash through the own-password function", async () => {
+    await expect(
+      authenticate(input("owner@example.com", "correct-password")),
+    ).resolves.not.toBeNull();
+
+    expect(state.rehashCalls).toHaveLength(1);
+    const [id, expected, salt, hash] = state.rehashCalls[0] ?? [];
+    expect(id).toBe(userId);
+    expect(expected).toBe("user-hash");
+    expect(typeof salt).toBe("string");
+    expect(String(hash)).toMatch(/^scrypt\$N=131072,r=8,p=1\$/);
+  });
+
+  it("still signs in when the rehash cannot be stored", async () => {
+    state.rehashFails = true;
+    await expect(
+      authenticate(input("owner@example.com", "correct-password")),
+    ).resolves.not.toBeNull();
   });
 
   it("refuses to create a session if the password changed during verification", async () => {

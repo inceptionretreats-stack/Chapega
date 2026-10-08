@@ -9,16 +9,24 @@ import {
   updateLocalVendorDatabase,
 } from "@/server/vendor/database";
 import { isRejectedLoginCredential } from "@/server/vendor/config";
-import { randomToken, sha256, verifyPassword } from "@/server/vendor/crypto";
+import {
+  derivePasswordHash,
+  DUMMY_PASSWORD_HASH,
+  DUMMY_PASSWORD_SALT,
+  passwordHashNeedsRehash,
+  randomToken,
+  sha256,
+  verifyPassword,
+} from "@/server/vendor/crypto";
 import type { PlatformAdminUser } from "@/types/admin";
 import { getAdminCredentialConfiguration } from "./config";
 import { AdminServiceError } from "./errors";
 
 export const ADMIN_SESSION_COOKIE = "chapega_admin_session";
 
-const DUMMY_SALT = "v9r5N8vpY2h1bGt0c2FsdA==";
-const DUMMY_HASH =
-  "BNH0RAvPGCKOsKbr6HzrvcwgPGvpAl91FN7vNxwsg6qQX5VYYVE3L89Bg4FPmIz2zxaiZMT7WhHf93PSvtiNGQ==";
+// Unknown accounts verify against a dummy hash with the current parameters.
+const DUMMY_SALT = DUMMY_PASSWORD_SALT;
+const DUMMY_HASH = DUMMY_PASSWORD_HASH;
 
 export type AdminAuthContext = Readonly<{
   user: PlatformAdminUser;
@@ -105,19 +113,28 @@ export async function authenticateAdminLogin(
     verified?.passwordHash ?? DUMMY_HASH,
   );
   if (!verified || !validPassword || !platformAdminUser(verified)) return null;
+  // Upgrade hashes stored with older scrypt parameters (outside the queue).
+  const rehashed = passwordHashNeedsRehash(verified.passwordHash)
+    ? await derivePasswordHash(password)
+    : null;
 
   const user = await updateLocalVendorDatabase(async (database) => {
     // Re-check under the write lock so a concurrent rotation/deactivation wins.
-    const candidate = database.users.find((record) => record.id === verified.id);
+    const index = database.users.findIndex((record) => record.id === verified.id);
+    const current = database.users[index];
     if (
-      !candidate ||
-      candidate.passwordHash !== verified.passwordHash ||
-      candidate.passwordSalt !== verified.passwordSalt
+      !current ||
+      current.passwordHash !== verified.passwordHash ||
+      current.passwordSalt !== verified.passwordSalt
     ) {
       return null;
     }
-    const publicUser = platformAdminUser(candidate);
+    const publicUser = platformAdminUser(current);
     if (!publicUser) return null;
+    const candidate = rehashed
+      ? { ...current, passwordSalt: rehashed.salt, passwordHash: rehashed.hash }
+      : current;
+    database.users[index] = candidate;
 
     const now = Date.now();
     database.sessions = database.sessions.filter(

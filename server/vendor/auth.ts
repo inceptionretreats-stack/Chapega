@@ -16,7 +16,15 @@ import {
   getVendorCredentialConfiguration,
   isRejectedLoginCredential,
 } from "@/server/vendor/config";
-import { randomToken, sha256, verifyPassword } from "@/server/vendor/crypto";
+import {
+  derivePasswordHash,
+  DUMMY_PASSWORD_HASH,
+  DUMMY_PASSWORD_SALT,
+  passwordHashNeedsRehash,
+  randomToken,
+  sha256,
+  verifyPassword,
+} from "@/server/vendor/crypto";
 import { VendorServiceError } from "@/server/vendor/errors";
 import type {
   VendorAccessContext,
@@ -28,9 +36,10 @@ import type {
 
 export const VENDOR_SESSION_COOKIE = "chapega_vendor_session";
 
-const DUMMY_SALT = "v9r5N8vpY2h1bGt0c2FsdA==";
-const DUMMY_HASH =
-  "BNH0RAvPGCKOsKbr6HzrvcwgPGvpAl91FN7vNxwsg6qQX5VYYVE3L89Bg4FPmIz2zxaiZMT7WhHf93PSvtiNGQ==";
+// Unknown accounts verify against a dummy hash with the current parameters,
+// so they cost exactly as much as a real account.
+const DUMMY_SALT = DUMMY_PASSWORD_SALT;
+const DUMMY_HASH = DUMMY_PASSWORD_HASH;
 
 function sessionHours(): number {
   const candidate = Number(process.env.VENDOR_SESSION_HOURS ?? 12);
@@ -211,19 +220,28 @@ export async function authenticateVendorLogin(
     verified?.passwordHash ?? DUMMY_HASH,
   );
   if (!verified || !verified.active || !valid) return null;
+  // Upgrade hashes stored with older scrypt parameters (also outside the queue).
+  const rehashed = passwordHashNeedsRehash(verified.passwordHash)
+    ? await derivePasswordHash(password)
+    : null;
 
   const user = await updateVendorDatabase(async (database) => {
     // Re-check under the write lock: a rotation or deactivation that landed
     // while the hash was computed must win.
-    const candidate = database.users.find((record) => record.id === verified.id);
+    const index = database.users.findIndex((record) => record.id === verified.id);
+    const current = database.users[index];
     if (
-      !candidate ||
-      !candidate.active ||
-      candidate.passwordHash !== verified.passwordHash ||
-      candidate.passwordSalt !== verified.passwordSalt
+      !current ||
+      !current.active ||
+      current.passwordHash !== verified.passwordHash ||
+      current.passwordSalt !== verified.passwordSalt
     ) {
       return null;
     }
+    const candidate = rehashed
+      ? { ...current, passwordSalt: rehashed.salt, passwordHash: rehashed.hash }
+      : current;
+    database.users[index] = candidate;
     const activeVendorId = selectActiveVendorId(
       database,
       candidate.id,
