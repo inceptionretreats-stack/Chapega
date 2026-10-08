@@ -51,6 +51,7 @@ import type {
 } from "@/types/vendor";
 
 const MAX_STORED_ORDERS = 500;
+const STALE_DRAFT_MS = 7 * 24 * 60 * 60 * 1_000;
 const MAX_INVENTORY_STOCK = 100_000;
 
 type VendorActor = VendorAccessContext | VendorUser;
@@ -780,12 +781,23 @@ export async function recordKioskOrder(
         (candidate) => candidate.vendorId === vendor.id,
       ).length;
       if (!usesSupabaseBackend() && tenantOrderCount >= MAX_STORED_ORDERS) {
-        const removableIndex = database.orders.findIndex(
+        // Finished orders go first; then drafts nobody confirmed for a week,
+        // so anonymous floods can't lock real customers out (AUD-20).
+        const staleBefore = Date.now() - STALE_DRAFT_MS;
+        let removableIndex = database.orders.findIndex(
           (candidate) =>
             candidate.vendorId === vendor.id &&
             (candidate.status === "completed" ||
               candidate.status === "cancelled"),
         );
+        if (removableIndex < 0) {
+          removableIndex = database.orders.findIndex(
+            (candidate) =>
+              candidate.vendorId === vendor.id &&
+              candidate.status === "prepared" &&
+              Date.parse(candidate.createdAt) < staleBefore,
+          );
+        }
         if (removableIndex < 0) {
           throw new VendorServiceError(
             507,

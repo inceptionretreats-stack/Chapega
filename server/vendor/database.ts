@@ -515,6 +515,30 @@ export async function readLocalVendorDatabase(): Promise<VendorDatabase> {
   });
 }
 
+const MAX_LOCAL_AUDIT_RECORDS = 5_000;
+
+/**
+ * Bounds the local audit log without letting anonymous kiosk orders push out
+ * account and platform events: kiosk entries are trimmed first, oldest first.
+ */
+export function boundedAudit(
+  records: readonly VendorAuditRecord[],
+  limit: number,
+): VendorAuditRecord[] {
+  let excess = records.length - limit;
+  if (excess <= 0) return [...records];
+  const dropped = new Set<VendorAuditRecord>();
+  for (const record of records) {
+    if (excess === 0) break;
+    if (record.actorId === "kiosk") {
+      dropped.add(record);
+      excess -= 1;
+    }
+  }
+  const kept = records.filter((record) => !dropped.has(record));
+  return kept.slice(Math.max(0, kept.length - limit));
+}
+
 export async function updateLocalVendorDatabase<T>(
   mutation: (draft: VendorDatabase) => T | Promise<T>,
 ): Promise<T> {
@@ -523,7 +547,7 @@ export async function updateLocalVendorDatabase<T>(
     const draft = clone(current);
     pruneExpiredSessions(draft);
     const result = await mutation(draft);
-    draft.audit = draft.audit.slice(-500);
+    draft.audit = boundedAudit(draft.audit, MAX_LOCAL_AUDIT_RECORDS);
     await commitDatabase(draft);
     runtime.state = draft;
     return clone(result);

@@ -466,6 +466,27 @@ describe("vendor service persistence rules", () => {
     }
   });
 
+  it("keeps accepting orders when the local archive is full of stale drafts (AUD-20)", async () => {
+    const template = await recordKioskOrder(submission);
+    const stored = currentDatabase().orders[0];
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1_000).toISOString();
+    currentDatabase().orders = Array.from({ length: 500 }, (_, index) => ({
+      ...structuredClone(stored),
+      id: `stale-${index}`,
+      orderNumber: `GFT-20260901-${String(1_000 + index)}`,
+      idempotencyKey: `stale-${index}`,
+      status: "prepared" as const,
+      createdAt: tenDaysAgo,
+      updatedAt: tenDaysAgo,
+    }));
+
+    const fresh = await recordKioskOrder({ ...submission, idempotencyKey: "after-flood" });
+
+    expect(fresh.id).not.toBe(template.id);
+    expect(currentDatabase().orders).toHaveLength(500);
+    expect(currentDatabase().orders.some((order) => order.id === "stale-0")).toBe(false);
+  });
+
   it("assigns its own order number and ignores the kiosk's suggestion (AUD-37)", async () => {
     const order = await recordKioskOrder({
       ...submission,
