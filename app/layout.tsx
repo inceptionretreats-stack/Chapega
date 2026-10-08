@@ -18,14 +18,11 @@ export const metadata: Metadata = {
     "Browse personalized gifts and prepare a Pay at Counter order for Chapega.com on WhatsApp.",
 };
 
-// Static (the root layout stays prerenderable): tells the browser both colour
-// schemes are supported so a dark system gets a dark canvas before CSS loads.
+// The public kiosk is always light. Vendor Studio and admin override this
+// with THEMEABLE_VIEWPORT so a dark system gets a dark canvas there.
 export const viewport: Viewport = {
-  colorScheme: "light dark",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fff9f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#231a1f" },
-  ],
+  colorScheme: "light",
+  themeColor: "#fff9f2",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

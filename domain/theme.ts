@@ -21,3 +21,16 @@ export function resolveThemeChoice(value: string | null | undefined): ThemeChoic
 export function themeCookieString(choice: ThemeChoice, secure: boolean): string {
   return `${THEME_COOKIE}=${choice}; Path=/; Max-Age=${ONE_YEAR_SECONDS}; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
+
+/**
+ * Viewport hints for the themeable surfaces (Vendor Studio and admin): both
+ * schemes are supported, so a dark system gets a dark canvas before CSS loads.
+ * The public kiosk keeps the root layout's light-only viewport.
+ */
+export const THEMEABLE_VIEWPORT = {
+  colorScheme: "light dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fff9f2" },
+    { media: "(prefers-color-scheme: dark)", color: "#231a1f" },
+  ],
+} as const;

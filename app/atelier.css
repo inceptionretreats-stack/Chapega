@@ -192,11 +192,12 @@
   --shadow-success-1: #1f6d43;
 }
 
-/* Theme selection. Every surface follows the system setting; Vendor Studio
-   and admin may pin a choice with data-theme="light" | "dark" on their route
-   wrapper (read from a cookie on the server, so there is no flash and no
-   inline script). :has() lets that wrapper re-theme the whole document,
-   including the page background and native controls. */
+/* Theme selection. Only Vendor Studio and admin can be dark: their route
+   wrapper carries data-theme="system" | "light" | "dark" (read from a cookie
+   on the server, so there is no flash and no inline script), and :has() lets
+   it re-theme the whole document, including the page background and native
+   controls. The public kiosk has no wrapper and always stays light, because a
+   shop tablet's dark setting is easy to leave on unnoticed. */
 :root {
   color-scheme: light;
   /* Theme-invariant: the QR card stays white so the code scans (see .qr-card). */
@@ -207,7 +208,7 @@
    The two blocks below (system preference, explicit choice) are identical;
    keep them in sync. Text pairs are checked with axe in dark mode. */
 @media (prefers-color-scheme: dark) {
-  :root:not(:has([data-theme="light"])) {
+  :root:has([data-theme="system"]) {
     color-scheme: dark;
 
     /* Surfaces and fills */
