@@ -773,6 +773,10 @@ html:has(.vendor-app-shell) {
   line-height: 1.35;
 }
 
+.vendor-theme-control {
+  margin: 0 13px 14px;
+}
+
 .vendor-signout {
   min-height: 47px;
   padding: 0 13px;

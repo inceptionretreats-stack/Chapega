@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
+import { ThemeRoot } from "@/components/theme-root";
+import { resolveThemeChoice, THEME_COOKIE } from "@/domain/theme";
 import "./vendor.css";
 
 export const metadata: Metadata = {
@@ -7,6 +10,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function VendorLayout({ children }: { children: React.ReactNode }) {
-  return <div className="vendor-route">{children}</div>;
+// Reading the theme cookie keeps this layout dynamic; every studio page is
+// session-protected and already rendered per request.
+export default async function VendorLayout({ children }: { children: React.ReactNode }) {
+  const theme = resolveThemeChoice((await cookies()).get(THEME_COOKIE)?.value);
+  return <ThemeRoot className="vendor-route" initialTheme={theme}>{children}</ThemeRoot>;
 }
