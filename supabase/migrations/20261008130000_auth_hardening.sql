@@ -2,8 +2,27 @@
 --
 -- vendor_users only accepts writes from a live platform-admin session, which
 -- is right for administration but means a user's own successful sign-in can
--- never upgrade their password hash to the current scrypt parameters.
+-- never upgrade their password hash to the current scrypt parameters, and
+-- vendor_sessions had no UPDATE policy at all, so an idle-timeout deadline
+-- could never slide with activity.
 begin;
+
+-- AUD-17: sliding idle timeout. A request may move the expiry of exactly the
+-- session it presented (app.session_hash), only while that session is still
+-- live, and never beyond the longest configurable lifetime (168 h). The app
+-- additionally caps it at created_at + the configured absolute lifetime.
+create policy chapega_sessions_refresh
+  on private.vendor_sessions
+  for update
+  to chapega_app
+  using (
+    id_hash = nullif(current_setting('app.session_hash', true), '')
+    and expires_at > now()
+  )
+  with check (
+    id_hash = nullif(current_setting('app.session_hash', true), '')
+    and expires_at <= created_at + interval '168 hours'
+  );
 
 -- AUD-18: let a signed-in user replace only their own password hash, only
 -- with a modern `scrypt$N=…,r=…,p=…$…` hash, and only if the stored hash is

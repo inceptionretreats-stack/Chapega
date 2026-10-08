@@ -18,6 +18,12 @@ import {
   sha256,
   verifyPassword,
 } from "@/server/vendor/crypto";
+import {
+  adminSessionPolicy,
+  initialSessionExpiry,
+  refreshedSessionExpiry,
+  sessionIsLive,
+} from "@/server/security/session-policy";
 import type { PlatformAdminUser } from "@/types/admin";
 import { getAdminCredentialConfiguration } from "./config";
 import { AdminServiceError } from "./errors";
@@ -33,13 +39,6 @@ export type AdminAuthContext = Readonly<{
   /** A SHA-256 digest, never the raw browser credential. */
   sessionHash: string;
 }>;
-
-function adminSessionHours(): number {
-  const candidate = Number(process.env.ADMIN_SESSION_HOURS ?? 8);
-  return Number.isFinite(candidate) && candidate >= 1 && candidate <= 24
-    ? candidate
-    : 8;
-}
 
 function platformAdminUser(user: {
   id: string;
@@ -80,8 +79,9 @@ export async function authenticateAdminLogin(
   const token = randomToken(32);
   const tokenHash = sha256(token);
   const createdAt = new Date();
+  // Idle deadline; slides with activity up to ADMIN_SESSION_HOURS.
   const expiresAt = new Date(
-    createdAt.getTime() + adminSessionHours() * 60 * 60 * 1_000,
+    initialSessionExpiry(createdAt.getTime(), adminSessionPolicy()),
   );
 
   if (usesSupabaseBackend()) {
@@ -171,27 +171,46 @@ export async function getAdminByToken(
 ): Promise<AdminAuthContext | null> {
   if (!token || !getAdminCredentialConfiguration().available) return null;
   const sessionHash = sha256(token);
+  const rules = adminSessionPolicy();
 
   if (usesSupabaseBackend()) {
     const { getSupabasePlatformUserByToken } = await import(
       "@/server/vendor/supabase-auth"
     );
-    const user = await getSupabasePlatformUserByToken(sessionHash);
+    const user = await getSupabasePlatformUserByToken(sessionHash, rules);
     return user ? { user, sessionHash } : null;
   }
 
   const database = await readLocalVendorDatabase();
+  const now = Date.now();
   const session = database.sessions.find(
     (candidate) =>
       candidate.idHash === sessionHash &&
       candidate.scope === "platform" &&
-      candidate.activeVendorId === null &&
-      Date.parse(candidate.expiresAt) > Date.now(),
+      candidate.activeVendorId === null,
   );
-  if (!session) return null;
+  const times = session
+    ? { createdAt: Date.parse(session.createdAt), expiresAt: Date.parse(session.expiresAt) }
+    : null;
+  if (!session || !times || !sessionIsLive(times, now, rules)) return null;
   const record = database.users.find((candidate) => candidate.id === session.userId);
   const user = record ? platformAdminUser(record) : null;
-  return user ? { user, sessionHash } : null;
+  if (!user) return null;
+
+  // Slide the idle deadline (at most about once a minute per session).
+  const refreshed = refreshedSessionExpiry(times, now, rules);
+  if (refreshed !== null) {
+    await updateLocalVendorDatabase((draft) => {
+      const index = draft.sessions.findIndex(
+        (candidate) => candidate.idHash === sessionHash && candidate.scope === "platform",
+      );
+      const current = draft.sessions[index];
+      if (current) {
+        draft.sessions[index] = { ...current, expiresAt: new Date(refreshed).toISOString() };
+      }
+    });
+  }
+  return { user, sessionHash };
 }
 
 export async function getRequestAdmin(

@@ -47,7 +47,7 @@ export const POST = withRequestContext(async function POST(request: NextRequest)
       httpOnly: true,
       secure: request.nextUrl.protocol === "https:",
       sameSite: "strict",
-      expires: login.expiresAt,
+      // Browser-session cookie: the server enforces idle and absolute expiry.
       path: "/",
       priority: "high",
     });

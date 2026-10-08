@@ -9,6 +9,14 @@ import type {
 } from "@/server/vendor/database";
 import { logger, serializeError } from "@/server/observability/logger";
 import {
+  adminSessionPolicy,
+  refreshedSessionExpiry,
+  sessionIsLive,
+  vendorSessionPolicy,
+  type SessionPolicy,
+  type SessionTimes,
+} from "@/server/security/session-policy";
+import {
   derivePasswordHash,
   passwordHashNeedsRehash,
   verifyPassword,
@@ -420,17 +428,73 @@ export async function destroySupabaseVendorSession(
   }
 }
 
+type SessionTimesRow = {
+  created_at: DateValue;
+  expires_at: DateValue;
+  now: DateValue;
+};
+
+function sessionTimes(row: SessionTimesRow): Readonly<{ times: SessionTimes; now: number }> {
+  return {
+    times: {
+      createdAt: new Date(row.created_at).getTime(),
+      expiresAt: new Date(row.expires_at).getTime(),
+    },
+    now: new Date(row.now).getTime(),
+  };
+}
+
+let refreshDeniedWarningLogged = false;
+
+/**
+ * Slide the session's idle deadline (database clock, capped by the absolute
+ * lifetime). Needs the chapega_sessions_refresh policy from migration
+ * 20261008130000_auth_hardening; runs in a savepoint so a failure never
+ * turns a valid request into an error.
+ */
+async function slideSessionExpiry(
+  transaction: postgres.TransactionSql,
+  tokenHash: string,
+  scope: "vendor" | "platform",
+  row: SessionTimesRow,
+  rules: SessionPolicy,
+): Promise<void> {
+  const { times, now } = sessionTimes(row);
+  const refreshed = refreshedSessionExpiry(times, now, rules);
+  if (refreshed === null) return;
+  try {
+    const updated = await transaction.savepoint(
+      (savepoint) => savepoint<Array<{ id_hash: string }>>`
+        update private.vendor_sessions
+        set expires_at = ${new Date(refreshed).toISOString()}
+        where id_hash = ${tokenHash} and session_scope = ${scope}
+        returning id_hash
+      `,
+    );
+    if (updated.length === 0 && !refreshDeniedWarningLogged) {
+      refreshDeniedWarningLogged = true;
+      logger.warn("auth.session_refresh_denied", {
+        message:
+          "Session expiry could not be extended (row-level security). Apply migration 20261008130000_auth_hardening.",
+      });
+    }
+  } catch (error) {
+    logger.warn("auth.session_refresh_failed", { scope, error: serializeError(error) });
+  }
+}
+
 export async function getSupabaseVendorUserByToken(
   tokenHash: string,
   vendorSlug?: string,
+  rules: SessionPolicy = vendorSessionPolicy(),
 ): Promise<VendorUser | null> {
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
       await setContext(transaction, "app.session_hash", tokenHash);
       const [session] = await transaction<
-        Array<{ user_id: string; active_vendor_id: string }>
+        Array<{ user_id: string; active_vendor_id: string } & SessionTimesRow>
       >`
-        select user_id, active_vendor_id
+        select user_id, active_vendor_id, created_at, expires_at, now() as now
         from private.vendor_sessions
         where id_hash = ${tokenHash}
           and session_scope = 'vendor'
@@ -438,6 +502,8 @@ export async function getSupabaseVendorUserByToken(
         limit 1
       `;
       if (!session) return null;
+      const { times, now } = sessionTimes(session);
+      if (!sessionIsLive(times, now, rules)) return null;
       await setContext(transaction, "app.user_id", session.user_id);
       await setContext(transaction, "app.vendor_id", session.active_vendor_id);
       const [user] = await transaction<CredentialUserRow[]>`
@@ -458,7 +524,10 @@ export async function getSupabaseVendorUserByToken(
           )
         : await vendorById(transaction, session.active_vendor_id);
       if (!vendor || vendor.status !== "active") return null;
-      return publicVendorUser(transaction, user, vendor.id);
+      const publicUser = await publicVendorUser(transaction, user, vendor.id);
+      if (!publicUser) return null;
+      await slideSessionExpiry(transaction, tokenHash, "vendor", session, rules);
+      return publicUser;
     });
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
@@ -535,12 +604,13 @@ export async function authenticateSupabasePlatformLogin(
 
 export async function getSupabasePlatformUserByToken(
   tokenHash: string,
+  rules: SessionPolicy = adminSessionPolicy(),
 ): Promise<PlatformAdminUser | null> {
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
       await setContext(transaction, "app.session_hash", tokenHash);
-      const [session] = await transaction<Array<{ user_id: string }>>`
-        select user_id
+      const [session] = await transaction<Array<{ user_id: string } & SessionTimesRow>>`
+        select user_id, created_at, expires_at, now() as now
         from private.vendor_sessions
         where id_hash = ${tokenHash}
           and session_scope = 'platform'
@@ -549,6 +619,8 @@ export async function getSupabasePlatformUserByToken(
         limit 1
       `;
       if (!session) return null;
+      const { times, now } = sessionTimes(session);
+      if (!sessionIsLive(times, now, rules)) return null;
       await setContext(transaction, "app.user_id", session.user_id);
       const [user] = await transaction<CredentialUserRow[]>`
         select
@@ -560,7 +632,9 @@ export async function getSupabasePlatformUserByToken(
           and platform_role = 'super_admin'
         limit 1
       `;
-      return user ? platformUser(user) : null;
+      if (!user) return null;
+      await slideSessionExpiry(transaction, tokenHash, "platform", session, rules);
+      return platformUser(user);
     });
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
