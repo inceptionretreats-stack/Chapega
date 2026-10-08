@@ -30,6 +30,7 @@ import type {
   VendorProduct,
   VendorSettings as VendorSettingsType,
 } from "@/types/vendor";
+import { backgroundRefreshHeaders } from "@/domain/session-activity";
 import { vendorRequest, VendorClientError } from "./vendor-client";
 import { VendorDashboard } from "./vendor-dashboard";
 import { VendorOrders } from "./vendor-orders";
@@ -41,6 +42,8 @@ type VendorView = "dashboard" | "products" | "orders" | "settings";
 type PortalProps = { initialData: VendorBootstrap };
 
 type RefreshOptions = Readonly<{
+  /** Timer-driven: authenticates without counting as user activity. */
+  background?: boolean;
   announceError?: boolean;
   failureMessage?: string;
   successMessage?: string;
@@ -196,7 +199,10 @@ export function VendorPortal({ initialData }: PortalProps) {
     setRefreshing(true);
     setSyncStatus("syncing");
     try {
-      const next = await vendorRequest<VendorBootstrap>(`${apiBase}/bootstrap`);
+      const next = await vendorRequest<VendorBootstrap>(
+        `${apiBase}/bootstrap`,
+        options.background ? { headers: backgroundRefreshHeaders } : undefined,
+      );
       if (requestSequence !== refreshSequenceRef.current) return false;
       startTransition(() => setData(next));
       setLastSuccessfulSyncAt(Date.now());
@@ -229,7 +235,10 @@ export function VendorPortal({ initialData }: PortalProps) {
     const refreshIfVisible = () => {
       if (document.visibilityState === "visible") void refresh();
     };
-    const timer = window.setInterval(refreshIfVisible, 30_000);
+    // Polling alone must not keep an unattended studio signed in.
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh({ background: true });
+    }, 30_000);
     window.addEventListener("focus", refreshIfVisible);
     return () => {
       window.clearInterval(timer);

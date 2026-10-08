@@ -44,8 +44,13 @@ vi.mock("@/server/vendor/database", () => {
   };
 });
 
-import { authenticateVendorLogin, getVendorUserByToken } from "@/server/vendor/auth";
-import { authenticateAdminLogin, getAdminByToken } from "@/server/admin/auth";
+import {
+  authenticateVendorLogin,
+  getRequestVendorUser,
+  getVendorUserByToken,
+} from "@/server/vendor/auth";
+import { authenticateAdminLogin, getAdminByToken, getRequestAdmin } from "@/server/admin/auth";
+import { backgroundRefreshHeaders } from "@/domain/session-activity";
 
 const vendorId = "00000000-0000-4000-8000-000000000001";
 const userId = "11111111-1111-4111-8111-111111111111";
@@ -187,6 +192,58 @@ describe("platform admin session idle timeout (local adapter)", () => {
     }
     advance(10);
     await expect(getAdminByToken("session-token")).resolves.toBeNull();
+  });
+});
+
+describe("background refreshes are not activity (AUD-17)", () => {
+  function request(path: string, cookie: string, background: boolean) {
+    return new NextRequest(`http://localhost${path}`, {
+      headers: {
+        cookie: `${cookie}=session-token`,
+        ...(background ? backgroundRefreshHeaders : {}),
+      },
+    });
+  }
+
+  it("lets a Studio tab that only polls reach its idle timeout", async () => {
+    await authenticateVendorLogin("owner@example.com", "correct password here");
+    const poll = () =>
+      getRequestVendorUser(request("/api/vendor/bootstrap", "chapega_vendor_session", true));
+
+    // The portal polls every 30 s while visible; nobody touches it.
+    for (let elapsed = 1; elapsed < 30; elapsed += 1) {
+      advance(1);
+      await expect(poll(), `t+${elapsed}m`).resolves.not.toBeNull();
+    }
+    advance(1);
+    await expect(poll()).resolves.toBeNull();
+  });
+
+  it("still slides on a real request between polls", async () => {
+    await authenticateVendorLogin("owner@example.com", "correct password here");
+    advance(20);
+    await expect(
+      getRequestVendorUser(request("/api/vendor/products", "chapega_vendor_session", false)),
+    ).resolves.not.toBeNull();
+
+    advance(25); // 45 min after sign-in, 25 after the last real request
+    await expect(
+      getRequestVendorUser(request("/api/vendor/bootstrap", "chapega_vendor_session", true)),
+    ).resolves.not.toBeNull();
+    advance(6);
+    await expect(
+      getRequestVendorUser(request("/api/vendor/bootstrap", "chapega_vendor_session", true)),
+    ).resolves.toBeNull();
+  });
+
+  it("lets an admin tab that only polls reach its idle timeout", async () => {
+    await authenticateAdminLogin("owner@example.com", "correct password here");
+    const poll = () => getRequestAdmin(request("/api/admin/bootstrap", "chapega_admin_session", true));
+
+    advance(14);
+    await expect(poll()).resolves.not.toBeNull();
+    advance(2);
+    await expect(poll()).resolves.toBeNull();
   });
 });
 

@@ -487,6 +487,7 @@ export async function getSupabaseVendorUserByToken(
   tokenHash: string,
   vendorSlug?: string,
   rules: SessionPolicy = vendorSessionPolicy(),
+  countsAsActivity = true,
 ): Promise<VendorUser | null> {
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
@@ -526,7 +527,9 @@ export async function getSupabaseVendorUserByToken(
       if (!vendor || vendor.status !== "active") return null;
       const publicUser = await publicVendorUser(transaction, user, vendor.id);
       if (!publicUser) return null;
-      await slideSessionExpiry(transaction, tokenHash, "vendor", session, rules);
+      if (countsAsActivity) {
+        await slideSessionExpiry(transaction, tokenHash, "vendor", session, rules);
+      }
       return publicUser;
     });
   } catch (error) {
@@ -605,6 +608,7 @@ export async function authenticateSupabasePlatformLogin(
 export async function getSupabasePlatformUserByToken(
   tokenHash: string,
   rules: SessionPolicy = adminSessionPolicy(),
+  countsAsActivity = true,
 ): Promise<PlatformAdminUser | null> {
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
@@ -633,7 +637,9 @@ export async function getSupabasePlatformUserByToken(
         limit 1
       `;
       if (!user) return null;
-      await slideSessionExpiry(transaction, tokenHash, "platform", session, rules);
+      if (countsAsActivity) {
+        await slideSessionExpiry(transaction, tokenHash, "platform", session, rules);
+      }
       return platformUser(user);
     });
   } catch (error) {

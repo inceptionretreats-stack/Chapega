@@ -124,6 +124,21 @@ describe("Supabase session sliding", () => {
     expect(state.updates).toEqual([]);
   });
 
+  it("authenticates a background refresh without sliding the deadline (AUD-17)", async () => {
+    state.session = session(10, 20);
+    await expect(
+      getSupabaseVendorUserByToken(tokenHash, undefined, vendorRules, false),
+    ).resolves.not.toBeNull();
+    await expect(
+      getSupabasePlatformUserByToken(
+        tokenHash,
+        { idleMs: 15 * MINUTE, absoluteMs: 8 * 60 * MINUTE },
+        false,
+      ),
+    ).resolves.not.toBeNull();
+    expect(state.updates).toEqual([]);
+  });
+
   it("skips the write when the deadline is already current", async () => {
     state.session = session(0, 30);
     await getSupabaseVendorUserByToken(tokenHash, undefined, vendorRules);

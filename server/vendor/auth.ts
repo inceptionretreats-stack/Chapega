@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { isBackgroundRefresh } from "@/domain/session-activity";
 import { usesSupabaseBackend } from "@/server/supabase/config";
 import {
   newAuditRecord,
@@ -324,9 +325,14 @@ export async function destroyVendorSession(token: string): Promise<void> {
   });
 }
 
+/**
+ * `countsAsActivity: false` authenticates without sliding the idle deadline;
+ * timer-driven refreshes use it so an unattended tab still times out.
+ */
 export async function getVendorUserByToken(
   token: string | undefined,
   vendorSlug?: string,
+  { countsAsActivity = true }: { countsAsActivity?: boolean } = {},
 ): Promise<VendorUser | null> {
   if (!token || !getVendorCredentialConfiguration().available) return null;
   const tokenHash = sha256(token);
@@ -334,7 +340,7 @@ export async function getVendorUserByToken(
   if (usesSupabaseBackend()) {
     const { getSupabaseVendorUserByToken } =
       await import("@/server/vendor/supabase-auth");
-    return getSupabaseVendorUserByToken(tokenHash, vendorSlug, rules);
+    return getSupabaseVendorUserByToken(tokenHash, vendorSlug, rules, countsAsActivity);
   }
   const database = await readVendorDatabase();
   const now = Date.now();
@@ -358,7 +364,7 @@ export async function getVendorUserByToken(
   if (!vendorUser) return null;
 
   // Slide the idle deadline (at most about once a minute per session).
-  const refreshed = refreshedSessionExpiry(times, now, rules);
+  const refreshed = countsAsActivity ? refreshedSessionExpiry(times, now, rules) : null;
   if (refreshed !== null) {
     await updateVendorDatabase((draft) => {
       const index = draft.sessions.findIndex(
@@ -380,6 +386,7 @@ export async function getRequestVendorUser(
   return getVendorUserByToken(
     request.cookies.get(VENDOR_SESSION_COOKIE)?.value,
     vendorSlug,
+    { countsAsActivity: !isBackgroundRefresh(request.headers) },
   );
 }
 

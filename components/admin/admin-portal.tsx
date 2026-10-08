@@ -25,6 +25,7 @@ import type {
   AdminVendorMutationResult,
   AdminVendorSummary,
 } from "@/types/admin";
+import { backgroundRefreshHeaders } from "@/domain/session-activity";
 import { AddVendorDialog } from "./add-vendor-dialog";
 import { AdminActivityRail } from "./admin-activity-rail";
 import { adminRequest, AdminClientError } from "./admin-client";
@@ -86,12 +87,16 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
     };
   }, [accountOpen]);
 
-  const refresh = useCallback(async (announce = false) => {
+  // `background`: timer-driven, so it does not count as user activity.
+  const refresh = useCallback(async (announce = false, background = false) => {
     const sequence = refreshSequenceRef.current + 1;
     refreshSequenceRef.current = sequence;
     setRefreshing(true);
     try {
-      const next = await adminRequest<AdminBootstrap>("/api/admin/bootstrap");
+      const next = await adminRequest<AdminBootstrap>(
+        "/api/admin/bootstrap",
+        background ? { headers: backgroundRefreshHeaders } : undefined,
+      );
       if (sequence !== refreshSequenceRef.current) return;
       startTransition(() => setData(next));
       if (announce) setToast({ message: "Platform data refreshed.", tone: "success" });
@@ -116,7 +121,10 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") void refresh();
     };
-    const timer = window.setInterval(refreshWhenVisible, 45_000);
+    // Polling alone must not keep an unattended admin session signed in.
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh(false, true);
+    }, 45_000);
     window.addEventListener("focus", refreshWhenVisible);
     return () => {
       window.clearInterval(timer);

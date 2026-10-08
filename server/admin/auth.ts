@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { isBackgroundRefresh } from "@/domain/session-activity";
 import { usesSupabaseBackend } from "@/server/supabase/config";
 import {
   newAuditRecord,
@@ -166,8 +167,13 @@ export async function authenticateAdminLogin(
   return user ? { user, token, expiresAt } : null;
 }
 
+/**
+ * `countsAsActivity: false` authenticates without sliding the idle deadline;
+ * timer-driven refreshes use it so an unattended tab still times out.
+ */
 export async function getAdminByToken(
   token: string | undefined,
+  { countsAsActivity = true }: { countsAsActivity?: boolean } = {},
 ): Promise<AdminAuthContext | null> {
   if (!token || !getAdminCredentialConfiguration().available) return null;
   const sessionHash = sha256(token);
@@ -177,7 +183,7 @@ export async function getAdminByToken(
     const { getSupabasePlatformUserByToken } = await import(
       "@/server/vendor/supabase-auth"
     );
-    const user = await getSupabasePlatformUserByToken(sessionHash, rules);
+    const user = await getSupabasePlatformUserByToken(sessionHash, rules, countsAsActivity);
     return user ? { user, sessionHash } : null;
   }
 
@@ -198,7 +204,7 @@ export async function getAdminByToken(
   if (!user) return null;
 
   // Slide the idle deadline (at most about once a minute per session).
-  const refreshed = refreshedSessionExpiry(times, now, rules);
+  const refreshed = countsAsActivity ? refreshedSessionExpiry(times, now, rules) : null;
   if (refreshed !== null) {
     await updateLocalVendorDatabase((draft) => {
       const index = draft.sessions.findIndex(
@@ -216,7 +222,9 @@ export async function getAdminByToken(
 export async function getRequestAdmin(
   request: NextRequest,
 ): Promise<AdminAuthContext | null> {
-  return getAdminByToken(request.cookies.get(ADMIN_SESSION_COOKIE)?.value);
+  return getAdminByToken(request.cookies.get(ADMIN_SESSION_COOKIE)?.value, {
+    countsAsActivity: !isBackgroundRefresh(request.headers),
+  });
 }
 
 export async function requireRequestAdmin(
