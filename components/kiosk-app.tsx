@@ -482,16 +482,23 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
   if (!store.hasHydrated || store.tenantKey !== normalizedVendorSlug) {
     if (initialBootstrap) {
       // Server-rendered shell: the real welcome screen (including the LCP hero
-      // image) is in the first HTML; its buttons wake up once hydrated.
+      // image) is in the first HTML; its buttons wake up once hydrated. The
+      // wrapper and key match the live render below, so React keeps these
+      // elements instead of replacing the hero, which would make it a new,
+      // later LCP candidate.
       const { shopName, kioskName, showPreviewLabel } = initialBootstrap.settings;
-      return <WelcomeScreen shopName={shopName} kioskName={kioskName} showPreviewLabel={showPreviewLabel} online onStart={() => undefined} vendorLoginHref={vendorLoginHref} ready={false} />;
+      return (
+        <div className="kiosk-shell kiosk-shell--welcome">
+          <WelcomeScreen key="welcome" shopName={shopName} kioskName={kioskName} showPreviewLabel={showPreviewLabel} online onStart={() => undefined} vendorLoginHref={vendorLoginHref} ready={false} />
+        </div>
+      );
     }
     return <div className="loading-screen"><div className="loading-mark"><Gift size={44} /><span>Preparing this storefront…</span></div></div>;
   }
 
   const renderScreen = () => {
     if (store.screen === "welcome") {
-      return <WelcomeScreen shopName={store.settings.shopName} kioskName={store.settings.kioskName} showPreviewLabel={store.settings.showPreviewLabel} online={online} onStart={store.startShopping} vendorLoginHref={vendorLoginHref} />;
+      return <WelcomeScreen key="welcome" shopName={store.settings.shopName} kioskName={store.settings.kioskName} showPreviewLabel={store.settings.showPreviewLabel} online={online} onStart={store.startShopping} vendorLoginHref={vendorLoginHref} />;
     }
 
     if (store.screen === "catalogue" || store.screen === "product-details") {

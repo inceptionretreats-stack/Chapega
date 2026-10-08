@@ -134,3 +134,23 @@ test.describe("800 × 1280 portrait kiosk", () => {
     await expectNoPageOverflow(page);
   });
 });
+
+test("hydration keeps the server-rendered welcome screen and its hero image (AUD-24)", async ({ page }) => {
+  await seedKiosk(page);
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      (window as unknown as { serverHero?: Element | null }).serverHero =
+        document.querySelector(".welcome-visual img");
+    });
+  });
+  await page.goto("/");
+  // Enabled only once the kiosk store has hydrated and the live screen is up.
+  await expect(page.getByRole("button", { name: /Start Shopping/ })).toBeEnabled();
+
+  // A replaced <img> is a new LCP candidate that paints only after hydration.
+  const kept = await page.evaluate(() => {
+    const hero = (window as unknown as { serverHero?: Element | null }).serverHero;
+    return Boolean(hero) && document.contains(hero ?? null);
+  });
+  expect(kept).toBe(true);
+});
