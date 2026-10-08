@@ -389,8 +389,13 @@
 
 /* Loading skeleton (shown after a short delay; see .skeleton-reveal) */
 
-.admin-skeleton {
+.admin-skeleton,
+.admin-skeleton > .skeleton-reveal__body {
   min-height: 100vh;
+}
+
+/* The shapes live in the aria-hidden body, so the layout grid goes there. */
+.admin-skeleton > .skeleton-reveal__body {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
 }
@@ -435,7 +440,7 @@
 .admin-skeleton__rail { min-height: 280px; border-radius: 14px; }
 
 @media (max-width: 900px) {
-  .admin-skeleton { grid-template-columns: 1fr; }
+  .admin-skeleton > .skeleton-reveal__body { grid-template-columns: 1fr; }
   .admin-skeleton__sidebar { display: none; }
   .admin-skeleton__main { padding-top: 32px; }
   .admin-skeleton__grid { grid-template-columns: 1fr; }

@@ -585,8 +585,13 @@
 
 /* Loading skeleton (shown after a short delay; see .skeleton-reveal) */
 
-.vendor-skeleton {
+.vendor-skeleton,
+.vendor-skeleton > .skeleton-reveal__body {
   min-height: 100vh;
+}
+
+/* The shapes live in the aria-hidden body, so the layout grid goes there. */
+.vendor-skeleton > .skeleton-reveal__body {
   display: grid;
   grid-template-columns: 236px minmax(0, 1fr);
 }
@@ -640,7 +645,8 @@
 .vendor-skeleton__bottom-nav { display: none; }
 
 @media (max-width: 820px) {
-  .vendor-skeleton { grid-template-columns: 1fr; padding-bottom: 76px; }
+  .vendor-skeleton { padding-bottom: 76px; }
+  .vendor-skeleton > .skeleton-reveal__body { grid-template-columns: 1fr; }
   .vendor-skeleton__sidebar { display: none; }
   .vendor-skeleton__main { padding: 18px 20px; }
   .vendor-skeleton__action { width: 44px; }
