@@ -1,13 +1,14 @@
 "use client";
 
 import { LoaderCircle, Plus, Store } from "lucide-react";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type {
   AdminVendorMutationResult,
   CreateAdminVendorInput,
 } from "@/types/admin";
 import { adminRequest, AdminClientError } from "./admin-client";
 import { AdminDialog } from "./admin-dialog";
+import { focusFirstInvalid } from "./admin-shared";
 
 type AddVendorDialogProps = {
   onClose: () => void;
@@ -28,6 +29,18 @@ function vendorSlug(value: string): string {
     .slice(0, 63);
 }
 
+/** Lenient normalisation while typing: keeps a trailing hyphen so "my-shop" can be typed. */
+function slugWhileTyping(value: string): string {
+  return value
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLocaleLowerCase("en-IN")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-/, "")
+    .slice(0, 63);
+}
+
 export function AddVendorDialog({
   onClose,
   onCreated,
@@ -45,6 +58,16 @@ export function AddVendorDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [failureCount, setFailureCount] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // After a failed submit focus the first invalid field, or the error summary
+  // when the failure is not tied to a field.
+  useEffect(() => {
+    if (failureCount === 0) return;
+    focusFirstInvalid(formRef.current, errorRef.current);
+  }, [failureCount]);
 
   const update = <Key extends keyof CreateAdminVendorInput>(
     key: Key,
@@ -68,11 +91,14 @@ export function AddVendorDialog({
     setError(null);
     setFieldErrors({});
     try {
+      // Final normalisation happens here (and on blur), not on every keystroke.
+      const slug = vendorSlug(draft.slug);
+      setDraft((current) => ({ ...current, slug }));
       const result = await adminRequest<AdminVendorMutationResult>(
         "/api/admin/vendors",
         {
           method: "POST",
-          body: JSON.stringify(draft),
+          body: JSON.stringify({ ...draft, slug }),
         },
       );
       onCreated(result);
@@ -90,6 +116,7 @@ export function AddVendorDialog({
       } else {
         setError("The vendor could not be created. Check the connection and try again.");
       }
+      setFailureCount((count) => count + 1);
     } finally {
       setPending(false);
     }
@@ -103,9 +130,9 @@ export function AddVendorDialog({
       busy={pending}
       initialFocusRef={nameRef}
     >
-      <form className="admin-vendor-form" onSubmit={submit}>
+      <form ref={formRef} className="admin-vendor-form" onSubmit={submit}>
         {error ? (
-          <p className="admin-form-error" role="alert">
+          <p ref={errorRef} tabIndex={-1} className="admin-form-error" role="alert">
             {error}
           </p>
         ) : null}
@@ -138,13 +165,17 @@ export function AddVendorDialog({
                 <input
                   value={draft.slug}
                   onChange={(event) => {
-                    setSlugEdited(true);
-                    update("slug", vendorSlug(event.target.value));
+                    const next = slugWhileTyping(event.target.value);
+                    // Clearing the field hands control back to the name.
+                    setSlugEdited(next !== "");
+                    update("slug", next);
                   }}
+                  onBlur={() =>
+                    setDraft((current) => ({ ...current, slug: vendorSlug(current.slug) }))
+                  }
                   required
                   minLength={2}
                   maxLength={63}
-                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
                   spellCheck={false}
                   aria-invalid={Boolean(fieldErrors.slug) || undefined}
                   aria-describedby={fieldErrors.slug ? "admin-vendor-slug-error" : "admin-vendor-slug-help"}

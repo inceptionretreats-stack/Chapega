@@ -106,6 +106,12 @@ export function VendorPortal({ initialData }: PortalProps) {
   const refreshSequenceRef = useRef(0);
   const vendorSlug = data.vendor.slug;
   const apiBase = `/api/vendor/${encodeURIComponent(vendorSlug)}`;
+  // Keep the workspace in the login URL so signing back in returns here.
+  const loginPath = `/vendor/login?vendor=${encodeURIComponent(vendorSlug)}`;
+  // Same rule as /vendor/select: only active memberships of active vendors.
+  const switchableShops = data.user.memberships.filter(
+    (membership) => membership.active && membership.vendor.status === "active",
+  );
   const canManageCatalogue = data.capabilities.manage_catalogue;
   const canManageSettings = data.capabilities.manage_settings;
   const visibleNavigation = navigation.filter((item) =>
@@ -200,7 +206,7 @@ export function VendorPortal({ initialData }: PortalProps) {
     } catch (caught) {
       if (requestSequence !== refreshSequenceRef.current) return false;
       if (caught instanceof VendorClientError && caught.status === 401) {
-        router.replace("/vendor/login");
+        router.replace(loginPath);
         return false;
       }
       setSyncStatus("error");
@@ -217,7 +223,7 @@ export function VendorPortal({ initialData }: PortalProps) {
         setRefreshing(false);
       }
     }
-  }, [apiBase, router, showToast]);
+  }, [apiBase, loginPath, router, showToast]);
 
   useEffect(() => {
     const refreshIfVisible = () => {
@@ -327,7 +333,7 @@ export function VendorPortal({ initialData }: PortalProps) {
         method: "POST",
         body: JSON.stringify({}),
       });
-      router.replace("/vendor/login");
+      router.replace(loginPath);
       router.refresh();
     } catch (caught) {
       setLoggingOut(false);
@@ -356,6 +362,19 @@ export function VendorPortal({ initialData }: PortalProps) {
 
   return (
     <div className="vendor-app-shell">
+      <a
+        className="vendor-skip-link"
+        href="#vendor-main"
+        onClick={(event) => {
+          const target = document.getElementById("vendor-main");
+          if (!target) return;
+          event.preventDefault();
+          target.focus();
+          target.scrollIntoView?.({ block: "start" });
+        }}
+      >
+        Skip to content
+      </a>
       <aside
         ref={vendorSidebarRef}
         id="vendor-sidebar"
@@ -371,9 +390,9 @@ export function VendorPortal({ initialData }: PortalProps) {
           <strong className="vendor-workspace-name">{data.vendor.displayName}</strong>
           <button ref={mobileMenuCloseRef} className="vendor-sidebar-close" type="button" onClick={() => closeMobileMenu()} aria-label="Close navigation"><X size={20} /></button>
         </div>
-        {data.user.memberships.filter((membership) => membership.active).length > 1 || data.user.platformRole === "super_admin" ? (
+        {switchableShops.length > 1 || data.user.platformRole === "super_admin" ? (
           <div className="vendor-workspace-links">
-            {data.user.memberships.filter((membership) => membership.active).length > 1 ? <Link href="/vendor/select"><Store size={16} /> Switch shop</Link> : null}
+            {switchableShops.length > 1 ? <Link href="/vendor/select"><Store size={16} /> Switch shop</Link> : null}
             {data.user.platformRole === "super_admin" ? <Link href="/admin"><LayoutDashboard size={16} /> Platform admin</Link> : null}
           </div>
         ) : null}
@@ -399,7 +418,7 @@ export function VendorPortal({ initialData }: PortalProps) {
           <button ref={mobileMenuButtonRef} className="vendor-mobile-menu" type="button" onClick={() => setMobileMenu(true)} aria-label="Open navigation" aria-expanded={mobileMenu} aria-controls="vendor-sidebar"><Menu size={22} /></button>
           <div className="vendor-topbar-title">
             {view === "dashboard" ? (
-              <><h1>Good morning, {data.user.name}</h1><p>Your kiosk is {data.settings.storeOpen ? "open and ready for customers" : "paused"}.</p></>
+              <><h1>Welcome back, {data.user.name}</h1><p>Your kiosk is {data.settings.storeOpen ? "open and ready for customers" : "paused"}.</p></>
             ) : (
               <><h1>{copy.title}</h1><p>{copy.description}</p></>
             )}
@@ -428,8 +447,9 @@ export function VendorPortal({ initialData }: PortalProps) {
           </div>
         </header>
 
+<main id="vendor-main" className="vendor-content" tabIndex={-1}>
         <div className="vendor-mobile-heading">
-          {view === "dashboard" ? <><h1>Good morning, {data.user.name}</h1><p>{copy.description}</p></> : <><h1>{copy.title}</h1><p>{copy.description}</p></>}
+          {view === "dashboard" ? <><h1>Welcome back, {data.user.name}</h1><p>{copy.description}</p></> : <><h1>{copy.title}</h1><p>{copy.description}</p></>}
         </div>
 
         {view === "dashboard" ? (
@@ -439,18 +459,19 @@ export function VendorPortal({ initialData }: PortalProps) {
           <VendorProducts apiBase={apiBase} products={data.products} lowStockThreshold={data.settings.lowStockThreshold} openAddRequested={openAddRequested} onAddRequestHandled={() => setOpenAddRequested(false)} onProductSaved={commitProduct} onProductArchived={commitArchivedProduct} />
         ) : null}
         {view === "orders" ? (
-          <VendorOrders apiBase={apiBase} orders={data.orders} focusOrderId={focusOrderId} onOrderSaved={commitOrder} />
+          <VendorOrders apiBase={apiBase} orders={data.orders} focusOrderId={focusOrderId} onFocusOrderHandled={() => setFocusOrderId(null)} onOrderSaved={commitOrder} />
         ) : null}
         {view === "settings" ? (
           <VendorSettings apiBase={apiBase} settings={data.settings} onSettingsSaved={commitSettings} />
         ) : null}
+        </main>
       </div>
 
       <nav className="vendor-bottom-nav" aria-label="Mobile vendor navigation" inert={mobileLayout && mobileMenu ? true : undefined}>
         <button type="button" className={view === "dashboard" ? "is-selected" : ""} onClick={() => selectView("dashboard")} aria-pressed={view === "dashboard"}><Home size={20} /><span>Home</span></button>
         <button type="button" className={view === "orders" ? "is-selected" : ""} onClick={() => selectView("orders")} aria-pressed={view === "orders"}><ShoppingBag size={20} /><span>Orders</span>{activeOrders ? <b aria-label={`${activeOrders} active orders`}>{activeOrders}</b> : null}</button>
         {canManageCatalogue ? <button type="button" className={view === "products" ? "is-selected" : ""} onClick={() => selectView("products")} aria-pressed={view === "products"}><Boxes size={20} /><span>Products</span></button> : null}
-        {canManageSettings ? <button type="button" className={view === "settings" ? "is-selected" : ""} onClick={() => selectView("settings")} aria-pressed={view === "settings"}><Settings size={20} /><span>More</span></button> : null}
+        {canManageSettings ? <button type="button" className={view === "settings" ? "is-selected" : ""} onClick={() => selectView("settings")} aria-pressed={view === "settings"}><Settings size={20} /><span>Settings</span></button> : null}
       </nav>
 
       <div className="vendor-toast-region" aria-live="polite" aria-atomic="true">

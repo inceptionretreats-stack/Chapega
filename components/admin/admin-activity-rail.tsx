@@ -2,7 +2,7 @@ import {
   Boxes,
   Package,
   Store,
-  StoreIcon,
+  CirclePlus,
   UserRoundPlus,
 } from "lucide-react";
 import type { AdminActivityItem } from "@/types/admin";
@@ -17,7 +17,7 @@ function ActivityIcon({ kind }: { kind: AdminActivityItem["kind"] }) {
         : kind === "account"
           ? UserRoundPlus
           : kind === "vendor_created"
-            ? StoreIcon
+            ? CirclePlus
             : Store;
   return <Icon size={19} strokeWidth={1.8} />;
 }

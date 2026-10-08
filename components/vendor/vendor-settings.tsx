@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { VendorSettings as VendorSettingsType } from "@/types/vendor";
+import { buildWhatsAppUrl } from "@/domain/whatsapp";
 import { vendorRequest } from "./vendor-client";
 
 type SettingsProps = {
@@ -102,7 +103,18 @@ export function VendorSettings({ apiBase = "/api/vendor", settings, onSettingsSa
     }
   };
 
-  const whatsappDigits = draft.ownerWhatsAppNumber.replace(/\D/g, "");
+  // Build the test link exactly like the real order handoff (country code
+  // applied, number validated); no link while the number is not usable.
+  let whatsappTestUrl: string | undefined;
+  try {
+    whatsappTestUrl = buildWhatsAppUrl({
+      rawNumber: draft.ownerWhatsAppNumber,
+      defaultCountryCode: draft.defaultCountryCode,
+      message: "Hello Chapega.com, this is a Vendor Studio connection test.",
+    });
+  } catch {
+    whatsappTestUrl = undefined;
+  }
 
   return (
     <form className="vendor-workspace vendor-settings-view" onSubmit={save}>
@@ -132,7 +144,7 @@ export function VendorSettings({ apiBase = "/api/vendor", settings, onSettingsSa
               <label className="vendor-field"><span>Country code</span><span className="vendor-country-input"><b>+</b><input value={draft.defaultCountryCode} onChange={(event) => update("defaultCountryCode", event.target.value.replace(/\D/g, "").slice(0, 3))} inputMode="numeric" required /></span></label>
               <label className="vendor-field"><span>Owner WhatsApp number</span><input value={draft.ownerWhatsAppNumber} onChange={(event) => update("ownerWhatsAppNumber", event.target.value)} inputMode="tel" maxLength={24} required /></label>
               <div className="vendor-settings-note vendor-field--full"><ShieldCheck size={18} /><p>The kiosk prepares the exact message, but the customer still reviews and taps Send in WhatsApp. A QR scan alone is never reported as delivered.</p></div>
-              <div className="vendor-field--full"><a className="vendor-secondary vendor-inline-link" href={whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent("Hello Chapega.com, this is a Vendor Studio connection test.")}` : undefined} target="_blank" rel="noopener noreferrer" aria-disabled={!whatsappDigits}><MessageCircle size={17} /> Test WhatsApp destination <ExternalLink size={14} /></a></div>
+              <div className="vendor-field--full"><a className="vendor-secondary vendor-inline-link" href={whatsappTestUrl} target="_blank" rel="noopener noreferrer" aria-disabled={!whatsappTestUrl}><MessageCircle size={17} /> Test WhatsApp destination <ExternalLink size={14} /></a></div>
             </div>
           </section>
 

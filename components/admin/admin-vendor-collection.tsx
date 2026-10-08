@@ -47,7 +47,7 @@ export function AdminVendorCollection({
   }, [query, status, vendors]);
 
   return (
-    <section className="admin-vendors" id="vendor-management" aria-labelledby="admin-vendors-title">
+    <section className="admin-vendors" id="vendor-management" tabIndex={-1} aria-labelledby="admin-vendors-title">
       <header className="admin-vendors__header">
         <div>
           <h2 id="admin-vendors-title">Vendors</h2>
@@ -87,14 +87,14 @@ export function AdminVendorCollection({
       </p>
 
       {filtered.length ? (
-        <>
+        <div id="vendor-accounts" tabIndex={-1} role="group" aria-label="Vendor owner accounts">
           <div className="admin-vendor-table-wrap">
             <table className="admin-vendor-table">
               <caption className="sr-only">Platform vendors</caption>
               <thead>
                 <tr>
                   <th scope="col">Vendor</th>
-                  <th scope="col" id="vendor-accounts">Owner</th>
+                  <th scope="col">Owner</th>
                   <th scope="col">Store status</th>
                   <th scope="col">Products</th>
                   <th scope="col">Orders</th>
@@ -153,7 +153,7 @@ export function AdminVendorCollection({
               </li>
             ))}
           </ul>
-        </>
+        </div>
       ) : (
         <div className="admin-empty-state">
           <Search size={25} aria-hidden="true" />

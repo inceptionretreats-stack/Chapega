@@ -1,6 +1,7 @@
 import { Store } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { VendorSignOutButton } from "@/components/vendor/vendor-sign-out-button";
 import { getCurrentVendorUser } from "@/server/vendor/auth";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +33,11 @@ export default async function VendorSelectPage() {
             ))}
           </ul>
         ) : (
-          <div className="vendor-inline-error" role="status">No active vendor workspace is assigned to this account.</div>
+          <>
+            <div className="vendor-inline-error" role="status">No active vendor workspace is assigned to this account.</div>
+            <VendorSignOutButton />
+            <Link className="vendor-login-back" href="/">Back to kiosk</Link>
+          </>
         )}
       </section>
     </main>

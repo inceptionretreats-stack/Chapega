@@ -42,6 +42,39 @@ export function AdminAccountAvatar() {
   );
 }
 
+/**
+ * Move focus to the first field marked invalid inside `root`; when no field is
+ * invalid (a non-field failure) fall back to the error summary.
+ */
+export function focusFirstInvalid(
+  root: ParentNode | null,
+  fallback: HTMLElement | null,
+): void {
+  const field = root?.querySelector<HTMLElement>(
+    '[aria-invalid="true"]:not(:disabled)',
+  );
+  (field ?? fallback)?.focus();
+}
+
+/** Skip link that also moves focus to its target (anchor jumps alone do not in every browser). */
+export function AdminSkipLink({ targetId }: { targetId: string }) {
+  return (
+    <a
+      className="admin-skip-link"
+      href={`#${targetId}`}
+      onClick={(event) => {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        event.preventDefault();
+        target.focus();
+        target.scrollIntoView?.({ block: "start" });
+      }}
+    >
+      Skip to main content
+    </a>
+  );
+}
+
 export function relativeAdminTime(value: string): string {
   const elapsed = Math.max(0, Date.now() - Date.parse(value));
   const minutes = Math.floor(elapsed / 60_000);

@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { AdminSkipLink, focusFirstInvalid } from "./admin-shared";
 
 type AdminLoginFormProps = {
   authenticationAvailable: boolean;
@@ -30,16 +31,29 @@ export function AdminLoginForm({
   previewCredentials,
 }: AdminLoginFormProps) {
   const router = useRouter();
-  const [email, setEmail] = useState(previewCredentials?.email ?? "");
-  const [password, setPassword] = useState(previewCredentials?.password ?? "");
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<LoginFieldErrors>({});
+  const [failureCount, setFailureCount] = useState(0);
+
+  // After a failed submit, move focus to the first invalid field (or the
+  // alert) once the inputs are re-enabled, so focus never drops to <body>.
+  useEffect(() => {
+    if (failureCount === 0) return;
+    focusFirstInvalid(formRef.current, errorRef.current);
+  }, [failureCount]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (pending || !authenticationAvailable) return;
+    // Inputs are uncontrolled (preview values are only defaultValue) so text
+    // typed before hydration is never overwritten; read them from the form.
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("email") ?? "");
+    const password = String(form.get("password") ?? "");
     setPending(true);
     setError(null);
     setFieldErrors({});
@@ -61,19 +75,23 @@ export function AdminLoginForm({
           password: result?.error?.fields?.password?.[0],
         });
         setError(result?.error?.message ?? "Unable to sign in. Please try again.");
+        setFailureCount((count) => count + 1);
         return;
       }
       router.replace("/admin");
       router.refresh();
     } catch {
       setError("The platform service is unavailable. Check the connection and try again.");
+      setFailureCount((count) => count + 1);
     } finally {
       setPending(false);
     }
   };
 
   return (
-    <main className="admin-login-shell">
+    <>
+    <AdminSkipLink targetId="admin-login-main" />
+    <main id="admin-login-main" tabIndex={-1} className="admin-login-shell">
       <section className="admin-login-art" aria-label="Chapega.com platform administration">
         <div className="admin-login-brand">
           <span className="admin-wordmark">Chapega.com</span>
@@ -108,7 +126,7 @@ export function AdminLoginForm({
             </p>
           ) : null}
 
-          <form onSubmit={submit} aria-busy={pending}>
+          <form ref={formRef} onSubmit={submit} aria-busy={pending}>
             <label className="admin-field">
               <span>Email address</span>
               <span className="admin-login-input">
@@ -118,9 +136,8 @@ export function AdminLoginForm({
                   name="email"
                   type="email"
                   autoComplete="username"
-                  value={email}
-                  onChange={(event) => {
-                    setEmail(event.target.value);
+                  defaultValue={previewCredentials?.email ?? ""}
+                  onChange={() => {
                     setError(null);
                     setFieldErrors((current) => ({ ...current, email: undefined }));
                   }}
@@ -128,7 +145,7 @@ export function AdminLoginForm({
                   required
                   maxLength={160}
                   disabled={pending || !authenticationAvailable}
-                  aria-invalid={Boolean(error || fieldErrors.email)}
+                  aria-invalid={Boolean(fieldErrors.email)}
                   aria-describedby={fieldErrors.email ? "admin-email-error" : error ? "admin-login-error" : undefined}
                 />
               </span>
@@ -144,9 +161,8 @@ export function AdminLoginForm({
                   name="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
-                  value={password}
-                  onChange={(event) => {
-                    setPassword(event.target.value);
+                  defaultValue={previewCredentials?.password ?? ""}
+                  onChange={() => {
                     setError(null);
                     setFieldErrors((current) => ({ ...current, password: undefined }));
                   }}
@@ -155,7 +171,7 @@ export function AdminLoginForm({
                   minLength={8}
                   maxLength={200}
                   disabled={pending || !authenticationAvailable}
-                  aria-invalid={Boolean(error || fieldErrors.password)}
+                  aria-invalid={Boolean(fieldErrors.password)}
                   aria-describedby={fieldErrors.password ? "admin-password-error" : error ? "admin-login-error" : undefined}
                 />
                 <button
@@ -171,7 +187,7 @@ export function AdminLoginForm({
               {fieldErrors.password ? <small id="admin-password-error">{fieldErrors.password}</small> : null}
             </label>
 
-            {error ? <p id="admin-login-error" className="admin-form-error" role="alert">{error}</p> : null}
+            {error ? <p id="admin-login-error" ref={errorRef} tabIndex={-1} className="admin-form-error" role="alert">{error}</p> : null}
 
             <button className="admin-primary admin-login-submit" type="submit" disabled={pending || !authenticationAvailable}>
               {pending ? <LoaderCircle className="admin-spin" size={19} /> : <ShieldCheck size={19} />}
@@ -192,5 +208,6 @@ export function AdminLoginForm({
         </div>
       </section>
     </main>
+    </>
   );
 }

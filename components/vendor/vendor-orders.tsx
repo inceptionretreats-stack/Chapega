@@ -13,7 +13,7 @@ import {
   ShoppingBag,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatInr } from "@/domain/money";
 import {
   getNextVendorOrderStatus,
@@ -31,10 +31,12 @@ type OrdersProps = {
   apiBase?: string;
   orders: readonly VendorOrder[];
   focusOrderId: string | null;
+  /** Called once the requested order has been selected so the request is not replayed. */
+  onFocusOrderHandled?: () => void;
   onOrderSaved: (order: VendorOrder, message: string) => void;
 };
 
-export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, onOrderSaved }: OrdersProps) {
+export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, onFocusOrderHandled, onOrderSaved }: OrdersProps) {
   const [scope, setScope] = useState<"active" | "all">("active");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | VendorOrderStatus>("all");
@@ -42,6 +44,12 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
   const [pending, setPending] = useState(false);
   const [confirmCancelOrderId, setConfirmCancelOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [focusAfterSave, setFocusAfterSave] = useState(false);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const listHeadingRef = useRef<HTMLHeadingElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const ordersAtSaveRef = useRef<readonly VendorOrder[] | null>(null);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -72,6 +80,38 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
     selected && confirmCancelOrderId === selected.id,
   );
 
+  // The requested order is consumed by the initial selection above.
+  useEffect(() => {
+    if (focusOrderId) onFocusOrderHandled?.();
+  }, [focusOrderId, onFocusOrderHandled]);
+
+  // Escape backs out of the inline cancellation confirmation and returns
+  // focus to the button that started it.
+  useEffect(() => {
+    if (!confirmCancelOrderId) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      event.preventDefault();
+      setConfirmCancelOrderId(null);
+      window.requestAnimationFrame(() => cancelButtonRef.current?.focus());
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [confirmCancelOrderId]);
+
+  // The action button that was clicked is disabled (or removed) while saving,
+  // which drops focus to <body>. Land on the order detail once the saved order
+  // arrives, or on the list heading if no detail remains.
+  useEffect(() => {
+    if (!focusAfterSave) return;
+    (detailHeadingRef.current ?? listHeadingRef.current)?.focus();
+    if (ordersAtSaveRef.current !== orders) setFocusAfterSave(false);
+  }, [focusAfterSave, orders]);
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
+
   const transition = async (status: VendorOrderStatus) => {
     if (!selected || pending) return;
     setPending(true);
@@ -81,11 +121,13 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
         method: "PATCH",
         body: JSON.stringify({ status, version: selected.version }),
       });
+      ordersAtSaveRef.current = orders;
       onOrderSaved(
         result.order,
         `Order ${selected.orderNumber} is now ${VENDOR_ORDER_LABELS[status].toLowerCase()}.`,
       );
       setConfirmCancelOrderId(null);
+      setFocusAfterSave(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The order could not be updated.");
     } finally {
@@ -104,11 +146,11 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
         <label className="vendor-select-field"><span className="sr-only">Filter by status</span><select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as "all" | VendorOrderStatus); setConfirmCancelOrderId(null); }}><option value="all">All statuses</option>{Object.entries(VENDOR_ORDER_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={17} /></label>
       </section>
 
-      {error ? <div className="vendor-inline-error" role="alert">{error}</div> : null}
+      {error ? <div ref={errorRef} tabIndex={-1} className="vendor-inline-error" role="alert">{error}</div> : null}
 
       <div className={`vendor-orders-grid${selected ? " has-selection" : ""}`}>
         <section className="vendor-panel vendor-order-list" aria-labelledby="order-list-title">
-          <header className="vendor-panel-header"><div><h2 id="order-list-title">{scope === "active" ? "Active queue" : "Order history"}</h2><p>{filtered.length} {filtered.length === 1 ? "order" : "orders"} in this view</p></div></header>
+          <header className="vendor-panel-header"><div><h2 id="order-list-title" ref={listHeadingRef} tabIndex={-1}>{scope === "active" ? "Active queue" : "Order history"}</h2><p>{filtered.length} {filtered.length === 1 ? "order" : "orders"} in this view</p></div></header>
           {filtered.length ? (
             <ul>
               {filtered.map((order) => (
@@ -130,7 +172,7 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
         {selected ? (
           <aside className="vendor-panel vendor-order-detail" aria-labelledby="order-detail-title">
             <header className="vendor-order-detail-header">
-              <div><p>Order detail</p><h2 id="order-detail-title">{selected.orderNumber}</h2><span>{formatVendorDate(selected.createdAt)} · {selected.kioskName}</span></div>
+              <div><p>Order detail</p><h2 id="order-detail-title" ref={detailHeadingRef} tabIndex={-1}>{selected.orderNumber}</h2><span>{formatVendorDate(selected.createdAt)} · {selected.kioskName}</span></div>
               <VendorOrderStatusBadge status={selected.status} />
             </header>
 
@@ -185,7 +227,14 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
                     {pending ? "Updating…" : nextStatus === "confirmed" ? "Confirm order" : `Mark as ${VENDOR_ORDER_LABELS[nextStatus].toLowerCase()}`}
                   </button>
                 ) : null}
-                <button className={confirmingSelectedCancellation ? "vendor-danger" : "vendor-quiet"} type="button" onClick={() => confirmingSelectedCancellation ? transition("cancelled") : setConfirmCancelOrderId(selected.id)} disabled={pending}>
+                {confirmingSelectedCancellation ? (
+                  <p id="vendor-cancel-consequence" className="vendor-field-help">
+                    {selected.inventoryCommitted
+                      ? "Cancelling restores this order’s stock to the catalogue and cannot be undone. Press Escape to keep the order."
+                      : "No stock was reserved for this order. Cancelling cannot be undone. Press Escape to keep the order."}
+                  </p>
+                ) : null}
+                <button ref={cancelButtonRef} className={confirmingSelectedCancellation ? "vendor-danger" : "vendor-quiet"} type="button" onClick={() => confirmingSelectedCancellation ? transition("cancelled") : setConfirmCancelOrderId(selected.id)} disabled={pending} aria-describedby={confirmingSelectedCancellation ? "vendor-cancel-consequence" : undefined}>
                   <X size={17} /> {confirmingSelectedCancellation ? "Confirm cancellation" : "Cancel order"}
                 </button>
               </footer>

@@ -77,6 +77,7 @@ export function VendorProducts({
           tags: product.tags,
           recipientTags: product.recipientTags,
           occasionTags: product.occasionTags,
+          variants: product.variants ?? [],
           preparationTime: product.preparationTime,
           giftWrapEligible: product.giftWrapEligible,
           visible: !product.visible,
