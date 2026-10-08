@@ -377,6 +377,60 @@
   font-size: 12px;
 }
 
+/* Loading skeleton (shown after a short delay; see .skeleton-reveal) */
+
+.admin-skeleton {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+
+.admin-skeleton__sidebar {
+  padding: 32px 15px;
+  border-right: 1px solid #e5d5ca;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.admin-skeleton__brand { height: 58px; margin-bottom: 22px; }
+.admin-skeleton__nav { height: 50px; }
+
+.admin-skeleton__main {
+  padding: 96px clamp(20px, 3vw, 44px) 40px;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+}
+
+.admin-skeleton__title { width: min(460px, 80%); height: 60px; }
+.admin-skeleton__lede { width: min(420px, 70%); height: 18px; }
+.admin-skeleton__band { height: 118px; margin-top: 12px; border-radius: 14px; }
+
+.admin-skeleton__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 18px;
+}
+
+.admin-skeleton__panel {
+  padding: 22px;
+  border: 1px solid #e5d5ca;
+  border-radius: 14px;
+  display: grid;
+  gap: 14px;
+}
+
+.admin-skeleton__row { height: 56px; }
+.admin-skeleton__rail { min-height: 280px; border-radius: 14px; }
+
+@media (max-width: 900px) {
+  .admin-skeleton { grid-template-columns: 1fr; }
+  .admin-skeleton__sidebar { display: none; }
+  .admin-skeleton__main { padding-top: 32px; }
+  .admin-skeleton__grid { grid-template-columns: 1fr; }
+}
+
 /* Application shell */
 
 .admin-shell {

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Gift, ShoppingBag } from "lucide-react";
+import { AlertCircle, CheckCircle2, ShoppingBag } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -17,12 +17,13 @@ import {
   useKioskStore,
 } from "@/store/kiosk-store";
 import { ShopUnavailable, type ShopUnavailableKind } from "./shop-unavailable";
+import { KioskScreenSkeleton, KioskStorefrontSkeleton } from "./skeletons";
 import { KioskHeader } from "./kiosk-header";
 import { QrErrorBoundary } from "./qr-error-boundary";
 import { WelcomeScreen } from "./welcome-screen";
 
 function ScreenLoading() {
-  return <div className="loading-screen"><div className="loading-mark"><Gift size={40} /><span>Loading…</span></div></div>;
+  return <KioskScreenSkeleton />;
 }
 
 // Screens after the welcome screen are split out so the first page only ships
@@ -36,7 +37,7 @@ const IdleSessionDialog = dynamic(() => import("./idle-session-dialog").then((m)
 
 const OrderReadyScreen = dynamic(
   () => import("./order-ready-screen").then((module) => module.OrderReadyScreen),
-  { loading: () => <div className="loading-screen"><div className="loading-mark"><Gift size={40} /><span>Preparing your QR…</span></div></div>, ssr: false },
+  { loading: () => <KioskScreenSkeleton label="Preparing your QR…" />, ssr: false },
 );
 
 type ToastState = {
@@ -484,7 +485,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       const { shopName, kioskName, showPreviewLabel } = initialBootstrap.settings;
       return <WelcomeScreen shopName={shopName} kioskName={kioskName} showPreviewLabel={showPreviewLabel} online onStart={() => undefined} vendorLoginHref={vendorLoginHref} ready={false} />;
     }
-    return <div className="loading-screen"><div className="loading-mark"><Gift size={44} /><span>Preparing this storefront…</span></div></div>;
+    return <KioskStorefrontSkeleton />;
   }
 
   const renderScreen = () => {
