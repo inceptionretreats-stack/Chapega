@@ -1,2 +1,3 @@
 * text=auto
 *.sh text eol=lf
+.husky/pre-commit text eol=lf
