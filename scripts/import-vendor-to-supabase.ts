@@ -257,6 +257,15 @@ async function main(): Promise<void> {
       ? `Snapshot was already imported; verified ${imageCount} runtime images.`
       : `Imported the verified snapshot and uploaded ${imageCount} runtime images.`,
   );
+  const skippedUsers = snapshot.data.users.length;
+  if (skippedUsers > 0) {
+    // Identities are global and may carry development passwords, so imports
+    // only replace business records. Say so instead of implying a full copy.
+    console.log(
+      `Accounts are never imported: skipped ${skippedUsers} user(s) and ${snapshot.data.memberships.length} membership(s). ` +
+        "Create the first owner with `npm run supabase:bootstrap-owner -- --vendor=<slug>`.",
+    );
+  }
 }
 
 main().catch((error: unknown) => {
