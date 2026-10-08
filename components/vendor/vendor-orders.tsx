@@ -31,10 +31,12 @@ type OrdersProps = {
   apiBase?: string;
   orders: readonly VendorOrder[];
   focusOrderId: string | null;
+  /** Called once the requested order has been selected so the request is not replayed. */
+  onFocusOrderHandled?: () => void;
   onOrderSaved: (order: VendorOrder, message: string) => void;
 };
 
-export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, onOrderSaved }: OrdersProps) {
+export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, onFocusOrderHandled, onOrderSaved }: OrdersProps) {
   const [scope, setScope] = useState<"active" | "all">("active");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | VendorOrderStatus>("all");
@@ -77,6 +79,11 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
   const confirmingSelectedCancellation = Boolean(
     selected && confirmCancelOrderId === selected.id,
   );
+
+  // The requested order is consumed by the initial selection above.
+  useEffect(() => {
+    if (focusOrderId) onFocusOrderHandled?.();
+  }, [focusOrderId, onFocusOrderHandled]);
 
   // Escape backs out of the inline cancellation confirmation and returns
   // focus to the button that started it.
