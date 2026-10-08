@@ -4,6 +4,12 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import {
+  parseJsonBytes,
+  readBodyWithLimit,
+  readMultipartWithLimit,
+  RequestBodyTooLargeError,
+} from "@/server/http/body";
+import {
   clientAddressLabel,
   sameOriginRejection,
 } from "@/server/http/request-identity";
@@ -33,33 +39,46 @@ export async function parseJson<T>(
   request: NextRequest,
   schema: ZodType<T>,
 ): Promise<T> {
-  const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (declaredLength > MAX_JSON_BYTES) {
-    throw new VendorServiceError(
-      413,
-      "PAYLOAD_TOO_LARGE",
-      "Request is too large.",
-    );
-  }
-  const text = await request.text();
-  if (Buffer.byteLength(text, "utf8") > MAX_JSON_BYTES) {
-    throw new VendorServiceError(
-      413,
-      "PAYLOAD_TOO_LARGE",
-      "Request is too large.",
-    );
-  }
-  let value: unknown;
+  let bytes: Buffer;
   try {
-    value = JSON.parse(text);
-  } catch {
+    bytes = await readBodyWithLimit(request, MAX_JSON_BYTES);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      throw new VendorServiceError(
+        413,
+        "PAYLOAD_TOO_LARGE",
+        "Request is too large.",
+      );
+    }
+    throw error;
+  }
+  const parsed = parseJsonBytes(bytes);
+  if (!parsed.ok) {
     throw new VendorServiceError(
       400,
       "INVALID_JSON",
       "Enter valid request data.",
     );
   }
-  return schema.parse(value);
+  return schema.parse(parsed.value);
+}
+
+/** Maximum multipart upload: an 8 MB image plus multipart framing. */
+export const MAX_UPLOAD_BYTES = 9 * 1024 * 1024;
+
+/** Read multipart/form-data, aborting the stream as soon as it passes the cap. */
+export async function parseMultipart(
+  request: NextRequest,
+  maxBytes = MAX_UPLOAD_BYTES,
+): Promise<FormData> {
+  try {
+    return await readMultipartWithLimit(request, maxBytes);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      throw new VendorServiceError(413, "PAYLOAD_TOO_LARGE", "Image is too large.");
+    }
+    throw error;
+  }
 }
 
 export async function requireVendorRequest(

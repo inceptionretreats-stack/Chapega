@@ -5,6 +5,7 @@ import {
   assertSameOrigin,
   jsonResponse,
   parseJson,
+  parseMultipart,
   requireVendorRequest,
 } from "@/server/vendor/api";
 import { VendorServiceError } from "@/server/vendor/errors";
@@ -38,11 +39,7 @@ export const POST = withRequestContext(async function POST(request: NextRequest)
     assertSameOrigin(request);
     const access = await requireVendorRequest(request);
     assertCanManageImages(access.capabilities.manage_catalogue);
-    const declaredLength = Number(request.headers.get("content-length") ?? 0);
-    if (declaredLength > 9 * 1024 * 1024) {
-      throw new VendorServiceError(413, "PAYLOAD_TOO_LARGE", "Image is too large.");
-    }
-    const formData = await request.formData();
+    const formData = await parseMultipart(request);
     const file = formData.get("image");
     if (!(file instanceof File)) {
       throw new VendorServiceError(400, "IMAGE_REQUIRED", "Choose an image to upload.");

@@ -4,6 +4,11 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import {
+  parseJsonBytes,
+  readBodyWithLimit,
+  RequestBodyTooLargeError,
+} from "@/server/http/body";
+import {
   clientAddressLabel,
   sameOriginRejection,
 } from "@/server/http/request-identity";
@@ -32,21 +37,20 @@ export async function parseAdminJson<T>(
   request: NextRequest,
   schema: ZodType<T>,
 ): Promise<T> {
-  const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (declaredLength > MAX_JSON_BYTES) {
-    throw new AdminServiceError(413, "PAYLOAD_TOO_LARGE", "Request is too large.");
-  }
-  const text = await request.text();
-  if (Buffer.byteLength(text, "utf8") > MAX_JSON_BYTES) {
-    throw new AdminServiceError(413, "PAYLOAD_TOO_LARGE", "Request is too large.");
-  }
-  let value: unknown;
+  let bytes: Buffer;
   try {
-    value = JSON.parse(text);
-  } catch {
+    bytes = await readBodyWithLimit(request, MAX_JSON_BYTES);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      throw new AdminServiceError(413, "PAYLOAD_TOO_LARGE", "Request is too large.");
+    }
+    throw error;
+  }
+  const parsed = parseJsonBytes(bytes);
+  if (!parsed.ok) {
     throw new AdminServiceError(400, "INVALID_JSON", "Enter valid request data.");
   }
-  return schema.parse(value);
+  return schema.parse(parsed.value);
 }
 
 export function adminClientAddress(request: NextRequest): string {
