@@ -14,8 +14,7 @@ import {
 } from "@/server/vendor/database";
 import {
   getVendorCredentialConfiguration,
-  isKnownPreviewCredentialPair,
-  vendorPreviewAccessAllowed,
+  isRejectedLoginCredential,
 } from "@/server/vendor/config";
 import { randomToken, sha256, verifyPassword } from "@/server/vendor/crypto";
 import { VendorServiceError } from "@/server/vendor/errors";
@@ -177,12 +176,7 @@ export async function authenticateVendorLogin(
       "Vendor sign-in is not configured. Add private vendor credentials on the server.",
     );
   }
-  if (
-    !vendorPreviewAccessAllowed() &&
-    isKnownPreviewCredentialPair(email, password)
-  ) {
-    return null;
-  }
+  if (isRejectedLoginCredential(email, password)) return null;
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedSlug = vendorSlug?.trim().toLowerCase() || undefined;
   const token = randomToken(32);

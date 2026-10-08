@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VendorDatabase } from "@/server/vendor/database";
 
 const memory = vi.hoisted(() => ({
@@ -20,7 +20,12 @@ vi.mock("@/server/admin/config", () => ({
 vi.mock("@/server/vendor/crypto", () => ({
   randomToken: () => "test-admin-token",
   sha256: (value: string) => `hash:${value}`,
-  verifyPassword: async (password: string) => password === "CorrectPassword1",
+  // The stored hash "matches" the published preview and placeholder passwords
+  // too, modelling an account that still has one of them in production.
+  verifyPassword: async (password: string) =>
+    password === "CorrectPassword1" ||
+    password === "Chapega@2026" ||
+    password === "replace-with-a-long-unique-password",
 }));
 vi.mock("@/server/vendor/database", () => ({
   newAuditRecord: (
@@ -175,5 +180,40 @@ describe("platform administrator authentication", () => {
     expect(
       (memory.database as VendorDatabase).sessions.map((session) => session.scope),
     ).toEqual(["vendor"]);
+  });
+});
+
+describe("platform administrator credential guard", () => {
+  function promotePreviewOwner(): void {
+    const state = memory.database as VendorDatabase;
+    state.users = state.users.map((user) =>
+      user.id === adminId ? { ...user, email: "owner@chapega.com" } : user,
+    );
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("rejects the published preview pair in production", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("ALLOW_VENDOR_PREVIEW_LOGIN", "");
+    promotePreviewOwner();
+
+    await expect(
+      authenticateAdminLogin("owner@chapega.com", "Chapega@2026"),
+    ).resolves.toBeNull();
+    expect(
+      (memory.database as VendorDatabase).sessions.some(
+        (session) => session.scope === "platform",
+      ),
+    ).toBe(false);
+  });
+
+  it("always rejects the .env.example placeholder password", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    await expect(
+      authenticateAdminLogin("admin@example.com", "replace-with-a-long-unique-password"),
+    ).resolves.toBeNull();
   });
 });

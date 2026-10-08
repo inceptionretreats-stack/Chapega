@@ -8,6 +8,7 @@ import {
   readLocalVendorDatabase,
   updateLocalVendorDatabase,
 } from "@/server/vendor/database";
+import { isRejectedLoginCredential } from "@/server/vendor/config";
 import { randomToken, sha256, verifyPassword } from "@/server/vendor/crypto";
 import type { PlatformAdminUser } from "@/types/admin";
 import { getAdminCredentialConfiguration } from "./config";
@@ -62,6 +63,10 @@ export async function authenticateAdminLogin(
       "Platform sign-in is not configured on this server.",
     );
   }
+
+  // Same guard as vendor sign-in: no preview pair outside preview, and never
+  // the .env.example placeholder, whatever the stored hash says.
+  if (isRejectedLoginCredential(email, password)) return null;
 
   const normalizedEmail = email.trim().toLocaleLowerCase("en-IN");
   const token = randomToken(32);

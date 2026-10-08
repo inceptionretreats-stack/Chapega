@@ -17,15 +17,21 @@ async function main(): Promise<void> {
     throw new Error("VENDOR_PASSWORD must contain 12 to 200 characters.");
   }
 
-  const [{ derivePasswordHash }, databaseModule, configModule] =
-    await Promise.all([
-      import("../server/vendor/crypto"),
-      import("../server/vendor/database"),
-      import("../server/vendor/config"),
-    ]);
+  // Validate before the data store is opened (opening it may seed it).
+  const configModule = await import("../server/vendor/config");
+  if (configModule.isPlaceholderPassword(password)) {
+    throw new Error(
+      "Refusing to set the .env.example placeholder password. Choose a long, unique password.",
+    );
+  }
   if (configModule.isKnownPreviewCredentialPair(email, password)) {
     throw new Error("Refusing to set the public preview password.");
   }
+
+  const [{ derivePasswordHash }, databaseModule] = await Promise.all([
+    import("../server/vendor/crypto"),
+    import("../server/vendor/database"),
+  ]);
 
   const derived = await derivePasswordHash(password);
   const updated = await databaseModule.updateVendorDatabase((database) => {
