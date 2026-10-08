@@ -47,9 +47,23 @@ export const createAdminVendorSchema = z.object({
   }
 });
 
-export const updateAdminVendorStatusSchema = z.object({
-  status: z.enum(["active", "suspended"]),
-  revision: z.number().int().min(1),
-});
+const vendorStatusSchema = z.enum(["active", "suspended"]);
+
+/**
+ * Status changes are guarded by the status itself, not by vendor.revision
+ * (which every product edit and kiosk order bumps). `expectedStatus` is the
+ * status the admin saw; when omitted it is the opposite of the target.
+ * `revision` is still accepted from existing clients but no longer compared.
+ */
+export const updateAdminVendorStatusSchema = z
+  .object({
+    status: vendorStatusSchema,
+    expectedStatus: vendorStatusSchema.optional(),
+    revision: z.number().int().min(1).optional(),
+  })
+  .refine((value) => value.expectedStatus !== value.status, {
+    path: ["expectedStatus"],
+    message: "The vendor is already in that status.",
+  });
 
 export const adminVendorIdSchema = z.string().uuid();

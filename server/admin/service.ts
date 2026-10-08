@@ -365,11 +365,17 @@ export async function createAdminVendor(
   }, { platformSessionHash: context.sessionHash });
 }
 
+/**
+ * Change a vendor's status. The optimistic check is status-specific: the
+ * caller states the status it saw (default: the opposite of the target), so
+ * orders and catalogue edits - which bump vendor.revision - never block it,
+ * while a duplicate or conflicting change from a stale screen is refused.
+ */
 export async function updateAdminVendorStatus(
   context: AdminAuthContext,
   vendorId: string,
   status: VendorStatus,
-  expectedRevision: number,
+  expectedStatus: VendorStatus = status === "active" ? "suspended" : "active",
 ): Promise<AdminVendorMutationResult> {
   const auditId = randomUUID();
   return updateVendorDatabase((database) => {
@@ -379,18 +385,18 @@ export async function updateAdminVendorStatus(
     if (!current) {
       throw new AdminServiceError(404, "VENDOR_NOT_FOUND", "Vendor not found.");
     }
-    if (current.revision !== expectedRevision) {
-      throw new AdminServiceError(
-        409,
-        "VENDOR_CHANGED",
-        "This vendor changed in another session. Refresh and try again.",
-      );
-    }
     if (current.status === status) {
       throw new AdminServiceError(
         409,
         "VENDOR_STATUS_UNCHANGED",
         `This vendor is already ${status}.`,
+      );
+    }
+    if (current.status !== expectedStatus) {
+      throw new AdminServiceError(
+        409,
+        "VENDOR_STATUS_CHANGED",
+        "This vendor's status changed in another session. Refresh and try again.",
       );
     }
     const now = new Date().toISOString();
