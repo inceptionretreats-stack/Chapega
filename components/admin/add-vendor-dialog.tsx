@@ -6,6 +6,7 @@ import type {
   AdminVendorMutationResult,
   CreateAdminVendorInput,
 } from "@/types/admin";
+import { PasswordToggle } from "../password-toggle";
 import { adminRequest, AdminClientError } from "./admin-client";
 import { AdminDialog } from "./admin-dialog";
 import { focusFirstInvalid } from "./admin-shared";
@@ -55,6 +56,7 @@ export function AddVendorDialog({
     temporaryPassword: "",
   });
   const [slugEdited, setSlugEdited] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -242,25 +244,38 @@ export function AddVendorDialog({
                 <small id="admin-owner-whatsapp-help">Used for the new vendor’s kiosk order handoff.</small>
               )}
             </label>
-            <label className="admin-field admin-field--full">
-              <span>Temporary password</span>
-              <input
-                type="password"
-                value={draft.temporaryPassword}
-                onChange={(event) => update("temporaryPassword", event.target.value)}
-                autoComplete="new-password"
-                required
-                minLength={12}
-                maxLength={200}
-                aria-invalid={Boolean(fieldErrors.temporaryPassword) || undefined}
-                aria-describedby={fieldErrors.temporaryPassword ? "admin-owner-password-error" : "admin-owner-password-help"}
-              />
+            {/* A div with label[for] so the show/hide button is not part of
+                the field's accessible name. */}
+            <div className="admin-field admin-field--full">
+              <label htmlFor="admin-owner-password">Temporary password</label>
+              <span className="admin-password-field">
+                <input
+                  id="admin-owner-password"
+                  type={showPassword ? "text" : "password"}
+                  value={draft.temporaryPassword}
+                  onChange={(event) => update("temporaryPassword", event.target.value)}
+                  autoComplete="new-password"
+                  spellCheck={false}
+                  required
+                  minLength={12}
+                  maxLength={200}
+                  aria-invalid={Boolean(fieldErrors.temporaryPassword) || undefined}
+                  aria-describedby={fieldErrors.temporaryPassword ? "admin-owner-password-error" : "admin-owner-password-help"}
+                />
+                <PasswordToggle
+                  className="admin-password-toggle"
+                  visible={showPassword}
+                  controls="admin-owner-password"
+                  onToggle={() => setShowPassword((visible) => !visible)}
+                  disabled={pending}
+                />
+              </span>
               {fieldErrors.temporaryPassword ? (
                 <small id="admin-owner-password-error">{fieldErrors.temporaryPassword}</small>
               ) : (
                 <small id="admin-owner-password-help">At least 12 characters with upper and lowercase letters and a number.</small>
               )}
-            </label>
+            </div>
           </div>
         </fieldset>
 
