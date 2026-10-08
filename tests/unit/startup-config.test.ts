@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -146,5 +148,33 @@ describe("session settings at runtime", () => {
 
     environment({ NODE_ENV: "development", ADMIN_SESSION_HOURS: "eight" });
     expect(() => adminSessionPolicy()).toThrow(/ADMIN_SESSION_HOURS/);
+  });
+});
+
+describe(".env.example (AUD-33)", () => {
+  it("starts a development server when copied to .env.local as the README says", () => {
+    const template = readFileSync(path.join(process.cwd(), ".env.example"), "utf8");
+    const values: Record<string, string> = { NODE_ENV: "development", NEXT_RUNTIME: "nodejs" };
+    for (const line of template.split(/\r?\n/)) {
+      const match = /^([A-Z0-9_]+)=(.*)$/.exec(line.trim());
+      if (match) values[match[1]] = match[2];
+    }
+    environment(values);
+    for (const [name, value] of Object.entries(values)) vi.stubEnv(name, value);
+
+    expect(inspectServerConfiguration().errors).toEqual([]);
+  });
+
+  it("documents every session and logging setting the server reads", () => {
+    const template = readFileSync(path.join(process.cwd(), ".env.example"), "utf8");
+    for (const name of [
+      "VENDOR_SESSION_HOURS",
+      "VENDOR_SESSION_IDLE_MINUTES",
+      "ADMIN_SESSION_HOURS",
+      "ADMIN_SESSION_IDLE_MINUTES",
+      "LOG_LEVEL",
+    ]) {
+      expect(template, name).toMatch(new RegExp(`^#? ?${name}=`, "m"));
+    }
   });
 });
