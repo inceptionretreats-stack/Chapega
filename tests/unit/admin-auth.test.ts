@@ -4,6 +4,8 @@ import type { VendorDatabase } from "@/server/vendor/database";
 const memory = vi.hoisted(() => ({
   database: null as unknown,
   auditCounter: 0,
+  inMutation: false,
+  verifiedInsideMutation: false,
 }));
 
 vi.mock("server-only", () => ({}));
@@ -22,10 +24,14 @@ vi.mock("@/server/vendor/crypto", () => ({
   sha256: (value: string) => `hash:${value}`,
   // The stored hash "matches" the published preview and placeholder passwords
   // too, modelling an account that still has one of them in production.
-  verifyPassword: async (password: string) =>
-    password === "CorrectPassword1" ||
-    password === "Chapega@2026" ||
-    password === "replace-with-a-long-unique-password",
+  verifyPassword: async (password: string) => {
+    if (memory.inMutation) memory.verifiedInsideMutation = true;
+    return (
+      password === "CorrectPassword1" ||
+      password === "Chapega@2026" ||
+      password === "replace-with-a-long-unique-password"
+    );
+  },
 }));
 vi.mock("@/server/vendor/database", () => ({
   newAuditRecord: (
@@ -48,7 +54,13 @@ vi.mock("@/server/vendor/database", () => ({
     mutation: (database: VendorDatabase) => T | Promise<T>,
   ) => {
     const draft = structuredClone(memory.database) as VendorDatabase;
-    const result = await mutation(draft);
+    memory.inMutation = true;
+    let result: T;
+    try {
+      result = await mutation(draft);
+    } finally {
+      memory.inMutation = false;
+    }
     memory.database = draft;
     return structuredClone(result);
   },
@@ -171,6 +183,17 @@ describe("platform administrator authentication", () => {
       user: { id: adminId, role: "super_admin" },
       sessionHash: "hash:test-admin-token",
     });
+  });
+
+  it("hashes the password outside the serialized local write queue", async () => {
+    memory.verifiedInsideMutation = false;
+    await expect(
+      authenticateAdminLogin("admin@example.com", "CorrectPassword1"),
+    ).resolves.not.toBeNull();
+    await expect(
+      authenticateAdminLogin("nobody@example.com", "CorrectPassword1"),
+    ).resolves.toBeNull();
+    expect(memory.verifiedInsideMutation).toBe(false);
   });
 
   it("destroys the platform session without touching vendor sessions", async () => {

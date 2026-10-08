@@ -94,19 +94,30 @@ export async function authenticateAdminLogin(
 
   // Credential discovery is intentionally confined to the local adapter. All
   // authenticated platform reads use the scoped database API below.
+  // The slow hash runs outside the serialized write queue.
+  const snapshot = await readLocalVendorDatabase();
+  const verified = snapshot.users.find(
+    (record) => record.email === normalizedEmail,
+  );
+  const validPassword = await verifyPassword(
+    password,
+    verified?.passwordSalt ?? DUMMY_SALT,
+    verified?.passwordHash ?? DUMMY_HASH,
+  );
+  if (!verified || !validPassword || !platformAdminUser(verified)) return null;
+
   const user = await updateLocalVendorDatabase(async (database) => {
-    const candidate = database.users.find(
-      (record) => record.email === normalizedEmail,
-    );
-    const validPassword = await verifyPassword(
-      password,
-      candidate?.passwordSalt ?? DUMMY_SALT,
-      candidate?.passwordHash ?? DUMMY_HASH,
-    );
-    const publicUser = candidate
-      ? platformAdminUser(candidate)
-      : null;
-    if (!candidate || !validPassword || !publicUser) return null;
+    // Re-check under the write lock so a concurrent rotation/deactivation wins.
+    const candidate = database.users.find((record) => record.id === verified.id);
+    if (
+      !candidate ||
+      candidate.passwordHash !== verified.passwordHash ||
+      candidate.passwordSalt !== verified.passwordSalt
+    ) {
+      return null;
+    }
+    const publicUser = platformAdminUser(candidate);
+    if (!publicUser) return null;
 
     const now = Date.now();
     database.sessions = database.sessions.filter(

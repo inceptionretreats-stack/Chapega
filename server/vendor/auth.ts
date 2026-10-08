@@ -199,16 +199,31 @@ export async function authenticateVendorLogin(
     return user ? { user, token, expiresAt } : null;
   }
 
+  // Verify outside the serialized write queue: the hash is deliberately slow
+  // and must not stall every other write while it runs.
+  const snapshot = await readVendorDatabase();
+  const verified = snapshot.users.find(
+    (record) => record.email === normalizedEmail,
+  );
+  const valid = await verifyPassword(
+    password,
+    verified?.passwordSalt ?? DUMMY_SALT,
+    verified?.passwordHash ?? DUMMY_HASH,
+  );
+  if (!verified || !verified.active || !valid) return null;
+
   const user = await updateVendorDatabase(async (database) => {
-    const candidate = database.users.find(
-      (record) => record.email === normalizedEmail,
-    );
-    const valid = await verifyPassword(
-      password,
-      candidate?.passwordSalt ?? DUMMY_SALT,
-      candidate?.passwordHash ?? DUMMY_HASH,
-    );
-    if (!candidate || !candidate.active || !valid) return null;
+    // Re-check under the write lock: a rotation or deactivation that landed
+    // while the hash was computed must win.
+    const candidate = database.users.find((record) => record.id === verified.id);
+    if (
+      !candidate ||
+      !candidate.active ||
+      candidate.passwordHash !== verified.passwordHash ||
+      candidate.passwordSalt !== verified.passwordSalt
+    ) {
+      return null;
+    }
     const activeVendorId = selectActiveVendorId(
       database,
       candidate.id,

@@ -130,6 +130,52 @@ async function credentialsByEmail(
   return user;
 }
 
+/**
+ * Read the credential row in its own short transaction (app.auth_email is a
+ * transaction-local setting), so the connection is released before the
+ * deliberately slow password hash runs.
+ */
+async function loadCredentials(
+  email: string,
+  failureMessage: string,
+): Promise<CredentialUserRow | undefined> {
+  try {
+    return await getSupabasePostgres().begin((transaction) =>
+      credentialsByEmail(transaction, email),
+    );
+  } catch (error) {
+    throw backendUnavailable(failureMessage, error);
+  }
+}
+
+/**
+ * Re-read the credential row under the per-user advisory lock. A password
+ * rotation or deactivation that landed while the hash was being computed
+ * must not be bypassed by the session we are about to create.
+ */
+async function credentialsStillValid(
+  sql: QueryClient,
+  verified: CredentialUserRow,
+): Promise<CredentialUserRow | null> {
+  const [current] = await sql<CredentialUserRow[]>`
+    select
+      id, email, name, platform_role, password_salt, password_hash, active,
+      created_at
+    from private.vendor_users
+    where id = ${verified.id}
+    limit 1
+  `;
+  if (
+    !current ||
+    !current.active ||
+    current.password_hash !== verified.password_hash ||
+    current.password_salt !== verified.password_salt
+  ) {
+    return null;
+  }
+  return current;
+}
+
 async function membershipsForUser(
   sql: QueryClient,
   userId: string,
@@ -224,20 +270,25 @@ async function publicVendorUser(
 export async function authenticateSupabaseVendorLogin(
   input: LoginInput,
 ): Promise<VendorUser | null> {
+  const failureMessage = "Vendor sign-in could not reach Supabase.";
+  const candidate = await loadCredentials(input.email, failureMessage);
+  // Always run one full verification (against a dummy hash for unknown
+  // accounts) so response time does not reveal which emails exist.
+  const valid = await verifyPassword(
+    input.password,
+    candidate?.password_salt ?? input.dummySalt,
+    candidate?.password_hash ?? input.dummyHash,
+  );
+  if (!candidate || !candidate.active || !valid) return null;
+
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
-      const user = await credentialsByEmail(transaction, input.email);
-      const valid = await verifyPassword(
-        input.password,
-        user?.password_salt ?? input.dummySalt,
-        user?.password_hash ?? input.dummyHash,
-      );
-      if (!user || !user.active || !valid) return null;
-
-      await setContext(transaction, "app.user_id", user.id);
+      await setContext(transaction, "app.user_id", candidate.id);
       await transaction`
-        select pg_advisory_xact_lock(hashtextextended(${user.id}, 0))
+        select pg_advisory_xact_lock(hashtextextended(${candidate.id}, 0))
       `;
+      const user = await credentialsStillValid(transaction, candidate);
+      if (!user) return null;
       const memberships = await membershipsForUser(transaction, user.id);
       const vendor = await activeVendorForLogin(
         transaction,
@@ -280,7 +331,7 @@ export async function authenticateSupabaseVendorLogin(
     });
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
-    throw backendUnavailable("Vendor sign-in could not reach Supabase.", error);
+    throw backendUnavailable(failureMessage, error);
   }
 }
 
@@ -382,26 +433,31 @@ function platformUser(row: CredentialUserRow): PlatformAdminUser {
 export async function authenticateSupabasePlatformLogin(
   input: PlatformLoginInput,
 ): Promise<PlatformAdminUser | null> {
+  const failureMessage = "Platform sign-in could not reach Supabase.";
+  const candidate = await loadCredentials(input.email, failureMessage);
+  // One full verification even for unknown accounts (timing equalization).
+  const valid = await verifyPassword(
+    input.password,
+    candidate?.password_salt ?? input.dummySalt,
+    candidate?.password_hash ?? input.dummyHash,
+  );
+  if (
+    !candidate ||
+    !candidate.active ||
+    candidate.platform_role !== "super_admin" ||
+    !valid
+  ) {
+    return null;
+  }
+
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
-      const user = await credentialsByEmail(transaction, input.email);
-      const valid = await verifyPassword(
-        input.password,
-        user?.password_salt ?? input.dummySalt,
-        user?.password_hash ?? input.dummyHash,
-      );
-      if (
-        !user ||
-        !user.active ||
-        user.platform_role !== "super_admin" ||
-        !valid
-      ) {
-        return null;
-      }
-      await setContext(transaction, "app.user_id", user.id);
+      await setContext(transaction, "app.user_id", candidate.id);
       await transaction`
-        select pg_advisory_xact_lock(hashtextextended(${user.id}, 0))
+        select pg_advisory_xact_lock(hashtextextended(${candidate.id}, 0))
       `;
+      const user = await credentialsStillValid(transaction, candidate);
+      if (!user || user.platform_role !== "super_admin") return null;
       await transaction`
         delete from private.vendor_sessions
         where user_id = ${user.id} and session_scope = 'platform'
@@ -426,7 +482,7 @@ export async function authenticateSupabasePlatformLogin(
     });
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
-    throw backendUnavailable("Platform sign-in could not reach Supabase.", error);
+    throw backendUnavailable(failureMessage, error);
   }
 }
 
