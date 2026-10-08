@@ -8,10 +8,7 @@ import {
   type WhatsAppNumberErrorCode,
 } from "@/domain/whatsapp";
 
-function expectNumberError(
-  action: () => unknown,
-  code: WhatsAppNumberErrorCode,
-): void {
+function expectNumberError(action: () => unknown, code: WhatsAppNumberErrorCode): void {
   try {
     action();
     throw new Error("Expected WhatsApp number validation to fail");
@@ -33,15 +30,9 @@ describe("Indian WhatsApp number normalization", () => {
 
   it("reports empty, invalid country-code, short, and overlong values", () => {
     expectNumberError(() => normalizeWhatsAppNumber(" -- "), "NUMBER_REQUIRED");
-    expectNumberError(
-      () => normalizeWhatsAppNumber("9876543210", "0000"),
-      "INVALID_COUNTRY_CODE",
-    );
+    expectNumberError(() => normalizeWhatsAppNumber("9876543210", "0000"), "INVALID_COUNTRY_CODE");
     expectNumberError(() => normalizeWhatsAppNumber("123"), "INVALID_LENGTH");
-    expectNumberError(
-      () => normalizeWhatsAppNumber("+91 12345678901234"),
-      "INVALID_LENGTH",
-    );
+    expectNumberError(() => normalizeWhatsAppNumber("+91 12345678901234"), "INVALID_LENGTH");
   });
 });
 

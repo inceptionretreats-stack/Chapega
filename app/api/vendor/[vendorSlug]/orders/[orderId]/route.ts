@@ -13,7 +13,10 @@ import { withRequestContext } from "@/server/observability/request-context";
 export const runtime = "nodejs";
 type Context = Readonly<{ params: Promise<{ vendorSlug: string; orderId: string }> }>;
 
-export const PATCH = withRequestContext(async function PATCH(request: NextRequest, context: Context) {
+export const PATCH = withRequestContext(async function PATCH(
+  request: NextRequest,
+  context: Context,
+) {
   try {
     assertSameOrigin(request);
     const [params, input] = await Promise.all([

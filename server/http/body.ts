@@ -25,10 +25,7 @@ function declaredLength(request: Request): number | null {
  * the cap, so memory use is bounded by the cap plus one chunk regardless of
  * what the client sends.
  */
-export async function readBodyWithLimit(
-  request: Request,
-  maxBytes: number,
-): Promise<Buffer> {
+export async function readBodyWithLimit(request: Request, maxBytes: number): Promise<Buffer> {
   const declared = declaredLength(request);
   if (declared !== null && declared > maxBytes) {
     await request.body?.cancel().catch(() => undefined);

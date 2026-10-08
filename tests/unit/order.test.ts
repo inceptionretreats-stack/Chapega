@@ -2,12 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { addCartItem } from "@/domain/cart";
 import { createOrder, createOrderNumber } from "@/domain/order";
-import type {
-  CartLine,
-  CustomerDetails,
-  PresenterSettings,
-  Product,
-} from "@/types/kiosk";
+import type { CartLine, CustomerDetails, PresenterSettings, Product } from "@/types/kiosk";
 
 const settings: PresenterSettings = {
   shopName: "Chapega.com",
@@ -61,9 +56,7 @@ describe("order numbers", () => {
     expect(createOrderNumber(now, () => 0)).toBe("GFT-20260810-1000");
     expect(createOrderNumber(now, () => 0.5)).toBe("GFT-20260810-5500");
     expect(createOrderNumber(now, () => 1)).toBe("GFT-20260810-9999");
-    expect(createOrderNumber(now, () => 0.321)).toMatch(
-      /^GFT-\d{8}-\d{4}$/,
-    );
+    expect(createOrderNumber(now, () => 0.321)).toMatch(/^GFT-\d{8}-\d{4}$/);
   });
 });
 
@@ -122,9 +115,7 @@ describe("immutable order creation", () => {
     ]);
     expect(order.whatsappMessage).toContain(`Order: ${order.orderNumber}`);
     expect(new URL(order.whatsappUrl).pathname).toBe("/919876543210");
-    expect(new URL(order.whatsappUrl).searchParams.get("text")).toBe(
-      order.whatsappMessage,
-    );
+    expect(new URL(order.whatsappUrl).searchParams.get("text")).toBe(order.whatsappMessage);
 
     expect(submittedCart).toEqual(submittedBefore);
     expect(Object.isFrozen(order)).toBe(true);

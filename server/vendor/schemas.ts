@@ -8,24 +8,16 @@ const trimmed = (maximum: number) => z.string().trim().min(1).max(maximum);
 // Direction overrides/isolates and control characters (tab and line breaks
 // excepted) can spoof or garble the WhatsApp message; unpaired surrogates make
 // URL encoding throw. Customer-facing text is normalised before validation.
-const UNSAFE_CHARACTERS =
-  /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F‪-‮⁦-⁩]/g;
-const LONE_SURROGATE =
-  /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+const UNSAFE_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F‪-‮⁦-⁩]/g;
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
 
 export function safeText(value: string): string {
   return value.replace(LONE_SURROGATE, "�").replace(UNSAFE_CHARACTERS, "");
 }
 
-const safeTrimmed = (maximum: number) =>
-  z.string().transform(safeText).pipe(trimmed(maximum));
+const safeTrimmed = (maximum: number) => z.string().transform(safeText).pipe(trimmed(maximum));
 const safeOptionalTrimmed = (maximum: number) =>
-  z
-    .string()
-    .transform(safeText)
-    .pipe(z.string().trim().max(maximum))
-    .optional()
-    .default("");
+  z.string().transform(safeText).pipe(z.string().trim().max(maximum)).optional().default("");
 
 export const vendorSlugSchema = z
   .string()
@@ -84,10 +76,7 @@ export const vendorProductSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (
-      value.compareAtPricePaise !== undefined &&
-      value.compareAtPricePaise <= value.pricePaise
-    ) {
+    if (value.compareAtPricePaise !== undefined && value.compareAtPricePaise <= value.pricePaise) {
       context.addIssue({
         code: "custom",
         path: ["compareAtPricePaise"],
@@ -145,18 +134,12 @@ export const vendorSettingsSchema = z
   .strict()
   .superRefine((value, context) => {
     try {
-      normalizeWhatsAppNumber(
-        value.ownerWhatsAppNumber,
-        value.defaultCountryCode,
-      );
+      normalizeWhatsAppNumber(value.ownerWhatsAppNumber, value.defaultCountryCode);
     } catch (error) {
       context.addIssue({
         code: "custom",
         path: ["ownerWhatsAppNumber"],
-        message:
-          error instanceof Error
-            ? error.message
-            : "Enter a valid WhatsApp number.",
+        message: error instanceof Error ? error.message : "Enter a valid WhatsApp number.",
       });
     }
   });
@@ -207,22 +190,13 @@ export const kioskOrderSubmissionSchema = z
       .max(5),
   })
   .strict()
-  .refine(
-    (value) =>
-      value.items.reduce((total, item) => total + item.quantity, 0) <= 5,
-    { message: "A kiosk order can contain at most five gift units." },
-  );
+  .refine((value) => value.items.reduce((total, item) => total + item.quantity, 0) <= 5, {
+    message: "A kiosk order can contain at most five gift units.",
+  });
 
 export const orderTransitionSchema = z
   .object({
-    status: z.enum([
-      "prepared",
-      "confirmed",
-      "preparing",
-      "ready",
-      "completed",
-      "cancelled",
-    ]),
+    status: z.enum(["prepared", "confirmed", "preparing", "ready", "completed", "cancelled"]),
     version: z.number().int().positive(),
     note: z.string().trim().max(240).optional(),
   })

@@ -61,7 +61,7 @@ vi.mock("@/server/vendor/auth", () => ({
 }));
 vi.mock("@/server/supabase/postgres", () => ({
   getSupabasePostgres: () => ({
-    begin: async <T,>(operation: (transaction: unknown) => Promise<T>) => {
+    begin: async <T>(operation: (transaction: unknown) => Promise<T>) => {
       state.openTransactions += 1;
       const context = new Map<string, string>();
       const transaction = async (strings: TemplateStringsArray, ...values: unknown[]) => {
@@ -105,14 +105,16 @@ vi.mock("@/server/supabase/postgres", () => ({
         }
         if (text.includes("private.rehash_own_password")) {
           state.rehashCalls.push(values);
-          if (state.rehashFails) throw new Error("function private.rehash_own_password does not exist");
+          if (state.rehashFails)
+            throw new Error("function private.rehash_own_password does not exist");
           return [{ rehash_own_password: true }];
         }
-        if (/^(insert|delete|update)/.test(text)) state.writes.push(text.split(" ").slice(0, 3).join(" "));
+        if (/^(insert|delete|update)/.test(text))
+          state.writes.push(text.split(" ").slice(0, 3).join(" "));
         return [];
       };
       Object.assign(transaction, {
-        savepoint: async <S,>(inner: (savepoint: unknown) => Promise<S>) => inner(transaction),
+        savepoint: async <S>(inner: (savepoint: unknown) => Promise<S>) => inner(transaction),
       });
       try {
         return await operation(transaction);
@@ -160,13 +162,13 @@ describe.each([
 
     expect(user).not.toBeNull();
     expect(state.transactionsDuringVerify).toEqual([0]);
-    expect(state.writes.some((write) => write.startsWith("insert into private.vendor_sessions"))).toBe(true);
+    expect(
+      state.writes.some((write) => write.startsWith("insert into private.vendor_sessions")),
+    ).toBe(true);
   });
 
   it("still spends a full verification on unknown accounts", async () => {
-    await expect(
-      authenticate(input("nobody@example.com", "correct-password")),
-    ).resolves.toBeNull();
+    await expect(authenticate(input("nobody@example.com", "correct-password"))).resolves.toBeNull();
     expect(state.verifyCalls).toEqual([{ salt: "dummy-salt", hash: "dummy-hash" }]);
     expect(state.transactionsDuringVerify).toEqual([0]);
   });
@@ -194,9 +196,7 @@ describe.each([
   it("refuses to create a session if the password changed during verification", async () => {
     state.rotateDuringVerify = true;
 
-    await expect(
-      authenticate(input("owner@example.com", "correct-password")),
-    ).resolves.toBeNull();
+    await expect(authenticate(input("owner@example.com", "correct-password"))).resolves.toBeNull();
     expect(state.writes.some((write) => write.includes("vendor_sessions"))).toBe(false);
   });
 });

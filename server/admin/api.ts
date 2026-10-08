@@ -3,15 +3,8 @@ import "server-only";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
-import {
-  parseJsonBytes,
-  readBodyWithLimit,
-  RequestBodyTooLargeError,
-} from "@/server/http/body";
-import {
-  clientAddressLabel,
-  sameOriginRejection,
-} from "@/server/http/request-identity";
+import { parseJsonBytes, readBodyWithLimit, RequestBodyTooLargeError } from "@/server/http/body";
+import { clientAddressLabel, sameOriginRejection } from "@/server/http/request-identity";
 import { logger, serializeError } from "@/server/observability/logger";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { RateLimitExceededError } from "@/server/vendor/rate-limit";
@@ -34,10 +27,7 @@ export function assertAdminSameOrigin(request: NextRequest): void {
   }
 }
 
-export async function parseAdminJson<T>(
-  request: NextRequest,
-  schema: ZodType<T>,
-): Promise<T> {
+export async function parseAdminJson<T>(request: NextRequest, schema: ZodType<T>): Promise<T> {
   let bytes: Buffer;
   try {
     bytes = await readBodyWithLimit(request, MAX_JSON_BYTES);

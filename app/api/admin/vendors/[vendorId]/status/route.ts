@@ -6,10 +6,7 @@ import {
   assertAdminSameOrigin,
   parseAdminJson,
 } from "@/server/admin/api";
-import {
-  adminVendorIdSchema,
-  updateAdminVendorStatusSchema,
-} from "@/server/admin/schemas";
+import { adminVendorIdSchema, updateAdminVendorStatusSchema } from "@/server/admin/schemas";
 import { updateAdminVendorStatus } from "@/server/admin/service";
 import { logger } from "@/server/observability/logger";
 import { withRequestContext } from "@/server/observability/request-context";
@@ -20,7 +17,10 @@ type RouteContext = Readonly<{
   params: Promise<{ vendorId: string }>;
 }>;
 
-export const PATCH = withRequestContext(async function PATCH(request: NextRequest, context: RouteContext) {
+export const PATCH = withRequestContext(async function PATCH(
+  request: NextRequest,
+  context: RouteContext,
+) {
   try {
     assertAdminSameOrigin(request);
     const admin = await requireRequestAdmin(request);

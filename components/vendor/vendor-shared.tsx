@@ -25,13 +25,8 @@ export function VendorOrderStatusBadge({ status }: { status: VendorOrderStatus }
  * Move focus to the first field marked invalid inside `root`; when no field is
  * invalid (a non-field failure) fall back to the error summary.
  */
-export function focusFirstInvalid(
-  root: ParentNode | null,
-  fallback: HTMLElement | null,
-): void {
-  const field = root?.querySelector<HTMLElement>(
-    '[aria-invalid="true"]:not(:disabled)',
-  );
+export function focusFirstInvalid(root: ParentNode | null, fallback: HTMLElement | null): void {
+  const field = root?.querySelector<HTMLElement>('[aria-invalid="true"]:not(:disabled)');
   (field ?? fallback)?.focus();
 }
 

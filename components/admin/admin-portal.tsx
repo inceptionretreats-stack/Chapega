@@ -13,18 +13,8 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import type {
-  AdminBootstrap,
-  AdminVendorMutationResult,
-  AdminVendorSummary,
-} from "@/types/admin";
+import { startTransition, useCallback, useEffect, useRef, useState } from "react";
+import type { AdminBootstrap, AdminVendorMutationResult, AdminVendorSummary } from "@/types/admin";
 import { backgroundRefreshHeaders } from "@/domain/session-activity";
 import { ThemeControl } from "../theme-control";
 import { AddVendorDialog } from "./add-vendor-dialog";
@@ -89,34 +79,38 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
   }, [accountOpen]);
 
   // `background`: timer-driven, so it does not count as user activity.
-  const refresh = useCallback(async (announce = false, background = false) => {
-    const sequence = refreshSequenceRef.current + 1;
-    refreshSequenceRef.current = sequence;
-    setRefreshing(true);
-    try {
-      const next = await adminRequest<AdminBootstrap>(
-        "/api/admin/bootstrap",
-        background ? { headers: backgroundRefreshHeaders } : undefined,
-      );
-      if (sequence !== refreshSequenceRef.current) return;
-      startTransition(() => setData(next));
-      if (announce) setToast({ message: "Platform data refreshed.", tone: "success" });
-    } catch (caught) {
-      if (sequence !== refreshSequenceRef.current) return;
-      if (caught instanceof AdminClientError && caught.status === 401) {
-        router.replace("/admin/login");
-        return;
+  const refresh = useCallback(
+    async (announce = false, background = false) => {
+      const sequence = refreshSequenceRef.current + 1;
+      refreshSequenceRef.current = sequence;
+      setRefreshing(true);
+      try {
+        const next = await adminRequest<AdminBootstrap>(
+          "/api/admin/bootstrap",
+          background ? { headers: backgroundRefreshHeaders } : undefined,
+        );
+        if (sequence !== refreshSequenceRef.current) return;
+        startTransition(() => setData(next));
+        if (announce) setToast({ message: "Platform data refreshed.", tone: "success" });
+      } catch (caught) {
+        if (sequence !== refreshSequenceRef.current) return;
+        if (caught instanceof AdminClientError && caught.status === 401) {
+          router.replace("/admin/login");
+          return;
+        }
+        if (announce) {
+          setToast({
+            message:
+              caught instanceof Error ? caught.message : "Platform data could not be refreshed.",
+            tone: "error",
+          });
+        }
+      } finally {
+        if (sequence === refreshSequenceRef.current) setRefreshing(false);
       }
-      if (announce) {
-        setToast({
-          message: caught instanceof Error ? caught.message : "Platform data could not be refreshed.",
-          tone: "error",
-        });
-      }
-    } finally {
-      if (sequence === refreshSequenceRef.current) setRefreshing(false);
-    }
-  }, [router]);
+    },
+    [router],
+  );
 
   useEffect(() => {
     const refreshWhenVisible = () => {
@@ -208,7 +202,11 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
         </nav>
         <div className="admin-sidebar__motif" aria-hidden="true">
           <Boxes size={26} strokeWidth={1.5} />
-          <p>Thoughtful gifting,<br />better together.</p>
+          <p>
+            Thoughtful gifting,
+            <br />
+            better together.
+          </p>
         </div>
       </aside>
 
@@ -243,10 +241,17 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
             </button>
             {accountOpen ? (
               <div className="admin-account__menu" id="admin-account-menu">
-                <div><strong>{data.user.name}</strong><span>{data.user.email}</span></div>
+                <div>
+                  <strong>{data.user.name}</strong>
+                  <span>{data.user.email}</span>
+                </div>
                 <ThemeControl className="admin-theme-control" />
                 <button type="button" onClick={logout} disabled={loggingOut}>
-                  {loggingOut ? <LoaderCircle className="admin-spin" size={18} /> : <LogOut size={18} />}
+                  {loggingOut ? (
+                    <LoaderCircle className="admin-spin" size={18} />
+                  ) : (
+                    <LogOut size={18} />
+                  )}
                   {loggingOut ? "Signing out…" : "Sign out"}
                 </button>
               </div>
@@ -265,7 +270,11 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
               <h1 id="platform-overview-title">Platform overview</h1>
               <p>Monitor every vendor, storefront, and order from one place.</p>
             </div>
-            <button className="admin-primary admin-heading-add" type="button" onClick={() => setAddingVendor(true)}>
+            <button
+              className="admin-primary admin-heading-add"
+              type="button"
+              onClick={() => setAddingVendor(true)}
+            >
               <Plus size={19} /> Add vendor
             </button>
           </section>
@@ -309,15 +318,16 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
         <VendorStatusDialog
           vendor={statusVendor}
           onClose={() => setStatusVendor(null)}
-          onSaved={(result) => applyMutation(
-            result,
-            `${result.vendor.displayName} is now ${result.vendor.status}.`,
-          )}
+          onSaved={(result) =>
+            applyMutation(result, `${result.vendor.displayName} is now ${result.vendor.status}.`)
+          }
         />
       ) : null}
 
       <div className="admin-toast-region" aria-live="polite" aria-atomic="true">
-        {toast ? <div className={`admin-toast admin-toast--${toast.tone}`}>{toast.message}</div> : null}
+        {toast ? (
+          <div className={`admin-toast admin-toast--${toast.tone}`}>{toast.message}</div>
+        ) : null}
       </div>
     </div>
   );

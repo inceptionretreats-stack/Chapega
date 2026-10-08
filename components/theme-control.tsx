@@ -16,11 +16,20 @@ export function ThemeControl({ className }: Readonly<{ className?: string }>) {
   const { theme, setTheme } = useThemeChoice();
   const id = useId();
   return (
-    <div className={`theme-control${className ? ` ${className}` : ""}`} role="radiogroup" aria-labelledby={`${id}-label`}>
-      <span id={`${id}-label`} className="theme-control__label">Theme</span>
+    <div
+      className={`theme-control${className ? ` ${className}` : ""}`}
+      role="radiogroup"
+      aria-labelledby={`${id}-label`}
+    >
+      <span id={`${id}-label`} className="theme-control__label">
+        Theme
+      </span>
       <div className="theme-control__options">
         {OPTIONS.map(({ value, label, Icon }) => (
-          <label key={value} className={`theme-control__option${theme === value ? " is-selected" : ""}`}>
+          <label
+            key={value}
+            className={`theme-control__option${theme === value ? " is-selected" : ""}`}
+          >
             <input
               type="radio"
               name={`${id}-theme`}

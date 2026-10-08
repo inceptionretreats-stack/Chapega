@@ -44,8 +44,7 @@ describe("Supabase backend selection", () => {
       "SUPABASE_DATABASE_URL",
       "postgresql://chapega_app.example:password@example.pooler.supabase.com:6543/postgres",
     );
-    const { getSupabaseConfiguration, getVendorDataBackend } =
-      await loadConfiguration();
+    const { getSupabaseConfiguration, getVendorDataBackend } = await loadConfiguration();
     expect(getVendorDataBackend()).toBe("supabase");
     expect(getSupabaseConfiguration()).toEqual({
       databaseUrl:
@@ -73,8 +72,6 @@ describe("Supabase backend selection", () => {
     vi.stubEnv("SUPABASE_SECRET_KEY", "");
     vi.stubEnv("SUPABASE_DATABASE_URL", "");
     const { getSupabaseConfiguration } = await loadConfiguration();
-    expect(() => getSupabaseConfiguration()).toThrow(
-      /SUPABASE_DATABASE_URL, SUPABASE_SECRET_KEY/,
-    );
+    expect(() => getSupabaseConfiguration()).toThrow(/SUPABASE_DATABASE_URL, SUPABASE_SECRET_KEY/);
   });
 });

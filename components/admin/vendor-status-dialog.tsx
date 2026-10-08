@@ -2,10 +2,7 @@
 
 import { LoaderCircle, PauseCircle, PlayCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import type {
-  AdminVendorMutationResult,
-  AdminVendorSummary,
-} from "@/types/admin";
+import type { AdminVendorMutationResult, AdminVendorSummary } from "@/types/admin";
 import { adminRequest } from "./admin-client";
 import { AdminDialog } from "./admin-dialog";
 
@@ -15,11 +12,7 @@ type VendorStatusDialogProps = {
   onSaved: (result: AdminVendorMutationResult) => void;
 };
 
-export function VendorStatusDialog({
-  vendor,
-  onClose,
-  onSaved,
-}: VendorStatusDialogProps) {
+export function VendorStatusDialog({ vendor, onClose, onSaved }: VendorStatusDialogProps) {
   // Open on the safe action: Cancel, never the destructive confirm.
   const cancelRef = useRef<HTMLButtonElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
@@ -65,9 +58,11 @@ export function VendorStatusDialog({
   return (
     <AdminDialog
       title={suspending ? "Suspend vendor" : "Reactivate vendor"}
-      description={suspending
-        ? `Suspend ${vendor.displayName} and stop new kiosk orders.`
-        : `Restore ${vendor.displayName} and allow its team to operate again.`}
+      description={
+        suspending
+          ? `Suspend ${vendor.displayName} and stop new kiosk orders.`
+          : `Restore ${vendor.displayName} and allow its team to operate again.`
+      }
       onClose={onClose}
       busy={pending}
       initialFocusRef={cancelRef}
@@ -75,7 +70,10 @@ export function VendorStatusDialog({
       role={suspending ? "alertdialog" : "dialog"}
     >
       <div className="admin-confirm-dialog">
-        <span className={`admin-confirm-dialog__icon${suspending ? " is-danger" : ""}`} aria-hidden="true">
+        <span
+          className={`admin-confirm-dialog__icon${suspending ? " is-danger" : ""}`}
+          aria-hidden="true"
+        >
           {suspending ? <PauseCircle size={28} /> : <PlayCircle size={28} />}
         </span>
         <p>
@@ -83,18 +81,40 @@ export function VendorStatusDialog({
             ? "Existing products, orders and account history will be preserved. The storefront can be reactivated later."
             : "The vendor storefront and owner access will return immediately."}
         </p>
-        {error ? <p ref={errorRef} tabIndex={-1} className="admin-form-error" role="alert">{error}</p> : null}
+        {error ? (
+          <p ref={errorRef} tabIndex={-1} className="admin-form-error" role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
       <footer className="admin-dialog__actions">
-        <button ref={cancelRef} className="admin-secondary" type="button" onClick={onClose} disabled={pending}>Cancel</button>
+        <button
+          ref={cancelRef}
+          className="admin-secondary"
+          type="button"
+          onClick={onClose}
+          disabled={pending}
+        >
+          Cancel
+        </button>
         <button
           className={suspending ? "admin-danger" : "admin-primary"}
           type="button"
           onClick={confirm}
           disabled={pending}
         >
-          {pending ? <LoaderCircle className="admin-spin" size={18} /> : suspending ? <PauseCircle size={18} /> : <PlayCircle size={18} />}
-          {pending ? "Updating…" : suspending ? `Suspend ${vendor.displayName}` : `Reactivate ${vendor.displayName}`}
+          {pending ? (
+            <LoaderCircle className="admin-spin" size={18} />
+          ) : suspending ? (
+            <PauseCircle size={18} />
+          ) : (
+            <PlayCircle size={18} />
+          )}
+          {pending
+            ? "Updating…"
+            : suspending
+              ? `Suspend ${vendor.displayName}`
+              : `Reactivate ${vendor.displayName}`}
         </button>
       </footer>
     </AdminDialog>

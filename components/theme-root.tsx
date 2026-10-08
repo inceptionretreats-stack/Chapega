@@ -41,7 +41,9 @@ export function ThemeRoot({ className, initialTheme, children }: ThemeRootProps)
   };
   return (
     <ThemeContext value={{ theme, setTheme }}>
-      <div className={className} data-theme={theme}>{children}</div>
+      <div className={className} data-theme={theme}>
+        {children}
+      </div>
     </ThemeContext>
   );
 }

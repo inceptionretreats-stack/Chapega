@@ -81,7 +81,9 @@ export function ConfirmDialog({
             onClick={onConfirm}
             disabled={pending}
           >
-            {pending ? <LoaderCircle className="confirm-dialog__spin" size={18} aria-hidden="true" /> : null}
+            {pending ? (
+              <LoaderCircle className="confirm-dialog__spin" size={18} aria-hidden="true" />
+            ) : null}
             {pending && pendingLabel ? pendingLabel : confirmLabel}
           </button>
         </div>

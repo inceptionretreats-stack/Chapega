@@ -60,9 +60,7 @@ function platformAdminUser(user: {
 export async function authenticateAdminLogin(
   email: string,
   password: string,
-): Promise<
-  Readonly<{ user: PlatformAdminUser; token: string; expiresAt: Date }> | null
-> {
+): Promise<Readonly<{ user: PlatformAdminUser; token: string; expiresAt: Date }> | null> {
   const configuration = getAdminCredentialConfiguration();
   if (!configuration.available) {
     throw new AdminServiceError(
@@ -81,14 +79,10 @@ export async function authenticateAdminLogin(
   const tokenHash = sha256(token);
   const createdAt = new Date();
   // Idle deadline; slides with activity up to ADMIN_SESSION_HOURS.
-  const expiresAt = new Date(
-    initialSessionExpiry(createdAt.getTime(), adminSessionPolicy()),
-  );
+  const expiresAt = new Date(initialSessionExpiry(createdAt.getTime(), adminSessionPolicy()));
 
   if (usesSupabaseBackend()) {
-    const { authenticateSupabasePlatformLogin } = await import(
-      "@/server/vendor/supabase-auth"
-    );
+    const { authenticateSupabasePlatformLogin } = await import("@/server/vendor/supabase-auth");
     const user = await authenticateSupabasePlatformLogin({
       email: normalizedEmail,
       password,
@@ -105,9 +99,7 @@ export async function authenticateAdminLogin(
   // authenticated platform reads use the scoped database API below.
   // The slow hash runs outside the serialized write queue.
   const snapshot = await readLocalVendorDatabase();
-  const verified = snapshot.users.find(
-    (record) => record.email === normalizedEmail,
-  );
+  const verified = snapshot.users.find((record) => record.email === normalizedEmail);
   const validPassword = await verifyPassword(
     password,
     verified?.passwordSalt ?? DUMMY_SALT,
@@ -151,15 +143,7 @@ export async function authenticateAdminLogin(
       createdAt: createdAt.toISOString(),
       expiresAt: expiresAt.toISOString(),
     });
-    database.audit.push(
-      newAuditRecord(
-        candidate.id,
-        "platform.login",
-        "auth",
-        candidate.id,
-        null,
-      ),
-    );
+    database.audit.push(newAuditRecord(candidate.id, "platform.login", "auth", candidate.id, null));
     database.revision += 1;
     return publicUser;
   });
@@ -180,9 +164,7 @@ export async function getAdminByToken(
   const rules = adminSessionPolicy();
 
   if (usesSupabaseBackend()) {
-    const { getSupabasePlatformUserByToken } = await import(
-      "@/server/vendor/supabase-auth"
-    );
+    const { getSupabasePlatformUserByToken } = await import("@/server/vendor/supabase-auth");
     const user = await getSupabasePlatformUserByToken(sessionHash, rules, countsAsActivity);
     return user ? { user, sessionHash } : null;
   }
@@ -219,17 +201,13 @@ export async function getAdminByToken(
   return { user, sessionHash };
 }
 
-export async function getRequestAdmin(
-  request: NextRequest,
-): Promise<AdminAuthContext | null> {
+export async function getRequestAdmin(request: NextRequest): Promise<AdminAuthContext | null> {
   return getAdminByToken(request.cookies.get(ADMIN_SESSION_COOKIE)?.value, {
     countsAsActivity: !isBackgroundRefresh(request.headers),
   });
 }
 
-export async function requireRequestAdmin(
-  request: NextRequest,
-): Promise<AdminAuthContext> {
+export async function requireRequestAdmin(request: NextRequest): Promise<AdminAuthContext> {
   const context = await getRequestAdmin(request);
   if (!context) {
     throw new AdminServiceError(
@@ -251,31 +229,21 @@ export async function destroyAdminSession(token: string): Promise<void> {
   const tokenHash = sha256(token);
 
   if (usesSupabaseBackend()) {
-    const { destroySupabasePlatformSession } = await import(
-      "@/server/vendor/supabase-auth"
-    );
+    const { destroySupabasePlatformSession } = await import("@/server/vendor/supabase-auth");
     await destroySupabasePlatformSession(tokenHash);
     return;
   }
 
   await updateLocalVendorDatabase((database) => {
     const session = database.sessions.find(
-      (candidate) =>
-        candidate.idHash === tokenHash && candidate.scope === "platform",
+      (candidate) => candidate.idHash === tokenHash && candidate.scope === "platform",
     );
     database.sessions = database.sessions.filter(
-      (candidate) =>
-        candidate.idHash !== tokenHash || candidate.scope !== "platform",
+      (candidate) => candidate.idHash !== tokenHash || candidate.scope !== "platform",
     );
     if (!session) return;
     database.audit.push(
-      newAuditRecord(
-        session.userId,
-        "platform.logout",
-        "auth",
-        session.userId,
-        null,
-      ),
+      newAuditRecord(session.userId, "platform.logout", "auth", session.userId, null),
     );
     database.revision += 1;
   });

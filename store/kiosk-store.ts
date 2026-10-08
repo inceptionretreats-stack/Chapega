@@ -2,9 +2,7 @@
 
 import { create } from "zustand";
 
-import {
-  CATALOGUE_PRODUCTS,
-} from "@/data/catalogue";
+import { CATALOGUE_PRODUCTS } from "@/data/catalogue";
 import {
   addCartItem,
   getCartUnitCount,
@@ -15,13 +13,8 @@ import {
   type AddCartItemOptions,
 } from "@/domain/cart";
 import { calculateCartTotals } from "@/domain/money";
-import {
-  createOrder,
-  redactOrderForHistory,
-} from "@/domain/order";
-import {
-  normalizeWhatsAppNumber,
-} from "@/domain/whatsapp";
+import { createOrder, redactOrderForHistory } from "@/domain/order";
+import { normalizeWhatsAppNumber } from "@/domain/whatsapp";
 import {
   type CartError,
   type CartLine,
@@ -39,8 +32,7 @@ import {
   type Product,
 } from "@/types/kiosk";
 
-export const PRESENTER_SETTINGS_STORAGE_KEY =
-  "gift-kiosk-presenter-settings";
+export const PRESENTER_SETTINGS_STORAGE_KEY = "gift-kiosk-presenter-settings";
 export const ORDERS_STORAGE_KEY = "gift-kiosk-orders";
 export const ACTIVE_SESSION_STORAGE_KEY = "gift-kiosk-active-session";
 export const CATALOGUE_REVISION_STORAGE_KEY = "gift-kiosk-catalogue-revision";
@@ -95,7 +87,10 @@ const memoryStorage: Record<StorageKind, Map<string, string>> = {
 };
 
 function normalizedTenantKey(value: string): string {
-  const normalized = value.trim().toLocaleLowerCase("en-IN").replace(/[^a-z0-9-]/g, "-");
+  const normalized = value
+    .trim()
+    .toLocaleLowerCase("en-IN")
+    .replace(/[^a-z0-9-]/g, "-");
   return normalized.replace(/-+/g, "-").replace(/^-|-$/g, "") || "chapega";
 }
 
@@ -191,11 +186,7 @@ function resetLegacyDataForCurrentCatalogue(tenantKey: string): boolean {
     removeStorage("local", ORDERS_STORAGE_KEY),
     removeStorage("local", PRESENTER_SETTINGS_STORAGE_KEY),
     removeStorage("session", ACTIVE_SESSION_STORAGE_KEY),
-    writeStorage(
-      "local",
-      revisionKey,
-      CURRENT_CATALOGUE_REVISION,
-    ),
+    writeStorage("local", revisionKey, CURRENT_CATALOGUE_REVISION),
   ];
 
   return revisionRead.available && results.every(Boolean);
@@ -235,9 +226,7 @@ function boundedInteger(
   minimum: number,
   maximum: number,
 ): number {
-  return Number.isSafeInteger(value) &&
-    Number(value) >= minimum &&
-    Number(value) <= maximum
+  return Number.isSafeInteger(value) && Number(value) >= minimum && Number(value) <= maximum
     ? Number(value)
     : fallback;
 }
@@ -261,10 +250,7 @@ function parseSettings(value: unknown): PresenterSettings {
   let ownerWhatsAppNumber = "";
   if (rawOwnerNumber) {
     try {
-      ownerWhatsAppNumber = normalizeWhatsAppNumber(
-        rawOwnerNumber,
-        safeCountryCode,
-      );
+      ownerWhatsAppNumber = normalizeWhatsAppNumber(rawOwnerNumber, safeCountryCode);
     } catch {
       ownerWhatsAppNumber = "";
     }
@@ -273,15 +259,13 @@ function parseSettings(value: unknown): PresenterSettings {
   const storedShopName = stringValue(value.shopName).trim().slice(0, 80);
 
   return Object.freeze({
-    shopName:
-      LEGACY_DEFAULT_SHOP_NAMES.includes(storedShopName)
-        ? DEFAULT_PRESENTER_SETTINGS.shopName
-        : storedShopName || DEFAULT_PRESENTER_SETTINGS.shopName,
+    shopName: LEGACY_DEFAULT_SHOP_NAMES.includes(storedShopName)
+      ? DEFAULT_PRESENTER_SETTINGS.shopName
+      : storedShopName || DEFAULT_PRESENTER_SETTINGS.shopName,
     ownerWhatsAppNumber,
     defaultCountryCode: safeCountryCode,
     kioskName:
-      stringValue(value.kioskName).trim().slice(0, 80) ||
-      DEFAULT_PRESENTER_SETTINGS.kioskName,
+      stringValue(value.kioskName).trim().slice(0, 80) || DEFAULT_PRESENTER_SETTINGS.kioskName,
     maxCartQuantity: boundedInteger(
       value.maxCartQuantity,
       DEFAULT_PRESENTER_SETTINGS.maxCartQuantity,
@@ -320,8 +304,7 @@ function parseHistoryItem(value: unknown): OrderHistoryItem | undefined {
     typeof value.kioskName !== "string" ||
     !isPositiveInteger(value.itemCount) ||
     !isNonNegativeInteger(value.totalPaise) ||
-    (status !== "prepared_for_whatsapp" &&
-      status !== "presenter_marked_sent")
+    (status !== "prepared_for_whatsapp" && status !== "presenter_marked_sent")
   ) {
     return undefined;
   }
@@ -349,10 +332,7 @@ function parseHistory(value: unknown): readonly OrderHistoryItem[] {
   );
 }
 
-function isMatchingWhatsAppSnapshotUrl(
-  rawUrl: string,
-  message: string,
-): boolean {
+function isMatchingWhatsAppSnapshotUrl(rawUrl: string, message: string): boolean {
   try {
     const url = new URL(rawUrl);
     const queryEntries = [...url.searchParams.entries()];
@@ -396,15 +376,9 @@ function parseOrder(value: unknown): Order | null {
     typeof value.whatsappMessage !== "string" ||
     !value.whatsappMessage.trim() ||
     typeof value.whatsappUrl !== "string" ||
-    !isMatchingWhatsAppSnapshotUrl(
-      value.whatsappUrl,
-      value.whatsappMessage,
-    ) ||
-    !value.whatsappMessage
-      .split("\n")
-      .some((line) => line === `Order: ${value.orderNumber}`) ||
-    (status !== "prepared_for_whatsapp" &&
-      status !== "presenter_marked_sent")
+    !isMatchingWhatsAppSnapshotUrl(value.whatsappUrl, value.whatsappMessage) ||
+    !value.whatsappMessage.split("\n").some((line) => line === `Order: ${value.orderNumber}`) ||
+    (status !== "prepared_for_whatsapp" && status !== "presenter_marked_sent")
   ) {
     return null;
   }
@@ -435,16 +409,13 @@ function parseOrder(value: unknown): Order | null {
         lineTotalPaise: item.lineTotalPaise,
       });
     })
-    .filter(
-      (item): item is Order["items"][number] => item !== undefined,
-    );
+    .filter((item): item is Order["items"][number] => item !== undefined);
 
   if (
     items.length !== value.items.length ||
     items.length === 0 ||
     items.reduce((total, item) => total + item.quantity, 0) > 5 ||
-    items.reduce((total, item) => total + item.lineTotalPaise, 0) !==
-      value.subtotalPaise
+    items.reduce((total, item) => total + item.lineTotalPaise, 0) !== value.subtotalPaise
   ) {
     return null;
   }
@@ -464,14 +435,10 @@ function parseOrder(value: unknown): Order | null {
     id: value.id,
     orderNumber: value.orderNumber,
     createdAt: value.createdAt,
-    customerName:
-      typeof value.customerName === "string" ? value.customerName : undefined,
-    customerPhone:
-      typeof value.customerPhone === "string" ? value.customerPhone : undefined,
-    giftNote:
-      typeof value.giftNote === "string" ? value.giftNote : undefined,
-    orderNote:
-      typeof value.orderNote === "string" ? value.orderNote : undefined,
+    customerName: typeof value.customerName === "string" ? value.customerName : undefined,
+    customerPhone: typeof value.customerPhone === "string" ? value.customerPhone : undefined,
+    giftNote: typeof value.giftNote === "string" ? value.giftNote : undefined,
+    orderNote: typeof value.orderNote === "string" ? value.orderNote : undefined,
     kioskName: value.kioskName,
     paymentMethod: "pay_later",
     items: Object.freeze(items),
@@ -520,9 +487,7 @@ type PendingOrderSubmission = Readonly<{
   }>[];
 }>;
 
-function parsePendingOrderSubmission(
-  value: unknown,
-): PendingOrderSubmission | null {
+function parsePendingOrderSubmission(value: unknown): PendingOrderSubmission | null {
   if (!isRecord(value) || !Array.isArray(value.items)) return null;
   const order = parseOrder(value.order);
   if (!order || value.items.length < 1 || value.items.length > 5) return null;
@@ -545,9 +510,7 @@ function parsePendingOrderSubmission(
     items.push(
       Object.freeze({
         productId: item.productId,
-        ...(typeof item.variantId === "string"
-          ? { variantId: item.variantId }
-          : {}),
+        ...(typeof item.variantId === "string" ? { variantId: item.variantId } : {}),
         quantity: item.quantity,
         giftWrapped: item.giftWrapped,
       }),
@@ -586,8 +549,7 @@ function restoreCart(
     if (
       !isRecord(candidate) ||
       typeof candidate.productId !== "string" ||
-      (candidate.variantId !== undefined &&
-        typeof candidate.variantId !== "string") ||
+      (candidate.variantId !== undefined && typeof candidate.variantId !== "string") ||
       !isPositiveInteger(candidate.quantity) ||
       typeof candidate.giftWrapped !== "boolean"
     ) {
@@ -617,20 +579,15 @@ function restoreCart(
   return Object.freeze([...restored]);
 }
 
-function parseCategory(
-  value: unknown,
-  products: readonly Product[],
-): CategoryFilter {
+function parseCategory(value: unknown, products: readonly Product[]): CategoryFilter {
   return value === "all" ||
-    (typeof value === "string" &&
-      products.some((product) => product.category === value))
+    (typeof value === "string" && products.some((product) => product.category === value))
     ? (value as CategoryFilter)
     : "all";
 }
 
 function parseScreen(value: unknown): KioskScreen {
-  return typeof value === "string" &&
-    KIOSK_SCREENS.some((screen) => screen === value)
+  return typeof value === "string" && KIOSK_SCREENS.some((screen) => screen === value)
     ? (value as KioskScreen)
     : "welcome";
 }
@@ -710,9 +667,7 @@ export interface KioskStoreState {
 }
 
 type StoreSet = (
-  partial:
-    | Partial<KioskStoreState>
-    | ((state: KioskStoreState) => Partial<KioskStoreState>),
+  partial: Partial<KioskStoreState> | ((state: KioskStoreState) => Partial<KioskStoreState>),
 ) => void;
 type StoreGet = () => KioskStoreState;
 
@@ -782,11 +737,7 @@ function lineNotFoundResult(): CartResult {
   };
 }
 
-function commitCartResult(
-  result: CartResult,
-  set: StoreSet,
-  get: StoreGet,
-): CartResult {
+function commitCartResult(result: CartResult, set: StoreSet, get: StoreGet): CartResult {
   if (!result.ok) {
     set({ lastCartError: result.error });
     return result;
@@ -869,17 +820,12 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       "local",
       kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, tenantKey),
     );
-    const historyRead = readStorage(
-      "local",
-      kioskStorageKey(ORDERS_STORAGE_KEY, tenantKey),
-    );
+    const historyRead = readStorage("local", kioskStorageKey(ORDERS_STORAGE_KEY, tenantKey));
     const sessionRead = readStorage(
       "session",
       kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey),
     );
-    const products = bootstrap
-      ? Object.freeze([...bootstrap.products])
-      : CATALOGUE_PRODUCTS;
+    const products = bootstrap ? Object.freeze([...bootstrap.products]) : CATALOGUE_PRODUCTS;
     const settings = bootstrap
       ? parseSettings(bootstrap.settings)
       : parseSettings(parseJson(settingsRead.value));
@@ -897,10 +843,12 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     let countdownSeconds = settings.qrResetSeconds;
     let qrExtended = false;
 
-    const sessionAge = isRecord(rawSession) && typeof rawSession.lastActivityAt === "number"
-      ? Date.now() - rawSession.lastActivityAt
-      : Number.POSITIVE_INFINITY;
-    const sessionIsFresh = isRecord(rawSession) &&
+    const sessionAge =
+      isRecord(rawSession) && typeof rawSession.lastActivityAt === "number"
+        ? Date.now() - rawSession.lastActivityAt
+        : Number.POSITIVE_INFINITY;
+    const sessionIsFresh =
+      isRecord(rawSession) &&
       rawSession.version === 4 &&
       rawSession.tenantKey === tenantKey &&
       sessionAge >= 0 &&
@@ -938,10 +886,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
           : settings.qrResetSeconds,
       );
     } else if (isRecord(rawSession)) {
-      removeStorage(
-        "session",
-        kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey),
-      );
+      removeStorage("session", kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey));
     }
 
     if (screen === "product-details" && !selectedProductId) {
@@ -988,26 +933,16 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     const state = get();
     const selectedCategory = parseCategory(state.selectedCategory, products);
     const selectedProductId =
-      state.selectedProductId &&
-      products.some((product) => product.id === state.selectedProductId)
+      state.selectedProductId && products.some((product) => product.id === state.selectedProductId)
         ? state.selectedProductId
         : null;
     const screen =
-      state.screen === "product-details" && !selectedProductId
-        ? "catalogue"
-        : state.screen;
+      state.screen === "product-details" && !selectedProductId ? "catalogue" : state.screen;
     const cartItems = restoreCart(state.cartItems, settings, products);
-    const cartChanged =
-      JSON.stringify(cartItems) !== JSON.stringify(state.cartItems);
-    const activeCheckoutScreens: readonly KioskScreen[] = [
-      "cart",
-      "customer",
-      "review",
-    ];
+    const cartChanged = JSON.stringify(cartItems) !== JSON.stringify(state.cartItems);
+    const activeCheckoutScreens: readonly KioskScreen[] = ["cart", "customer", "review"];
     const reconciledScreen =
-      cartChanged &&
-      cartItems.length === 0 &&
-      activeCheckoutScreens.includes(screen)
+      cartChanged && cartItems.length === 0 && activeCheckoutScreens.includes(screen)
         ? "catalogue"
         : screen;
     set({
@@ -1022,8 +957,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         ? {
             lastCartError: Object.freeze({
               code: "PRODUCT_UNAVAILABLE" as const,
-              message:
-                "Your cart was updated to match the latest prices and availability.",
+              message: "Your cart was updated to match the latest prices and availability.",
             }),
           }
         : {}),
@@ -1084,12 +1018,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         ? { ...options, variantId: product.variants[0].id }
         : options;
     return commitCartResult(
-      addCartItem(
-        get().cartItems,
-        product,
-        resolvedOptions,
-        get().settings.maxCartQuantity,
-      ),
+      addCartItem(get().cartItems, product, resolvedOptions, get().settings.maxCartQuantity),
       set,
       get,
     );
@@ -1097,12 +1026,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 
   updateCartQuantity: (lineKey, quantity) =>
     commitCartResult(
-      setCartLineQuantity(
-        get().cartItems,
-        lineKey,
-        quantity,
-        get().settings.maxCartQuantity,
-      ),
+      setCartLineQuantity(get().cartItems, lineKey, quantity, get().settings.maxCartQuantity),
       set,
       get,
     ),
@@ -1133,11 +1057,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 
   removeFromCart: (lineKey) =>
     commitCartResult(
-      removeCartLine(
-        get().cartItems,
-        lineKey,
-        get().settings.maxCartQuantity,
-      ),
+      removeCartLine(get().cartItems, lineKey, get().settings.maxCartQuantity),
       set,
       get,
     ),
@@ -1147,13 +1067,8 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   updateCustomer: (details) => {
     set((state) => ({
       customer: Object.freeze({
-        customerName: (details.customerName ?? state.customer.customerName).slice(
-          0,
-          80,
-        ),
-        customerPhone: (
-          details.customerPhone ?? state.customer.customerPhone
-        ).slice(0, 30),
+        customerName: (details.customerName ?? state.customer.customerName).slice(0, 80),
+        customerPhone: (details.customerPhone ?? state.customer.customerPhone).slice(0, 30),
         giftNote: (details.giftNote ?? state.customer.giftNote).slice(0, 240),
         orderNote: (details.orderNote ?? state.customer.orderNote).slice(0, 240),
       }),
@@ -1217,12 +1132,12 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   completeOrderCreation: (order) => {
     const state = get();
     const historyItem = redactOrderForHistory(order);
-    const orderHistory = Object.freeze([
-      historyItem,
-      ...state.orderHistory.filter(
-        (item) => item.orderNumber !== historyItem.orderNumber,
-      ),
-    ].slice(0, MAX_ORDER_HISTORY));
+    const orderHistory = Object.freeze(
+      [
+        historyItem,
+        ...state.orderHistory.filter((item) => item.orderNumber !== historyItem.orderNumber),
+      ].slice(0, MAX_ORDER_HISTORY),
+    );
     set({
       pendingSubmission: null,
       currentOrder: order,
@@ -1300,10 +1215,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       lastOrderError: null,
     });
     noteStorageResult(
-      removeStorage(
-        "session",
-        kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey),
-      ),
+      removeStorage("session", kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey)),
       set,
     );
   },
@@ -1312,31 +1224,22 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 export const selectCartUnitCount = (state: KioskStoreState): number =>
   getCartUnitCount(state.cartItems);
 
-export const selectRemainingCartCapacity = (
-  state: KioskStoreState,
-): number =>
+export const selectRemainingCartCapacity = (state: KioskStoreState): number =>
   getRemainingCartCapacity(state.cartItems, state.settings.maxCartQuantity);
 
 export const selectCartTotals = (state: KioskStoreState): CartTotals =>
   calculateCartTotals(state.cartItems, state.settings.giftWrapFeePaise);
 
-export const selectSelectedProduct = (
-  state: KioskStoreState,
-): Product | undefined =>
+export const selectSelectedProduct = (state: KioskStoreState): Product | undefined =>
   state.selectedProductId
     ? state.products.find((product) => product.id === state.selectedProductId)
     : undefined;
 
-export const selectVisibleProducts = (
-  state: KioskStoreState,
-): readonly Product[] => {
+export const selectVisibleProducts = (state: KioskStoreState): readonly Product[] => {
   const query = state.searchQuery.trim().toLocaleLowerCase("en-IN");
 
   return state.products.filter((product) => {
-    if (
-      state.selectedCategory !== "all" &&
-      product.category !== state.selectedCategory
-    ) {
+    if (state.selectedCategory !== "all" && product.category !== state.selectedCategory) {
       return false;
     }
 

@@ -14,7 +14,10 @@ export const runtime = "nodejs";
 
 type Context = { params: Promise<{ orderId: string }> };
 
-export const PATCH = withRequestContext(async function PATCH(request: NextRequest, context: Context) {
+export const PATCH = withRequestContext(async function PATCH(
+  request: NextRequest,
+  context: Context,
+) {
   try {
     assertSameOrigin(request);
     const [user, input, params] = await Promise.all([

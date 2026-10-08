@@ -10,16 +10,11 @@ export class VendorClientError extends Error {
   }
 }
 
-export async function vendorRequest<T>(
-  input: string,
-  init?: RequestInit,
-): Promise<T> {
+export async function vendorRequest<T>(input: string, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
     ...init,
     headers: {
-      ...(init?.body instanceof FormData
-        ? {}
-        : { "Content-Type": "application/json" }),
+      ...(init?.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...init?.headers,
     },
     cache: "no-store",
@@ -31,13 +26,17 @@ export async function vendorRequest<T>(
     payload = undefined;
   }
   if (!response.ok) {
-    const error = (payload as {
-      error?: {
-        code?: string;
-        message?: string;
-        fields?: Record<string, string[] | undefined>;
-      };
-    } | undefined)?.error;
+    const error = (
+      payload as
+        | {
+            error?: {
+              code?: string;
+              message?: string;
+              fields?: Record<string, string[] | undefined>;
+            };
+          }
+        | undefined
+    )?.error;
     throw new VendorClientError(
       response.status,
       error?.code ?? "REQUEST_FAILED",

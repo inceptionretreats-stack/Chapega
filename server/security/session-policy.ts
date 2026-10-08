@@ -83,11 +83,7 @@ export function initialSessionExpiry(createdAt: number, rules: SessionPolicy): n
 }
 
 /** Live = before its idle deadline and within its absolute lifetime. */
-export function sessionIsLive(
-  session: SessionTimes,
-  now: number,
-  rules: SessionPolicy,
-): boolean {
+export function sessionIsLive(session: SessionTimes, now: number, rules: SessionPolicy): boolean {
   return session.expiresAt > now && session.createdAt + rules.absoluteMs > now;
 }
 
@@ -103,7 +99,5 @@ export function refreshedSessionExpiry(
 ): number | null {
   if (!sessionIsLive(session, now, rules)) return null;
   const target = Math.min(now + rules.idleMs, session.createdAt + rules.absoluteMs);
-  return Math.abs(target - session.expiresAt) >= SESSION_REFRESH_GRANULARITY_MS
-    ? target
-    : null;
+  return Math.abs(target - session.expiresAt) >= SESSION_REFRESH_GRANULARITY_MS ? target : null;
 }

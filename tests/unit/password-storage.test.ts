@@ -77,12 +77,7 @@ describe("password storage", () => {
 describe("supabase migration for own-password rehash", () => {
   it("adds a narrow security-definer function bound to app.user_id", async () => {
     const sql = await readFile(
-      path.join(
-        process.cwd(),
-        "supabase",
-        "migrations",
-        "20261008130000_auth_hardening.sql",
-      ),
+      path.join(process.cwd(), "supabase", "migrations", "20261008130000_auth_hardening.sql"),
       "utf8",
     );
 
@@ -90,7 +85,11 @@ describe("supabase migration for own-password rehash", () => {
     expect(sql).toMatch(/security definer\s+set search_path = ''/);
     expect(sql).toContain("current_setting('app.user_id', true)");
     expect(sql).toContain("password_hash = p_expected_hash");
-    expect(sql).toMatch(/revoke all on function private\.rehash_own_password\([^)]*\)\s+from public/);
-    expect(sql).toMatch(/grant execute on function private\.rehash_own_password\([^)]*\)\s+to chapega_app/);
+    expect(sql).toMatch(
+      /revoke all on function private\.rehash_own_password\([^)]*\)\s+from public/,
+    );
+    expect(sql).toMatch(
+      /grant execute on function private\.rehash_own_password\([^)]*\)\s+to chapega_app/,
+    );
   });
 });

@@ -16,7 +16,7 @@ vi.mock("@/server/supabase/config", () => ({
 }));
 vi.mock("@/server/supabase/postgres", () => ({
   getSupabasePostgres: () => ({
-    begin: async <T,>(operation: (transaction: unknown) => Promise<T>) => {
+    begin: async <T>(operation: (transaction: unknown) => Promise<T>) => {
       const transaction = async (strings: TemplateStringsArray, ...values: unknown[]) => {
         const text = strings.join("?").replace(/\s+/g, " ").trim();
         state.queries.push(text);

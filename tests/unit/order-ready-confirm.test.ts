@@ -77,7 +77,9 @@ describe("starting a new order from the QR screen (owner decision)", () => {
 
     const dialog = await screen.findByRole("alertdialog", { name: /start a new order/i });
     expect(dialog).toHaveAccessibleDescription(/clears this QR code/i);
-    await waitFor(() => expect(screen.getByRole("button", { name: /keep this qr/i })).toHaveFocus());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /keep this qr/i })).toHaveFocus(),
+    );
     expect(onStartNewOrder).not.toHaveBeenCalled();
   });
 

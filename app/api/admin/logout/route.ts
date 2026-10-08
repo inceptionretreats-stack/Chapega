@@ -1,13 +1,6 @@
 import type { NextRequest } from "next/server";
-import {
-  ADMIN_SESSION_COOKIE,
-  destroyAdminSession,
-} from "@/server/admin/auth";
-import {
-  adminApiError,
-  adminJsonResponse,
-  assertAdminSameOrigin,
-} from "@/server/admin/api";
+import { ADMIN_SESSION_COOKIE, destroyAdminSession } from "@/server/admin/auth";
+import { adminApiError, adminJsonResponse, assertAdminSameOrigin } from "@/server/admin/api";
 import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";

@@ -5,10 +5,7 @@ import path from "node:path";
 import { getSupabaseAdmin } from "@/server/supabase/admin";
 import { usesSupabaseBackend } from "@/server/supabase/config";
 import { getSupabasePostgres } from "@/server/supabase/postgres";
-import {
-  updateLocalVendorDatabase,
-  type VendorDatabase,
-} from "@/server/vendor/database";
+import { updateLocalVendorDatabase, type VendorDatabase } from "@/server/vendor/database";
 import { VendorServiceError } from "@/server/vendor/errors";
 import type { ProductImagePath } from "@/types/kiosk";
 
@@ -26,8 +23,7 @@ const BUNDLED_IMAGE_PATH_PATTERN =
 export const VENDOR_UPLOAD_PATH_PATTERN =
   /^\/vendor-products\/(?:([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})\/)?[a-f0-9]{64}\.(?:png|jpg)$/i;
 
-export type VendorUploadPath =
-  `/vendor-products/${string}.${"png" | "jpg"}`;
+export type VendorUploadPath = `/vendor-products/${string}.${"png" | "jpg"}`;
 
 type ValidatedUpload = Readonly<{
   storageKey: string;
@@ -70,9 +66,15 @@ function imageIsReferenced(
   vendorId: string,
 ): boolean {
   return (
-    database.products.some((product) => (product.vendorId ?? LEGACY_DEFAULT_VENDOR_ID) === vendorId && sameImage(product.image, imagePath)) ||
-    database.orders.some((order) => (order.vendorId ?? LEGACY_DEFAULT_VENDOR_ID) === vendorId &&
-      order.items.some((item) => sameImage(item.image, imagePath)),
+    database.products.some(
+      (product) =>
+        (product.vendorId ?? LEGACY_DEFAULT_VENDOR_ID) === vendorId &&
+        sameImage(product.image, imagePath),
+    ) ||
+    database.orders.some(
+      (order) =>
+        (order.vendorId ?? LEGACY_DEFAULT_VENDOR_ID) === vendorId &&
+        order.items.some((item) => sameImage(item.image, imagePath)),
     )
   );
 }
@@ -107,14 +109,11 @@ function storageUnavailable(message: string, cause: unknown): VendorServiceError
 }
 
 async function removeSupabaseObject(storageKey: string): Promise<void> {
-  const { error } = await getSupabaseAdmin().storage
-    .from(VENDOR_PRODUCTS_BUCKET)
+  const { error } = await getSupabaseAdmin()
+    .storage.from(VENDOR_PRODUCTS_BUCKET)
     .remove([storageKey]);
   if (error && !isMissingStorageObject(error)) {
-    throw storageUnavailable(
-      "The product image could not be deleted. Please try again.",
-      error,
-    );
+    throw storageUnavailable("The product image could not be deleted. Please try again.", error);
   }
 }
 
@@ -153,19 +152,12 @@ async function deleteUnusedSupabaseImage(
     });
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
-    throw storageUnavailable(
-      "The product image could not be deleted. Please try again.",
-      error,
-    );
+    throw storageUnavailable("The product image could not be deleted. Please try again.", error);
   }
 }
 
 function localUploadPath(storageKey: string): string {
-  const directory = path.resolve(
-    process.cwd(),
-    "public",
-    VENDOR_PRODUCTS_DIRECTORY,
-  );
+  const directory = path.resolve(process.cwd(), "public", VENDOR_PRODUCTS_DIRECTORY);
   const target = path.resolve(directory, storageKey);
   if (target !== directory && !target.startsWith(`${directory}${path.sep}`)) {
     // Defense in depth: validated filenames cannot reach this branch.
@@ -230,11 +222,7 @@ function safelyResolvedPublicFile(
   const directory = path.resolve(process.cwd(), "public", directoryName);
   const target = path.resolve(directory, filename);
   if (path.dirname(target) !== directory) {
-    throw new VendorServiceError(
-      400,
-      "INVALID_IMAGE_PATH",
-      "Choose a valid product image.",
-    );
+    throw new VendorServiceError(400, "INVALID_IMAGE_PATH", "Choose a valid product image.");
   }
   return target;
 }
@@ -244,36 +232,23 @@ async function localFileExists(filePath: string): Promise<boolean> {
     return (await stat(filePath)).isFile();
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return false;
-    throw storageUnavailable(
-      "The product image could not be checked. Please try again.",
-      error,
-    );
+    throw storageUnavailable("The product image could not be checked. Please try again.", error);
   }
 }
 
 async function supabaseObjectExists(filename: string): Promise<boolean> {
   try {
-    const { data, error } = await getSupabaseAdmin().storage
-      .from(VENDOR_PRODUCTS_BUCKET)
+    const { data, error } = await getSupabaseAdmin()
+      .storage.from(VENDOR_PRODUCTS_BUCKET)
       .exists(filename);
     if (data) return true;
-    if (
-      error &&
-      error.status !== 400 &&
-      !isMissingStorageObject(error)
-    ) {
-      throw storageUnavailable(
-        "The product image could not be checked. Please try again.",
-        error,
-      );
+    if (error && error.status !== 400 && !isMissingStorageObject(error)) {
+      throw storageUnavailable("The product image could not be checked. Please try again.", error);
     }
     return false;
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
-    throw storageUnavailable(
-      "The product image could not be checked. Please try again.",
-      error,
-    );
+    throw storageUnavailable("The product image could not be checked. Please try again.", error);
   }
 }
 
@@ -311,11 +286,7 @@ export async function assertProductImageExists(
     ) {
       throw new VendorServiceError(403, "FORBIDDEN", "This image belongs to another vendor.");
     }
-    if (
-      requestedVendorId &&
-      !pathVendorId &&
-      requestedVendorId !== LEGACY_DEFAULT_VENDOR_ID
-    ) {
+    if (requestedVendorId && !pathVendorId && requestedVendorId !== LEGACY_DEFAULT_VENDOR_ID) {
       throw new VendorServiceError(
         403,
         "FORBIDDEN",
@@ -326,11 +297,7 @@ export async function assertProductImageExists(
       ? await supabaseObjectExists(storageKey)
       : await localFileExists(localUploadPath(storageKey));
   } else {
-    throw new VendorServiceError(
-      400,
-      "INVALID_IMAGE_PATH",
-      "Choose a valid product image.",
-    );
+    throw new VendorServiceError(400, "INVALID_IMAGE_PATH", "Choose a valid product image.");
   }
 
   if (!exists) {
@@ -347,10 +314,7 @@ async function removeLocalObject(filename: string): Promise<void> {
     await unlink(localUploadPath(filename));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw storageUnavailable(
-      "The product image could not be deleted. Please try again.",
-      error,
-    );
+    throw storageUnavailable("The product image could not be deleted. Please try again.", error);
   }
 }
 

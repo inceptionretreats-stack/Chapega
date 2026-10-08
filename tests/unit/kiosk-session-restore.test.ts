@@ -114,10 +114,7 @@ describe("restoring a server-issued order after a reload (AUD-10)", () => {
     for (const suffix of ["1234", "123456"]) {
       const number = `GFT-20261008-${suffix}`;
       const base = serverOrder();
-      const message = (base.whatsappMessage as string).replace(
-        SERVER_ORDER_NUMBER,
-        number,
-      );
+      const message = (base.whatsappMessage as string).replace(SERVER_ORDER_NUMBER, number);
       seedSession({
         currentOrder: {
           ...base,
@@ -174,9 +171,7 @@ describe("order submission idempotency key (AUD-37)", () => {
       message: "timeout",
     });
     expect(useKioskStore.getState().createOrder().ok).toBe(true);
-    expect(useKioskStore.getState().pendingSubmission?.idempotencyKey).toBe(
-      first?.idempotencyKey,
-    );
+    expect(useKioskStore.getState().pendingSubmission?.idempotencyKey).toBe(first?.idempotencyKey);
 
     useKioskStore.getState().failOrderCreation({
       code: "INVALID_CART",

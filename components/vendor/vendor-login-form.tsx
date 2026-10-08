@@ -26,7 +26,11 @@ type LoginFieldErrors = Readonly<{
   password?: string;
 }>;
 
-export function VendorLoginForm({ authenticationAvailable, previewCredentials, requestedVendorSlug }: LoginFormProps) {
+export function VendorLoginForm({
+  authenticationAvailable,
+  previewCredentials,
+  requestedVendorSlug,
+}: LoginFormProps) {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [pending, setPending] = useState(false);
@@ -118,7 +122,10 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
 
       <section className="vendor-login-panel">
         <div className="vendor-login-card">
-          <Link className="vendor-login-back" href={requestedVendorSlug ? `/kiosk/${encodeURIComponent(requestedVendorSlug)}` : "/"}>
+          <Link
+            className="vendor-login-back"
+            href={requestedVendorSlug ? `/kiosk/${encodeURIComponent(requestedVendorSlug)}` : "/"}
+          >
             <ArrowLeft size={17} aria-hidden="true" /> Back to kiosk
           </Link>
           <div className="vendor-login-mobile-brand">
@@ -149,17 +156,28 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   defaultValue={previewCredentials?.email ?? ""}
                   onChange={() => {
                     if (error) setError(null);
-                    if (fieldErrors.email) setFieldErrors((current) => ({ ...current, email: undefined }));
+                    if (fieldErrors.email)
+                      setFieldErrors((current) => ({ ...current, email: undefined }));
                   }}
                   placeholder="you@chapega.com"
                   required
                   maxLength={160}
                   disabled={pending || !authenticationAvailable}
                   aria-invalid={Boolean(fieldErrors.email)}
-                  aria-describedby={fieldErrors.email ? "vendor-email-error" : error ? "vendor-login-error" : undefined}
+                  aria-describedby={
+                    fieldErrors.email
+                      ? "vendor-email-error"
+                      : error
+                        ? "vendor-login-error"
+                        : undefined
+                  }
                 />
               </span>
-              {fieldErrors.email ? <small id="vendor-email-error" className="vendor-field-error">{fieldErrors.email}</small> : null}
+              {fieldErrors.email ? (
+                <small id="vendor-email-error" className="vendor-field-error">
+                  {fieldErrors.email}
+                </small>
+              ) : null}
             </div>
 
             <div className="vendor-field">
@@ -174,7 +192,8 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   defaultValue={previewCredentials?.password ?? ""}
                   onChange={() => {
                     if (error) setError(null);
-                    if (fieldErrors.password) setFieldErrors((current) => ({ ...current, password: undefined }));
+                    if (fieldErrors.password)
+                      setFieldErrors((current) => ({ ...current, password: undefined }));
                   }}
                   placeholder="Enter your password"
                   required
@@ -182,7 +201,13 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   maxLength={200}
                   disabled={pending || !authenticationAvailable}
                   aria-invalid={Boolean(fieldErrors.password)}
-                  aria-describedby={fieldErrors.password ? "vendor-password-error" : error ? "vendor-login-error" : undefined}
+                  aria-describedby={
+                    fieldErrors.password
+                      ? "vendor-password-error"
+                      : error
+                        ? "vendor-login-error"
+                        : undefined
+                  }
                 />
                 <PasswordToggle
                   className="vendor-password-toggle"
@@ -193,28 +218,63 @@ export function VendorLoginForm({ authenticationAvailable, previewCredentials, r
                   iconSize={19}
                 />
               </span>
-              {fieldErrors.password ? <small id="vendor-password-error" className="vendor-field-error">{fieldErrors.password}</small> : null}
+              {fieldErrors.password ? (
+                <small id="vendor-password-error" className="vendor-field-error">
+                  {fieldErrors.password}
+                </small>
+              ) : null}
             </div>
 
-            {error ? <p id="vendor-login-error" ref={errorRef} tabIndex={-1} className="vendor-form-error" role="alert">{error}</p> : null}
+            {error ? (
+              <p
+                id="vendor-login-error"
+                ref={errorRef}
+                tabIndex={-1}
+                className="vendor-form-error"
+                role="alert"
+              >
+                {error}
+              </p>
+            ) : null}
 
-            <button className="vendor-primary vendor-login-submit" type="submit" disabled={pending || !authenticationAvailable}>
+            <button
+              className="vendor-primary vendor-login-submit"
+              type="submit"
+              disabled={pending || !authenticationAvailable}
+            >
               {pending ? <LoaderCircle className="vendor-spin" size={20} /> : null}
-              <span>{pending ? "Signing in…" : authenticationAvailable ? "Sign in" : "Sign-in unavailable"}</span>
+              <span>
+                {pending
+                  ? "Signing in…"
+                  : authenticationAvailable
+                    ? "Sign in"
+                    : "Sign-in unavailable"}
+              </span>
               {!pending ? <ArrowRight size={19} /> : null}
             </button>
           </form>
 
           {previewCredentials ? (
             <aside className="vendor-preview-access">
-              <div><ShieldCheck size={18} /><strong>Local preview access</strong></div>
-              <p><span>Email</span><code>{previewCredentials.email}</code></p>
-              <p><span>Password</span><code>{previewCredentials.password}</code></p>
+              <div>
+                <ShieldCheck size={18} />
+                <strong>Local preview access</strong>
+              </div>
+              <p>
+                <span>Email</span>
+                <code>{previewCredentials.email}</code>
+              </p>
+              <p>
+                <span>Password</span>
+                <code>{previewCredentials.password}</code>
+              </p>
               <small>Replace these server-only credentials before deployment.</small>
             </aside>
           ) : null}
 
-          <p className="vendor-secure-note"><LockKeyhole size={15} /> Secure, private vendor session.</p>
+          <p className="vendor-secure-note">
+            <LockKeyhole size={15} /> Secure, private vendor session.
+          </p>
         </div>
       </section>
     </main>

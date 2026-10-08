@@ -38,9 +38,7 @@ async function main(): Promise<void> {
 
   const derived = await derivePasswordHash(password);
   const updated = await databaseModule.updateVendorDatabase((database) => {
-    const userIndex = database.users.findIndex(
-      (candidate) => candidate.email === email,
-    );
+    const userIndex = database.users.findIndex((candidate) => candidate.email === email);
     const user = database.users[userIndex];
     if (!user) return false;
     database.users[userIndex] = {
@@ -49,16 +47,9 @@ async function main(): Promise<void> {
       passwordHash: derived.hash,
       active: true,
     };
-    database.sessions = database.sessions.filter(
-      (session) => session.userId !== user.id,
-    );
+    database.sessions = database.sessions.filter((session) => session.userId !== user.id);
     database.audit.push(
-      databaseModule.newAuditRecord(
-        user.id,
-        "vendor.password.rotated",
-        "auth",
-        user.id,
-      ),
+      databaseModule.newAuditRecord(user.id, "vendor.password.rotated", "auth", user.id),
     );
     database.revision += 1;
     return true;

@@ -24,9 +24,7 @@ export function VendorSignOutButton() {
       router.refresh();
     } catch (caught) {
       setPending(false);
-      setError(
-        caught instanceof Error ? caught.message : "Could not sign out. Try again.",
-      );
+      setError(caught instanceof Error ? caught.message : "Could not sign out. Try again.");
     }
   };
 
@@ -36,7 +34,11 @@ export function VendorSignOutButton() {
         {pending ? <LoaderCircle className="vendor-spin" size={18} /> : <LogOut size={18} />}
         {pending ? "Signing out…" : "Sign out"}
       </button>
-      {error ? <div className="vendor-inline-error" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="vendor-inline-error" role="alert">
+          {error}
+        </div>
+      ) : null}
     </>
   );
 }

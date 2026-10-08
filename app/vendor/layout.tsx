@@ -19,5 +19,9 @@ export const viewport: Viewport = {
 // session-protected and already rendered per request.
 export default async function VendorLayout({ children }: { children: React.ReactNode }) {
   const theme = resolveThemeChoice((await cookies()).get(THEME_COOKIE)?.value);
-  return <ThemeRoot className="vendor-route" initialTheme={theme}>{children}</ThemeRoot>;
+  return (
+    <ThemeRoot className="vendor-route" initialTheme={theme}>
+      {children}
+    </ThemeRoot>
+  );
 }

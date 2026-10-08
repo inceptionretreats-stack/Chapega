@@ -1,8 +1,6 @@
 import type { AdminBootstrap, AdminVendorSummary } from "@/types/admin";
 
-export function makeAdminVendor(
-  overrides: Partial<AdminVendorSummary> = {},
-): AdminVendorSummary {
+export function makeAdminVendor(overrides: Partial<AdminVendorSummary> = {}): AdminVendorSummary {
   return {
     id: "vendor-1",
     slug: "chapega",

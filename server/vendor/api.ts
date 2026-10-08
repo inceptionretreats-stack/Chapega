@@ -10,10 +10,7 @@ import {
   readMultipartWithLimit,
   RequestBodyTooLargeError,
 } from "@/server/http/body";
-import {
-  clientAddressLabel,
-  sameOriginRejection,
-} from "@/server/http/request-identity";
+import { clientAddressLabel, sameOriginRejection } from "@/server/http/request-identity";
 import { logger, serializeError } from "@/server/observability/logger";
 import { getRequestVendorContext } from "@/server/vendor/auth";
 import { sha256 } from "@/server/vendor/crypto";
@@ -37,9 +34,7 @@ export function jsonResponse(data: unknown, status = 200): NextResponse {
  * Vercel; per process elsewhere (costs one full response after a restart).
  */
 const CATALOGUE_BUILD_ID =
-  process.env.VERCEL_DEPLOYMENT_ID ??
-  process.env.VERCEL_GIT_COMMIT_SHA ??
-  randomUUID();
+  process.env.VERCEL_DEPLOYMENT_ID ?? process.env.VERCEL_GIT_COMMIT_SHA ?? randomUUID();
 
 function etagMatches(header: string | null, etag: string): boolean {
   if (!header) return false;
@@ -56,10 +51,7 @@ function etagMatches(header: string | null, etag: string): boolean {
  * `private, no-cache` lets a browser keep a copy but forces revalidation on
  * every use; shared caches never store it.
  */
-export function catalogueResponse(
-  request: NextRequest,
-  bootstrap: KioskBootstrap,
-): NextResponse {
+export function catalogueResponse(request: NextRequest, bootstrap: KioskBootstrap): NextResponse {
   const etag = `"${sha256(
     `${CATALOGUE_BUILD_ID}:${bootstrap.vendor.id}:${bootstrap.revision}`,
   ).slice(0, 32)}"`;
@@ -87,30 +79,19 @@ export function assertSameOrigin(request: NextRequest): void {
   }
 }
 
-export async function parseJson<T>(
-  request: NextRequest,
-  schema: ZodType<T>,
-): Promise<T> {
+export async function parseJson<T>(request: NextRequest, schema: ZodType<T>): Promise<T> {
   let bytes: Buffer;
   try {
     bytes = await readBodyWithLimit(request, MAX_JSON_BYTES);
   } catch (error) {
     if (error instanceof RequestBodyTooLargeError) {
-      throw new VendorServiceError(
-        413,
-        "PAYLOAD_TOO_LARGE",
-        "Request is too large.",
-      );
+      throw new VendorServiceError(413, "PAYLOAD_TOO_LARGE", "Request is too large.");
     }
     throw error;
   }
   const parsed = parseJsonBytes(bytes);
   if (!parsed.ok) {
-    throw new VendorServiceError(
-      400,
-      "INVALID_JSON",
-      "Enter valid request data.",
-    );
+    throw new VendorServiceError(400, "INVALID_JSON", "Enter valid request data.");
   }
   return schema.parse(parsed.value);
 }
@@ -126,11 +107,7 @@ export async function parseMultipart(
   const contentType = request.headers.get("content-type") ?? "";
   if (!/^multipart\/form-data\s*;/i.test(contentType)) {
     await request.body?.cancel().catch(() => undefined);
-    throw new VendorServiceError(
-      400,
-      "INVALID_UPLOAD",
-      "Upload the image as a multipart form.",
-    );
+    throw new VendorServiceError(400, "INVALID_UPLOAD", "Upload the image as a multipart form.");
   }
   try {
     return await readMultipartWithLimit(request, maxBytes);
@@ -158,11 +135,7 @@ export async function requireVendorRequest(
 ): Promise<VendorAccessContext> {
   const context = await getRequestVendorContext(request, vendorSlug);
   if (!context) {
-    throw new VendorServiceError(
-      401,
-      "UNAUTHENTICATED",
-      "Sign in to continue.",
-    );
+    throw new VendorServiceError(401, "UNAUTHENTICATED", "Sign in to continue.");
   }
   return context;
 }

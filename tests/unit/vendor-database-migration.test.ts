@@ -72,8 +72,7 @@ describe("local vendor database migration", () => {
       "utf8",
     );
 
-    const { readLocalVendorDatabase, DEFAULT_VENDOR_ID } =
-      await import("@/server/vendor/database");
+    const { readLocalVendorDatabase, DEFAULT_VENDOR_ID } = await import("@/server/vendor/database");
     const upgraded = await readLocalVendorDatabase();
 
     expect(upgraded.version).toBe(2);

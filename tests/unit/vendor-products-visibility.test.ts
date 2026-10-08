@@ -28,10 +28,11 @@ describe("Products list visibility toggle (AUD-9)", () => {
       { id: "large", name: "Large", priceAdjustmentPaise: 5_000, stock: 2 },
     ];
     const product = makeProduct({ variants });
-    const fetchMock = vi.fn<typeof fetch>(async () =>
-      new Response(JSON.stringify({ product: { ...product, visible: false } }), {
-        status: 200,
-      }),
+    const fetchMock = vi.fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify({ product: { ...product, visible: false } }), {
+          status: 200,
+        }),
     );
     vi.stubGlobal("fetch", fetchMock);
     const onSaved = vi.fn();
@@ -46,9 +47,7 @@ describe("Products list visibility toggle (AUD-9)", () => {
         onProductArchived: () => undefined,
       }),
     );
-    await userEvent.click(
-      screen.getByRole("checkbox", { name: /hide gift 1 on kiosk/i }),
-    );
+    await userEvent.click(screen.getByRole("checkbox", { name: /hide gift 1 on kiosk/i }));
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const init = fetchMock.mock.calls[0][1] as RequestInit;

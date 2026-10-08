@@ -18,8 +18,7 @@ const vendor = {
 function staticSiblings(...segments: string[]): string[] {
   const directory = path.join(process.cwd(), "app", ...segments);
   return readdirSync(directory).filter(
-    (entry) =>
-      statSync(path.join(directory, entry)).isDirectory() && !entry.startsWith("["),
+    (entry) => statSync(path.join(directory, entry)).isDirectory() && !entry.startsWith("["),
   );
 }
 
@@ -40,18 +39,33 @@ describe("vendor slug validation", () => {
   });
 
   it("explains the problem on the slug field", () => {
-    for (const slug of ["products", "orders", "login", "select", "bootstrap", "uploads", "settings", "logout", "admin", "api"]) {
+    for (const slug of [
+      "products",
+      "orders",
+      "login",
+      "select",
+      "bootstrap",
+      "uploads",
+      "settings",
+      "logout",
+      "admin",
+      "api",
+    ]) {
       const result = createAdminVendorSchema.safeParse({ ...vendor, slug });
       expect(result.success, slug).toBe(false);
       expect(result.error?.flatten().fieldErrors.slug?.[0]).toMatch(/reserved/i);
     }
-    expect(
-      createAdminVendorSchema.safeParse({ ...vendor, slug: " Products " }).success,
-    ).toBe(false);
+    expect(createAdminVendorSchema.safeParse({ ...vendor, slug: " Products " }).success).toBe(
+      false,
+    );
   });
 
   it("still accepts ordinary shop names", () => {
-    expect(createAdminVendorSchema.safeParse({ ...vendor, slug: "petal-house" }).success).toBe(true);
-    expect(createAdminVendorSchema.safeParse({ ...vendor, slug: "products-plus" }).success).toBe(true);
+    expect(createAdminVendorSchema.safeParse({ ...vendor, slug: "petal-house" }).success).toBe(
+      true,
+    );
+    expect(createAdminVendorSchema.safeParse({ ...vendor, slug: "products-plus" }).success).toBe(
+      true,
+    );
   });
 });

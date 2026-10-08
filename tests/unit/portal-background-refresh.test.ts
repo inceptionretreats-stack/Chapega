@@ -33,11 +33,12 @@ beforeEach(() => {
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   })) as unknown as typeof window.matchMedia;
-  fetchMock = vi.fn(async (input: string) =>
-    new Response(
-      JSON.stringify(input.includes("/api/admin/") ? makeAdminBootstrap() : makeBootstrap()),
-      { status: 200, headers: { "content-type": "application/json" } },
-    ),
+  fetchMock = vi.fn(
+    async (input: string) =>
+      new Response(
+        JSON.stringify(input.includes("/api/admin/") ? makeAdminBootstrap() : makeBootstrap()),
+        { status: 200, headers: { "content-type": "application/json" } },
+      ),
   );
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -51,7 +52,9 @@ afterEach(() => {
 function refreshHeaders(): Array<string | null> {
   return fetchMock.mock.calls
     .filter(([input]) => String(input).endsWith("/bootstrap"))
-    .map(([, init]) => new Headers((init as RequestInit | undefined)?.headers).get(BACKGROUND_REFRESH_HEADER));
+    .map(([, init]) =>
+      new Headers((init as RequestInit | undefined)?.headers).get(BACKGROUND_REFRESH_HEADER),
+    );
 }
 
 describe("timer refreshes do not keep a session alive (AUD-17)", () => {

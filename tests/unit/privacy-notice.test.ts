@@ -36,18 +36,15 @@ describe("privacy notice (AUD-12 draft)", () => {
         onReview: vi.fn(),
       }),
     );
-    expect(
-      screen.getByText(/only to prepare this order on WhatsApp/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: /privacy notice/i }),
-    ).toHaveAttribute("href", "/privacy");
+    expect(screen.getByText(/only to prepare this order on WhatsApp/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /privacy notice/i })).toHaveAttribute(
+      "href",
+      "/privacy",
+    );
   });
 
   it("is a visible draft, not indexed, and uses placeholders instead of invented details", () => {
-    expect(metadata.robots).toEqual(
-      expect.objectContaining({ index: false }),
-    );
+    expect(metadata.robots).toEqual(expect.objectContaining({ index: false }));
     render(createElement(PrivacyPage));
     expect(screen.getByText(/draft.*awaiting review/i)).toBeInTheDocument();
     const text = document.body.textContent ?? "";

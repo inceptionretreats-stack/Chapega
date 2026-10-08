@@ -49,9 +49,7 @@ describe("Supabase multi-vendor migration", () => {
     ];
 
     for (const table of tables) {
-      expect(sql).toMatch(
-        new RegExp(`alter table private\\.${table}[\\s\\S]*?vendor_id`, "i"),
-      );
+      expect(sql).toMatch(new RegExp(`alter table private\\.${table}[\\s\\S]*?vendor_id`, "i"));
     }
     expect(sql).toContain("products_vendor_archived_updated_at_idx");
     expect(sql).toContain("orders_vendor_status_created_at_idx");

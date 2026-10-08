@@ -13,10 +13,7 @@ export const NEW_PASSWORD_MIN_LENGTH = 15;
 export const NEW_PASSWORD_MAX_LENGTH = 128;
 
 /** Published values that must never become a real password. */
-const PUBLISHED_PASSWORDS = [
-  "Chapega@2026",
-  "replace-with-a-long-unique-password",
-];
+const PUBLISHED_PASSWORDS = ["Chapega@2026", "replace-with-a-long-unique-password"];
 
 export type PasswordContext = Readonly<{
   email?: string;
@@ -38,10 +35,7 @@ function isCommon(value: string): boolean {
   // "passwordpassword2026!" is no stronger than "passwordpassword".
   const withoutTrailingDigits = compact.replace(/\d+$/, "");
   const withoutLeadingDigits = compact.replace(/^\d+/, "");
-  return (
-    COMMON_PASSWORDS.has(withoutTrailingDigits) ||
-    COMMON_PASSWORDS.has(withoutLeadingDigits)
-  );
+  return COMMON_PASSWORDS.has(withoutTrailingDigits) || COMMON_PASSWORDS.has(withoutLeadingDigits);
 }
 
 function isTriviallyPatterned(value: string): boolean {
@@ -80,10 +74,7 @@ function reusesContext(value: string, context: PasswordContext): boolean {
 }
 
 /** Why a new password is unacceptable, or null when it is fine. */
-export function newPasswordProblem(
-  password: string,
-  context: PasswordContext = {},
-): string | null {
+export function newPasswordProblem(password: string, context: PasswordContext = {}): string | null {
   const length = characterCount(password);
   if (length < NEW_PASSWORD_MIN_LENGTH) {
     return `Use at least ${NEW_PASSWORD_MIN_LENGTH} characters. A few unrelated words make a good passphrase.`;

@@ -213,11 +213,7 @@ function backendUnavailable(message: string, cause?: unknown): VendorServiceErro
 }
 
 function vendorNotFound(): VendorServiceError {
-  return new VendorServiceError(
-    404,
-    "VENDOR_NOT_FOUND",
-    "This vendor kiosk is not available.",
-  );
+  return new VendorServiceError(404, "VENDOR_NOT_FOUND", "This vendor kiosk is not available.");
 }
 
 function vendorFromRow(row: VendorRow): VendorRecord {
@@ -283,10 +279,7 @@ function productsFromRows(
       ? {}
       : { compareAtPricePaise: Number(row.compare_at_price_paise) }),
     image: row.image as VendorProductRecord["image"],
-    availability: availability(
-      Number(row.stock),
-      thresholds.get(row.vendor_id) ?? 0,
-    ),
+    availability: availability(Number(row.stock), thresholds.get(row.vendor_id) ?? 0),
     stock: Number(row.stock),
     featured: row.featured,
     tags: row.tags,
@@ -303,11 +296,7 @@ function productsFromRows(
   }));
 }
 
-async function setTransactionSetting(
-  sql: QueryClient,
-  name: string,
-  value: string,
-): Promise<void> {
+async function setTransactionSetting(sql: QueryClient, name: string, value: string): Promise<void> {
   await sql`select set_config(${name}, ${value}, true)`;
 }
 
@@ -347,10 +336,7 @@ async function configureAccess(
   return { vendorId, ...(platformSessionHash ? { platformSessionHash } : {}) };
 }
 
-async function readSnapshot(
-  sql: QueryClient,
-  access: ResolvedAccess,
-): Promise<VendorDatabase> {
+async function readSnapshot(sql: QueryClient, access: ResolvedAccess): Promise<VendorDatabase> {
   const platform = Boolean(access.platformSessionHash);
   const vendorId = access.vendorId ?? DEFAULT_VENDOR_ID;
   const [snapshot] = await sql<SnapshotRow[]>`
@@ -457,9 +443,7 @@ async function readSnapshot(
   const vendors = snapshot.vendors.map(vendorFromRow);
   if (!platform && vendors.length !== 1) throw vendorNotFound();
   const settings = snapshot.settings.map(settingsFromRow);
-  const thresholds = new Map(
-    settings.map((record) => [record.vendorId, record.lowStockThreshold]),
-  );
+  const thresholds = new Map(settings.map((record) => [record.vendorId, record.lowStockThreshold]));
   const products = productsFromRows(snapshot.products, snapshot.variants, thresholds);
   const auditRows = platform
     ? await sql<AuditRow[]>`
@@ -602,9 +586,7 @@ function assertTenantScoped(database: VendorDatabase, vendorId: string): void {
     ...database.sessions.flatMap((record) =>
       record.activeVendorId ? [record.activeVendorId] : [],
     ),
-    ...database.audit.flatMap((record) =>
-      record.vendorId ? [record.vendorId] : [],
-    ),
+    ...database.audit.flatMap((record) => (record.vendorId ? [record.vendorId] : [])),
   ];
   if (tenantIds.some((candidate) => candidate !== vendorId)) {
     throw new VendorServiceError(
@@ -709,9 +691,7 @@ async function persistSessions(
     if (nextIds.has(session.idHash)) continue;
     await sql`delete from private.vendor_sessions where id_hash = ${session.idHash}`;
   }
-  const currentSessions = new Map(
-    current.sessions.map((record) => [record.idHash, record]),
-  );
+  const currentSessions = new Map(current.sessions.map((record) => [record.idHash, record]));
   for (const session of next.sessions) {
     const previous = currentSessions.get(session.idHash);
     if (previous && !changed(previous, session)) continue;
@@ -734,8 +714,7 @@ async function persistProducts(
   current: VendorDatabase,
   next: VendorDatabase,
 ): Promise<void> {
-  const key = (record: VendorProductRecord) =>
-    compositeKey(record.vendorId, record.id);
+  const key = (record: VendorProductRecord) => compositeKey(record.vendorId, record.id);
   const nextIds = new Set(next.products.map(key));
   for (const product of current.products) {
     if (nextIds.has(key(product))) continue;
@@ -804,8 +783,7 @@ async function persistOrders(
   current: VendorDatabase,
   next: VendorDatabase,
 ): Promise<void> {
-  const key = (record: VendorOrderRecord) =>
-    compositeKey(record.vendorId, record.id);
+  const key = (record: VendorOrderRecord) => compositeKey(record.vendorId, record.id);
   const currentById = new Map(current.orders.map((record) => [key(record), record]));
   for (const order of next.orders) {
     const previous = currentById.get(key(order));
@@ -872,9 +850,7 @@ async function persistSettingsAuditAndRevision(
   next: VendorDatabase,
   vendorId: string,
 ): Promise<void> {
-  const currentSettings = new Map(
-    current.settings.map((record) => [record.vendorId, record]),
-  );
+  const currentSettings = new Map(current.settings.map((record) => [record.vendorId, record]));
   for (const settings of next.settings) {
     const previous = currentSettings.get(settings.vendorId);
     if (previous && !changed(previous, settings)) continue;
@@ -981,12 +957,7 @@ function assertPlatformMutation(
     (record) => compositeKey(record.vendorId, record.userId),
     "membership",
   );
-  assertNothingRemoved(
-    current.settings,
-    next.settings,
-    (record) => record.vendorId,
-    "settings",
-  );
+  assertNothingRemoved(current.settings, next.settings, (record) => record.vendorId, "settings");
 
   const currentVendors = new Map(current.vendors.map((record) => [record.id, record]));
   const newVendors = next.vendors.filter((record) => !currentVendors.has(record.id));
@@ -1046,16 +1017,13 @@ function assertPlatformMutation(
     }
   }
 
-  const currentMemberships = ids(
-    current.memberships,
-    (record) => compositeKey(record.vendorId, record.userId),
+  const currentMemberships = ids(current.memberships, (record) =>
+    compositeKey(record.vendorId, record.userId),
   );
   for (const membership of next.memberships) {
     if (currentMemberships.has(compositeKey(membership.vendorId, membership.userId))) {
       const previous = current.memberships.find(
-        (record) =>
-          record.vendorId === membership.vendorId &&
-          record.userId === membership.userId,
+        (record) => record.vendorId === membership.vendorId && record.userId === membership.userId,
       );
       if (previous && changed(previous, membership)) {
         throw new VendorServiceError(
@@ -1073,9 +1041,7 @@ function assertPlatformMutation(
     }
   }
 
-  const currentSettings = new Map(
-    current.settings.map((record) => [record.vendorId, record]),
-  );
+  const currentSettings = new Map(current.settings.map((record) => [record.vendorId, record]));
   for (const settings of next.settings) {
     const previous = currentSettings.get(settings.vendorId);
     if (previous && changed(previous, settings)) {
@@ -1328,26 +1294,20 @@ function isApplicationError(error: unknown): boolean {
 
 function isUniqueViolation(error: unknown): boolean {
   return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as { code?: unknown }).code === "23505"
+    typeof error === "object" && error !== null && (error as { code?: unknown }).code === "23505"
   );
 }
 
 function scopedSource(source: VendorDatabase, vendorId: string): VendorDatabase {
   const vendors = source.vendors.filter((record) => record.id === vendorId);
-  const memberships = source.memberships.filter(
-    (record) => record.vendorId === vendorId,
-  );
+  const memberships = source.memberships.filter((record) => record.vendorId === vendorId);
   const memberIds = new Set(memberships.map((record) => record.userId));
   return {
     ...structuredClone(source),
     vendors,
     users: source.users.filter((record) => memberIds.has(record.id)),
     memberships,
-    sessions: source.sessions.filter(
-      (record) => record.activeVendorId === vendorId,
-    ),
+    sessions: source.sessions.filter((record) => record.activeVendorId === vendorId),
     products: source.products.filter((record) => record.vendorId === vendorId),
     orders: source.orders.filter((record) => record.vendorId === vendorId),
     settings: source.settings.filter((record) => record.vendorId === vendorId),
@@ -1449,14 +1409,8 @@ export async function replaceSupabaseVendorDatabase(
             0,
           ),
           orders: replacement.orders.length,
-          orderItems: replacement.orders.reduce(
-            (total, order) => total + order.items.length,
-            0,
-          ),
-          orderEvents: replacement.orders.reduce(
-            (total, order) => total + order.events.length,
-            0,
-          ),
+          orderItems: replacement.orders.reduce((total, order) => total + order.items.length, 0),
+          orderEvents: replacement.orders.reduce((total, order) => total + order.events.length, 0),
           audit: replacement.audit.length,
         };
         await transaction`
@@ -1473,9 +1427,7 @@ export async function replaceSupabaseVendorDatabase(
   } catch (error) {
     if (importMetadata) {
       const message =
-        error instanceof Error
-          ? error.message.slice(0, 4_000)
-          : "Unknown import error";
+        error instanceof Error ? error.message.slice(0, 4_000) : "Unknown import error";
       try {
         await sql.begin(async (transaction) => {
           const resolved = await configureAccess(transaction, {

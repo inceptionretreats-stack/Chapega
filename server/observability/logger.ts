@@ -96,11 +96,7 @@ export function serializeError(error: unknown, depth = 0): Record<string, unknow
 function sanitize(value: unknown, depth: number): unknown {
   if (value instanceof Error) return serializeError(value);
   if (typeof value === "string") return truncate(value);
-  if (
-    value === null ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
+  if (value === null || typeof value === "number" || typeof value === "boolean") {
     return value;
   }
   if (typeof value === "bigint") return value.toString();

@@ -2,10 +2,7 @@
 
 import { LoaderCircle, Plus, Store } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import type {
-  AdminVendorMutationResult,
-  CreateAdminVendorInput,
-} from "@/types/admin";
+import type { AdminVendorMutationResult, CreateAdminVendorInput } from "@/types/admin";
 import { PasswordToggle } from "../password-toggle";
 import { adminRequest, AdminClientError } from "./admin-client";
 import { AdminDialog } from "./admin-dialog";
@@ -16,9 +13,7 @@ type AddVendorDialogProps = {
   onCreated: (result: AdminVendorMutationResult) => void;
 };
 
-type FieldErrors = Partial<
-  Record<keyof CreateAdminVendorInput, string>
->;
+type FieldErrors = Partial<Record<keyof CreateAdminVendorInput, string>>;
 
 function vendorSlug(value: string): string {
   return value
@@ -42,10 +37,7 @@ function slugWhileTyping(value: string): string {
     .slice(0, 63);
 }
 
-export function AddVendorDialog({
-  onClose,
-  onCreated,
-}: AddVendorDialogProps) {
+export function AddVendorDialog({ onClose, onCreated }: AddVendorDialogProps) {
   const nameRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState<CreateAdminVendorInput>({
     displayName: "",
@@ -78,9 +70,7 @@ export function AddVendorDialog({
     setDraft((current) => ({
       ...current,
       [key]: value,
-      ...(key === "displayName" && !slugEdited
-        ? { slug: vendorSlug(value) }
-        : {}),
+      ...(key === "displayName" && !slugEdited ? { slug: vendorSlug(value) } : {}),
     }));
     setFieldErrors((current) => ({ ...current, [key]: undefined }));
     setError(null);
@@ -96,13 +86,10 @@ export function AddVendorDialog({
       // Final normalisation happens here (and on blur), not on every keystroke.
       const slug = vendorSlug(draft.slug);
       setDraft((current) => ({ ...current, slug }));
-      const result = await adminRequest<AdminVendorMutationResult>(
-        "/api/admin/vendors",
-        {
-          method: "POST",
-          body: JSON.stringify({ ...draft, slug }),
-        },
-      );
+      const result = await adminRequest<AdminVendorMutationResult>("/api/admin/vendors", {
+        method: "POST",
+        body: JSON.stringify({ ...draft, slug }),
+      });
       onCreated(result);
     } catch (caught) {
       if (caught instanceof AdminClientError) {
@@ -180,7 +167,9 @@ export function AddVendorDialog({
                   maxLength={63}
                   spellCheck={false}
                   aria-invalid={Boolean(fieldErrors.slug) || undefined}
-                  aria-describedby={fieldErrors.slug ? "admin-vendor-slug-error" : "admin-vendor-slug-help"}
+                  aria-describedby={
+                    fieldErrors.slug ? "admin-vendor-slug-error" : "admin-vendor-slug-help"
+                  }
                 />
               </span>
               {fieldErrors.slug ? (
@@ -207,7 +196,9 @@ export function AddVendorDialog({
                 aria-invalid={Boolean(fieldErrors.ownerName) || undefined}
                 aria-describedby={fieldErrors.ownerName ? "admin-owner-name-error" : undefined}
               />
-              {fieldErrors.ownerName ? <small id="admin-owner-name-error">{fieldErrors.ownerName}</small> : null}
+              {fieldErrors.ownerName ? (
+                <small id="admin-owner-name-error">{fieldErrors.ownerName}</small>
+              ) : null}
             </label>
             <label className="admin-field">
               <span>Owner email</span>
@@ -221,7 +212,9 @@ export function AddVendorDialog({
                 aria-invalid={Boolean(fieldErrors.ownerEmail) || undefined}
                 aria-describedby={fieldErrors.ownerEmail ? "admin-owner-email-error" : undefined}
               />
-              {fieldErrors.ownerEmail ? <small id="admin-owner-email-error">{fieldErrors.ownerEmail}</small> : null}
+              {fieldErrors.ownerEmail ? (
+                <small id="admin-owner-email-error">{fieldErrors.ownerEmail}</small>
+              ) : null}
             </label>
             <label className="admin-field admin-field--full">
               <span>Owner WhatsApp number</span>
@@ -236,12 +229,18 @@ export function AddVendorDialog({
                 minLength={8}
                 maxLength={24}
                 aria-invalid={Boolean(fieldErrors.ownerWhatsAppNumber) || undefined}
-                aria-describedby={fieldErrors.ownerWhatsAppNumber ? "admin-owner-whatsapp-error" : "admin-owner-whatsapp-help"}
+                aria-describedby={
+                  fieldErrors.ownerWhatsAppNumber
+                    ? "admin-owner-whatsapp-error"
+                    : "admin-owner-whatsapp-help"
+                }
               />
               {fieldErrors.ownerWhatsAppNumber ? (
                 <small id="admin-owner-whatsapp-error">{fieldErrors.ownerWhatsAppNumber}</small>
               ) : (
-                <small id="admin-owner-whatsapp-help">Used for the new vendor’s kiosk order handoff.</small>
+                <small id="admin-owner-whatsapp-help">
+                  Used for the new vendor’s kiosk order handoff.
+                </small>
               )}
             </label>
             {/* A div with label[for] so the show/hide button is not part of
@@ -261,7 +260,11 @@ export function AddVendorDialog({
                   minLength={15}
                   maxLength={128}
                   aria-invalid={Boolean(fieldErrors.temporaryPassword) || undefined}
-                  aria-describedby={fieldErrors.temporaryPassword ? "admin-owner-password-error" : "admin-owner-password-help"}
+                  aria-describedby={
+                    fieldErrors.temporaryPassword
+                      ? "admin-owner-password-error"
+                      : "admin-owner-password-help"
+                  }
                 />
                 <PasswordToggle
                   className="admin-password-toggle"
@@ -274,7 +277,9 @@ export function AddVendorDialog({
               {fieldErrors.temporaryPassword ? (
                 <small id="admin-owner-password-error">{fieldErrors.temporaryPassword}</small>
               ) : (
-                <small id="admin-owner-password-help">At least 15 characters. A few unrelated words make a good passphrase.</small>
+                <small id="admin-owner-password-help">
+                  At least 15 characters. A few unrelated words make a good passphrase.
+                </small>
               )}
             </div>
           </div>

@@ -2,10 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { logger, serializeError } from "@/server/observability/logger";
-import {
-  requestContextStore,
-  type RequestContext,
-} from "@/server/observability/request-id-store";
+import { requestContextStore, type RequestContext } from "@/server/observability/request-id-store";
 
 export const REQUEST_ID_HEADER = "x-request-id";
 
@@ -40,10 +37,7 @@ function withRequestIdHeader(response: Response, requestId: string): Response {
  * the ID is echoed to the client, and an exception that escapes the handler
  * becomes a logged, generic 500 instead of an unlogged framework error page.
  */
-export function withRequestContext<
-  Req extends Request,
-  Rest extends unknown[],
->(
+export function withRequestContext<Req extends Request, Rest extends unknown[]>(
   handler: (request: Req, ...rest: Rest) => Promise<Response>,
 ): (request: Req, ...rest: Rest) => Promise<Response> {
   return async (request: Req, ...rest: Rest) => {

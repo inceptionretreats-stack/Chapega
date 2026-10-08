@@ -1,9 +1,4 @@
-import type {
-  VendorBootstrap,
-  VendorOrder,
-  VendorProduct,
-  VendorSettings,
-} from "@/types/vendor";
+import type { VendorBootstrap, VendorOrder, VendorProduct, VendorSettings } from "@/types/vendor";
 
 export function makeSettings(overrides: Partial<VendorSettings> = {}): VendorSettings {
   return {
@@ -23,10 +18,7 @@ export function makeSettings(overrides: Partial<VendorSettings> = {}): VendorSet
   };
 }
 
-export function makeOrder(
-  index = 1,
-  overrides: Partial<VendorOrder> = {},
-): VendorOrder {
+export function makeOrder(index = 1, overrides: Partial<VendorOrder> = {}): VendorOrder {
   const createdAt = `2026-09-18T09:0${index}:00.000Z`;
   return {
     id: `order-${index}`,
@@ -74,9 +66,7 @@ export function makeOrder(
   };
 }
 
-export function makeBootstrap(
-  overrides: Partial<VendorBootstrap> = {},
-): VendorBootstrap {
+export function makeBootstrap(overrides: Partial<VendorBootstrap> = {}): VendorBootstrap {
   const vendor = {
     id: "00000000-0000-4000-8000-000000000001",
     slug: "chapega",

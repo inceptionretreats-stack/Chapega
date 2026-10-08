@@ -12,9 +12,7 @@ import type { Instrumentation } from "next";
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   if (process.env.NEXT_PHASE === "phase-production-build") return;
-  const { validateServerConfigurationAtStartup } = await import(
-    "./server/config/startup"
-  );
+  const { validateServerConfigurationAtStartup } = await import("./server/config/startup");
   validateServerConfigurationAtStartup();
 }
 
@@ -23,11 +21,7 @@ export async function register(): Promise<void> {
  * Only the path, method and route are recorded: request headers can carry
  * session cookies, so they are never logged.
  */
-export const onRequestError: Instrumentation.onRequestError = async (
-  error,
-  request,
-  context,
-) => {
+export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
   const { logger, serializeError } = await import("./server/observability/logger");
   logger.error("next.request_error", {

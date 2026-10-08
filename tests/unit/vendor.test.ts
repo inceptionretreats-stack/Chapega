@@ -53,9 +53,7 @@ describe("vendor input validation", () => {
     expect(optionalCustomerPhoneError("")).toBeNull();
     expect(optionalCustomerPhoneError("+91 98765-43210")).toBeNull();
     expect(optionalCustomerPhoneError("123")).toMatch(/7 to 15 digits/);
-    expect(optionalCustomerPhoneError("9876 CALL ME")).toMatch(
-      /7 to 15 digits/,
-    );
+    expect(optionalCustomerPhoneError("9876 CALL ME")).toMatch(/7 to 15 digits/);
   });
 
   it("accepts a valid product and rejects price or media tampering", () => {
@@ -76,9 +74,7 @@ describe("vendor input validation", () => {
         image: "https://attacker.example/product.svg",
       }).success,
     ).toBe(false);
-    expect(
-      vendorProductSchema.safeParse({ ...product, stock: -1 }).success,
-    ).toBe(false);
+    expect(vendorProductSchema.safeParse({ ...product, stock: -1 }).success).toBe(false);
     expect(
       vendorProductSchema.safeParse({
         ...product,
@@ -102,13 +98,8 @@ describe("vendor input validation", () => {
       },
     ];
 
-    expect(
-      vendorProductSchema.safeParse({ ...product, variants }).success,
-    ).toBe(true);
-    expect(
-      vendorProductSchema.safeParse({ ...product, variants, version: 2 })
-        .success,
-    ).toBe(true);
+    expect(vendorProductSchema.safeParse({ ...product, variants }).success).toBe(true);
+    expect(vendorProductSchema.safeParse({ ...product, variants, version: 2 }).success).toBe(true);
     expect(
       vendorProductSchema.safeParse({
         ...product,
@@ -226,13 +217,8 @@ describe("vendor input validation", () => {
       version: 1,
     };
     expect(vendorSettingsSchema.safeParse(settings).success).toBe(true);
-    expect(
-      vendorSettingsSchema.safeParse({ ...settings, maxCartQuantity: 6 })
-        .success,
-    ).toBe(false);
-    expect(
-      vendorSettingsSchema.safeParse({ ...settings, version: 0 }).success,
-    ).toBe(false);
+    expect(vendorSettingsSchema.safeParse({ ...settings, maxCartQuantity: 6 }).success).toBe(false);
+    expect(vendorSettingsSchema.safeParse({ ...settings, version: 0 }).success).toBe(false);
     expect(
       vendorSettingsSchema.safeParse({
         ...settings,

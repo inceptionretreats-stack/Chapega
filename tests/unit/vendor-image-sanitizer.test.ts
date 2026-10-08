@@ -62,7 +62,13 @@ describe("JPEG sanitizer", () => {
     const output = text(image.buffer);
 
     expect(image).toMatchObject({ extension: "jpg", width: 640, height: 480 });
-    for (const secret of ["GPS-SECRET", "COMMENT-SECRET", "EMBEDDED-SECRET", "IPTC-SECRET", "TRAILER-SECRET"]) {
+    for (const secret of [
+      "GPS-SECRET",
+      "COMMENT-SECRET",
+      "EMBEDDED-SECRET",
+      "IPTC-SECRET",
+      "TRAILER-SECRET",
+    ]) {
       expect(output, secret).not.toContain(secret);
     }
     expect(output).toContain("JFIF");
@@ -146,7 +152,14 @@ describe("PNG sanitizer", () => {
     for (const kept of ["IHDR", "gAMA", "sRGB", "pHYs", "tRNS", "IDAT", "IEND", "pixel-data"]) {
       expect(output, kept).toContain(kept);
     }
-    for (const secret of ["TEXT-SECRET", "PRIVATE-CHUNK-SECRET", "VPAG-SECRET", "ANIMATION-SECRET", "TIME-SECRET", "TRAILER-SECRET"]) {
+    for (const secret of [
+      "TEXT-SECRET",
+      "PRIVATE-CHUNK-SECRET",
+      "VPAG-SECRET",
+      "ANIMATION-SECRET",
+      "TIME-SECRET",
+      "TRAILER-SECRET",
+    ]) {
       expect(output, secret).not.toContain(secret);
     }
   });

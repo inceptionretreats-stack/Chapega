@@ -51,9 +51,7 @@ export function PlatformMetricBand({ metrics }: MetricBandProps) {
               <Icon size={25} strokeWidth={1.8} />
             </span>
             <div>
-              <span className="admin-metric__label admin-metric__label--desktop">
-                {item.label}
-              </span>
+              <span className="admin-metric__label admin-metric__label--desktop">{item.label}</span>
               <span className="admin-metric__label admin-metric__label--mobile">
                 {item.mobileLabel}
               </span>

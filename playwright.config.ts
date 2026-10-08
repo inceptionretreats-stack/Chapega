@@ -3,11 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PORT ?? 3100);
 const baseURL = `http://localhost:${port}`;
-const testDataDirectory = path.join(
-  process.cwd(),
-  ".data",
-  `e2e-${process.pid}`,
-);
+const testDataDirectory = path.join(process.cwd(), ".data", `e2e-${process.pid}`);
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -17,9 +13,7 @@ export default defineConfig({
   // The local JSON adapter is intentionally single-process and the scenarios
   // mutate shared catalogue/order state, so E2E files must not overlap.
   workers: 1,
-  reporter: process.env.CI
-    ? [["list"], ["html", { open: "never" }]]
-    : "list",
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   timeout: 60_000,
   expect: {
     timeout: 10_000,

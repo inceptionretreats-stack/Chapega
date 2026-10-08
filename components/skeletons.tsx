@@ -24,7 +24,9 @@ export function DelayedSkeleton({ label, className, children }: DelayedSkeletonP
       style={{ "--skeleton-delay": `${SKELETON_DELAY_MS}ms` } as CSSProperties}
     >
       <span className="sr-only">{label}</span>
-      <div className="skeleton-reveal__body" aria-hidden="true">{children}</div>
+      <div className="skeleton-reveal__body" aria-hidden="true">
+        {children}
+      </div>
     </div>
   );
 }
@@ -43,7 +45,9 @@ export function VendorStudioSkeleton() {
     <DelayedSkeleton label="Loading Vendor Studio…" className="vendor-skeleton">
       <div className="vendor-skeleton__sidebar">
         <Block className="vendor-skeleton__brand" />
-        {repeat(4, (index) => <Block key={index} className="vendor-skeleton__nav" />)}
+        {repeat(4, (index) => (
+          <Block key={index} className="vendor-skeleton__nav" />
+        ))}
       </div>
       <div className="vendor-skeleton__main">
         <div className="vendor-skeleton__topbar">
@@ -51,15 +55,21 @@ export function VendorStudioSkeleton() {
           <Block className="vendor-skeleton__action" />
         </div>
         <div className="vendor-skeleton__metrics">
-          {repeat(4, (index) => <Block key={index} className="vendor-skeleton__metric" />)}
+          {repeat(4, (index) => (
+            <Block key={index} className="vendor-skeleton__metric" />
+          ))}
         </div>
         <div className="vendor-skeleton__panel">
           <Block className="vendor-skeleton__panel-title" />
-          {repeat(5, (index) => <Block key={index} className="vendor-skeleton__row" />)}
+          {repeat(5, (index) => (
+            <Block key={index} className="vendor-skeleton__row" />
+          ))}
         </div>
       </div>
       <div className="vendor-skeleton__bottom-nav">
-        {repeat(4, (index) => <Block key={index} className="vendor-skeleton__tab" />)}
+        {repeat(4, (index) => (
+          <Block key={index} className="vendor-skeleton__tab" />
+        ))}
       </div>
     </DelayedSkeleton>
   );
@@ -71,7 +81,9 @@ export function AdminSkeleton() {
     <DelayedSkeleton label="Loading platform admin…" className="admin-skeleton">
       <div className="admin-skeleton__sidebar">
         <Block className="admin-skeleton__brand" />
-        {repeat(4, (index) => <Block key={index} className="admin-skeleton__nav" />)}
+        {repeat(4, (index) => (
+          <Block key={index} className="admin-skeleton__nav" />
+        ))}
       </div>
       <div className="admin-skeleton__main">
         <Block className="admin-skeleton__title" />
@@ -79,7 +91,9 @@ export function AdminSkeleton() {
         <Block className="admin-skeleton__band" />
         <div className="admin-skeleton__grid">
           <div className="admin-skeleton__panel">
-            {repeat(4, (index) => <Block key={index} className="admin-skeleton__row" />)}
+            {repeat(4, (index) => (
+              <Block key={index} className="admin-skeleton__row" />
+            ))}
           </div>
           <Block className="admin-skeleton__rail" />
         </div>
@@ -118,7 +132,9 @@ export function KioskScreenSkeleton({ label = "Loading…" }: Readonly<{ label?:
         <Block className="kiosk-skeleton__line" />
       </div>
       <div className="kiosk-skeleton__cards">
-        {repeat(4, (index) => <Block key={index} className="kiosk-skeleton__card" />)}
+        {repeat(4, (index) => (
+          <Block key={index} className="kiosk-skeleton__card" />
+        ))}
       </div>
     </DelayedSkeleton>
   );

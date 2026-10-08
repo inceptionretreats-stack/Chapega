@@ -39,14 +39,10 @@ describe.each(checks)("%s same-origin check", (_scope, assertOrigin) => {
     vi.stubEnv("TRUST_PROXY_HEADERS", "");
 
     expect(() =>
-      assertOrigin(
-        request({ host: "127.0.0.1:3400", origin: "http://127.0.0.1:3400" }),
-      ),
+      assertOrigin(request({ host: "127.0.0.1:3400", origin: "http://127.0.0.1:3400" })),
     ).not.toThrow();
     expect(() =>
-      assertOrigin(
-        request({ host: "shop.example.com", origin: "http://shop.example.com" }),
-      ),
+      assertOrigin(request({ host: "shop.example.com", origin: "http://shop.example.com" })),
     ).not.toThrow();
   });
 
@@ -104,17 +100,13 @@ describe.each(checks)("%s same-origin check", (_scope, assertOrigin) => {
     vi.stubEnv("TRUST_PROXY_HEADERS", "");
 
     expect(() =>
-      assertOrigin(
-        request({ host: "shop.example.com", origin: "https://attacker.example" }),
-      ),
+      assertOrigin(request({ host: "shop.example.com", origin: "https://attacker.example" })),
     ).toThrow(expect.objectContaining({ status: 403, code: "INVALID_ORIGIN" }));
+    expect(() => assertOrigin(request({ host: "shop.example.com", origin: "null" }))).toThrow(
+      expect.objectContaining({ status: 403 }),
+    );
     expect(() =>
-      assertOrigin(request({ host: "shop.example.com", origin: "null" })),
-    ).toThrow(expect.objectContaining({ status: 403 }));
-    expect(() =>
-      assertOrigin(
-        request({ host: "shop.example.com", "sec-fetch-site": "cross-site" }),
-      ),
+      assertOrigin(request({ host: "shop.example.com", "sec-fetch-site": "cross-site" })),
     ).toThrow(expect.objectContaining({ status: 403, code: "CROSS_SITE_REQUEST" }));
     expect(() =>
       assertOrigin(

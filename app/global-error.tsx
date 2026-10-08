@@ -30,15 +30,11 @@ export default function GlobalError({
         }}
       >
         <title>Chapega.com is temporarily unavailable</title>
-        <main
-          style={{ maxWidth: "28rem", textAlign: "center", lineHeight: 1.5 }}
-        >
-          <h1 style={{ fontSize: "1.5rem", margin: "0 0 0.5rem" }}>
-            Something went wrong
-          </h1>
+        <main style={{ maxWidth: "28rem", textAlign: "center", lineHeight: 1.5 }}>
+          <h1 style={{ fontSize: "1.5rem", margin: "0 0 0.5rem" }}>Something went wrong</h1>
           <p style={{ margin: "0 0 1.25rem" }}>
-            We couldn&apos;t load this page. Your cart is kept in this browser.
-            Please try again in a moment.
+            We couldn&apos;t load this page. Your cart is kept in this browser. Please try again in
+            a moment.
           </p>
           <button
             type="button"

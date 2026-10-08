@@ -35,14 +35,7 @@ vi.mock("@/server/vendor/database", () => ({
   newAuditRecord: (
     actorId: string,
     action: string,
-    entityType:
-      | "auth"
-      | "product"
-      | "order"
-      | "settings"
-      | "vendor"
-      | "membership"
-      | "platform",
+    entityType: "auth" | "product" | "order" | "settings" | "vendor" | "membership" | "platform",
     entityId: string,
     vendorId: string | null = null,
   ) => ({
@@ -55,9 +48,7 @@ vi.mock("@/server/vendor/database", () => ({
     createdAt: new Date().toISOString(),
   }),
   readVendorDatabase: async () => structuredClone(memory.database),
-  updateVendorDatabase: async <T>(
-    mutation: (draft: VendorDatabase) => T | Promise<T>,
-  ) => {
+  updateVendorDatabase: async <T>(mutation: (draft: VendorDatabase) => T | Promise<T>) => {
     const draft = structuredClone(memory.database) as VendorDatabase;
     memory.mutationActive = true;
     try {
@@ -239,22 +230,10 @@ describe("vendor service persistence rules", () => {
     });
 
     const created = await createVendorProduct(input, vendor);
-    await updateVendorProduct(
-      created.id,
-      { ...input, version: created.version },
-      vendor,
-    );
+    await updateVendorProduct(created.id, { ...input, version: created.version }, vendor);
 
-    expect(memory.imageCheck).toHaveBeenNthCalledWith(
-      1,
-      input.image,
-      vendor.activeVendor.id,
-    );
-    expect(memory.imageCheck).toHaveBeenNthCalledWith(
-      2,
-      input.image,
-      vendor.activeVendor.id,
-    );
+    expect(memory.imageCheck).toHaveBeenNthCalledWith(1, input.image, vendor.activeVendor.id);
+    expect(memory.imageCheck).toHaveBeenNthCalledWith(2, input.image, vendor.activeVendor.id);
   });
 
   it("does not persist a create when the referenced image is missing", async () => {
@@ -405,9 +384,7 @@ describe("vendor service persistence rules", () => {
       },
     ]);
     expect(
-      currentDatabase().products.find(
-        (candidate) => candidate.id === created.id,
-      )?.variants,
+      currentDatabase().products.find((candidate) => candidate.id === created.id)?.variants,
     ).toEqual(updated.variants);
   });
 
@@ -577,12 +554,10 @@ describe("vendor service persistence rules", () => {
     expect(first.totalPaise).toBe(20_000);
     expect(second.totalPaise).toBe(40_000);
     expect(currentDatabase().orders).toHaveLength(2);
-    expect(
-      new Set(currentDatabase().orders.map((order) => order.vendorId)),
-    ).toEqual(new Set([vendor.activeVendor.id, otherId]));
-    expect(secondBootstrap.products.map((item) => item.name)).toEqual([
-      "Second Shop Keepsake",
-    ]);
+    expect(new Set(currentDatabase().orders.map((order) => order.vendorId))).toEqual(
+      new Set([vendor.activeVendor.id, otherId]),
+    );
+    expect(secondBootstrap.products.map((item) => item.name)).toEqual(["Second Shop Keepsake"]);
     expect(secondBootstrap.orders).toHaveLength(1);
   });
 

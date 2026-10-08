@@ -1,8 +1,5 @@
 import type { NextRequest } from "next/server";
-import {
-  ADMIN_SESSION_COOKIE,
-  authenticateAdminLogin,
-} from "@/server/admin/auth";
+import { ADMIN_SESSION_COOKIE, authenticateAdminLogin } from "@/server/admin/auth";
 import {
   adminApiError,
   adminJsonResponse,

@@ -43,11 +43,7 @@ const ADMIN_PASSWORD = "admin passphrase for chapega";
 let now = Date.parse("2026-10-08T10:00:00.000Z");
 let logLines: Array<Record<string, unknown>> = [];
 
-function json(
-  url: string,
-  body: unknown,
-  headers: Record<string, string> = {},
-): NextRequest {
+function json(url: string, body: unknown, headers: Record<string, string> = {}): NextRequest {
   return new NextRequest(url, {
     method: "POST",
     headers: { "content-type": "application/json", origin: "http://localhost", ...headers },
@@ -89,18 +85,20 @@ beforeEach(() => {
   resetClientAddressWarning();
   logLines = [];
   setLogSink((_level, line) => logLines.push(JSON.parse(line)));
-  mocks.authenticateVendorLogin.mockReset().mockImplementation(
-    async (email: string, password: string) =>
+  mocks.authenticateVendorLogin
+    .mockReset()
+    .mockImplementation(async (email: string, password: string) =>
       password === VENDOR_PASSWORD
         ? { user: { id: email }, token: "token", expiresAt: new Date(now + 3_600_000) }
         : null,
-  );
-  mocks.authenticateAdminLogin.mockReset().mockImplementation(
-    async (_email: string, password: string) =>
+    );
+  mocks.authenticateAdminLogin
+    .mockReset()
+    .mockImplementation(async (_email: string, password: string) =>
       password === ADMIN_PASSWORD
         ? { user: { id: "admin" }, token: "token", expiresAt: new Date(now + 3_600_000) }
         : null,
-  );
+    );
   mocks.recordKioskOrder.mockReset().mockImplementation(async (input: { orderNumber: string }) => ({
     orderNumber: input.orderNumber,
   }));
@@ -133,7 +131,7 @@ describe("login throttling without a trusted client address", () => {
 
   it("slows an attacked account progressively instead of locking it for 15 minutes", async () => {
     let waited = 0;
-    for (let failures = 0; failures < 8; ) {
+    for (let failures = 0; failures < 8;) {
       const response = await adminLoginAs("admin@example.com", "wrong-password");
       if (response.status === 429) {
         const retryAfter = Number(response.headers.get("retry-after"));
@@ -165,9 +163,7 @@ describe("login throttling without a trusted client address", () => {
     await loginAs("a@example.com", "wrong-password");
     await loginAs("b@example.com", "wrong-password");
 
-    const warnings = logLines.filter(
-      (line) => line.event === "security.client_address_unknown",
-    );
+    const warnings = logLines.filter((line) => line.event === "security.client_address_unknown");
     expect(warnings).toHaveLength(1);
     expect(JSON.stringify(warnings)).toContain("TRUST_PROXY_HEADERS");
   });
@@ -252,7 +248,11 @@ describe("public kiosk bootstrap", () => {
     expect(await revalidated.text()).toBe("");
 
     mocks.getKioskBootstrap.mockResolvedValueOnce({
-      vendor: { id: "00000000-0000-4000-8000-000000000001", slug: "chapega", displayName: "Chapega" },
+      vendor: {
+        id: "00000000-0000-4000-8000-000000000001",
+        slug: "chapega",
+        displayName: "Chapega",
+      },
       revision: "8",
       products: [],
       settings: {},

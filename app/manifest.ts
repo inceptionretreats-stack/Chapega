@@ -4,8 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Chapega.com gift kiosk",
     short_name: "Chapega",
-    description:
-      "Browse personalized gifts and prepare a Pay at Counter order on WhatsApp.",
+    description: "Browse personalized gifts and prepare a Pay at Counter order on WhatsApp.",
     start_url: "/",
     display: "standalone",
     background_color: "#fff9f2",

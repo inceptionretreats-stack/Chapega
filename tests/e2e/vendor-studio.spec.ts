@@ -87,10 +87,7 @@ async function cleanupCreatedRecords(
   idempotencyKey: string,
 ) {
   const requestOptions = { timeout: CLEANUP_REQUEST_TIMEOUT_MS };
-  const bootstrapResponse = await page.request.get(
-    "/api/vendor/bootstrap",
-    requestOptions,
-  );
+  const bootstrapResponse = await page.request.get("/api/vendor/bootstrap", requestOptions);
   if (!bootstrapResponse.ok()) {
     throw new Error(
       `Cleanup could not load vendor bootstrap (HTTP ${bootstrapResponse.status()}).`,
@@ -98,9 +95,7 @@ async function cleanupCreatedRecords(
   }
 
   let bootstrap = (await bootstrapResponse.json()) as VendorBootstrap;
-  const order = bootstrap.orders.find(
-    (candidate) => candidate.idempotencyKey === idempotencyKey,
-  );
+  const order = bootstrap.orders.find((candidate) => candidate.idempotencyKey === idempotencyKey);
   if (order && order.status !== "completed" && order.status !== "cancelled") {
     const cancelled = await page.request.patch(
       `/api/vendor/orders/${encodeURIComponent(order.id)}`,
@@ -113,16 +108,11 @@ async function cleanupCreatedRecords(
     if (!cancelled.ok()) {
       throw new Error(`Cleanup could not cancel order (HTTP ${cancelled.status()}).`);
     }
-    const refreshed = await page.request.get(
-      "/api/vendor/bootstrap",
-      requestOptions,
-    );
+    const refreshed = await page.request.get("/api/vendor/bootstrap", requestOptions);
     if (refreshed.ok()) bootstrap = (await refreshed.json()) as VendorBootstrap;
   }
 
-  const product = bootstrap.products.find(
-    (candidate) => candidate.name === productName,
-  );
+  const product = bootstrap.products.find((candidate) => candidate.name === productName);
   if (product) {
     const deleted = await page.request.delete(
       `/api/vendor/products/${encodeURIComponent(product.id)}`,
@@ -146,9 +136,7 @@ test("public vendor login and mobile sign-out keep the studio protected", async 
   await page.goto("/");
 
   const welcomeActions = page.locator(".welcome-actions");
-  await expect(
-    welcomeActions.getByRole("link", { name: "Vendor login" }),
-  ).toBeVisible();
+  await expect(welcomeActions.getByRole("link", { name: "Vendor login" })).toBeVisible();
   await welcomeActions.getByRole("link", { name: "Vendor login" }).click();
   await expect(page).toHaveURL(/\/vendor\/login$/);
   await expect(page.getByRole("link", { name: "Back to kiosk" })).toBeVisible();
@@ -158,9 +146,7 @@ test("public vendor login and mobile sign-out keep the studio protected", async 
 
   const menuButton = page.getByRole("button", { name: "Open navigation" });
   await menuButton.click();
-  await expect(
-    vendorSidebar(page).getByRole("button", { name: "Close navigation" }),
-  ).toBeFocused();
+  await expect(vendorSidebar(page).getByRole("button", { name: "Close navigation" })).toBeFocused();
   await expect(
     vendorSidebar(page).getByRole("button", { name: "Sign out of Vendor Studio" }),
   ).toBeVisible();
@@ -177,20 +163,16 @@ test("public vendor login and mobile sign-out keep the studio protected", async 
   await expect(
     page.getByText("Could not sign out. Check the connection and try again."),
   ).toBeVisible();
-  expect(
-    (await context.cookies()).some(
-      (cookie) => cookie.name === "chapega_vendor_session",
-    ),
-  ).toBe(true);
+  expect((await context.cookies()).some((cookie) => cookie.name === "chapega_vendor_session")).toBe(
+    true,
+  );
   await page.unroute("**/api/vendor/logout");
   await topbarSignOut.click();
   // Signing out keeps the shop so the login page offers the same workspace.
   await expect(page).toHaveURL(/\/vendor\/login\?vendor=chapega$/);
-  expect(
-    (await context.cookies()).some(
-      (cookie) => cookie.name === "chapega_vendor_session",
-    ),
-  ).toBe(false);
+  expect((await context.cookies()).some((cookie) => cookie.name === "chapega_vendor_session")).toBe(
+    false,
+  );
 
   await page.goto("/vendor");
   await expect(page).toHaveURL(/\/vendor\/login$/);
@@ -214,9 +196,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
   await test.step("protect the vendor route and validate credentials", async () => {
     await page.goto("/vendor");
     await expect(page).toHaveURL(/\/vendor\/login$/);
-    await expect(
-      page.getByRole("heading", { name: "Welcome back" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 
     await signIn(page, `missing-${runId}@chapega.com`, "DefinitelyWrong!2026");
     await expect(page.locator(".vendor-form-error")).toHaveText(
@@ -239,9 +219,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
     expect(setCookie).toMatch(/;\s*HttpOnly/i);
     expect(setCookie).toMatch(/;\s*SameSite=Strict/i);
     await expect(page).toHaveURL(/\/vendor\/chapega$/);
-    await expect(
-      page.getByRole("heading", { name: /Welcome back,/ }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Welcome back,/ })).toBeVisible();
     await expect(page.getByText("Studio overview")).toHaveCount(0);
 
     const sessionCookie = (await context.cookies()).find(
@@ -260,9 +238,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
   try {
     await test.step("publish a product with an uploaded PNG", async () => {
       await openVendorView(page, "Products");
-      await expect(
-        page.getByRole("heading", { name: "Products", exact: true }),
-      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Products", exact: true })).toBeVisible();
       await page.getByRole("button", { name: "Add product" }).first().click();
 
       const editor = page.getByRole("dialog", { name: "Add a new product" });
@@ -274,23 +250,21 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
         .fill("A polished keepsake created by the vendor E2E flow.");
       await editor
         .getByLabel("Full description")
-        .fill("A premium personalised keepsake used to verify vendor catalogue publishing and kiosk synchronisation.");
+        .fill(
+          "A premium personalised keepsake used to verify vendor catalogue publishing and kiosk synchronisation.",
+        );
       await editor.getByLabel("Category").fill("Personalized Gifts");
       await editor.getByLabel("Price (₹)", { exact: true }).fill("849");
       await editor.getByLabel("Compare-at price (₹)").fill("999");
       await editor.getByLabel("Stock quantity").fill("7");
-      await editor
-        .getByLabel("Preparation note")
-        .fill("Ready in one business day");
+      await editor.getByLabel("Preparation note").fill("Ready in one business day");
       await editor.getByLabel("Search tags").fill("e2e, keepsake, premium");
       await editor.getByLabel("Occasions").fill("Birthday");
       await editor.getByLabel("Recipients").fill("For Her");
       await editor.getByRole("button", { name: "Save product" }).click();
 
       await expect(editor).toBeHidden();
-      await expect(
-        page.getByText("Product added to the kiosk catalogue."),
-      ).toBeVisible();
+      await expect(page.getByText("Product added to the kiosk catalogue.")).toBeVisible();
       await page.getByPlaceholder("Search products").fill(productName);
       const productRow = page.getByRole("row").filter({ hasText: productName });
       await expect(productRow).toBeVisible();
@@ -309,9 +283,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
 
     await test.step("clear an optional comparison price", async () => {
       const productRow = page.getByRole("row").filter({ hasText: productName });
-      await productRow
-        .getByRole("button", { name: `Edit ${productName}` })
-        .click();
+      await productRow.getByRole("button", { name: `Edit ${productName}` }).click();
       const editor = page.getByRole("dialog", { name: "Edit product" });
       const compareAtPrice = editor.getByLabel("Compare-at price (₹)");
       await expect(compareAtPrice).toHaveValue("999");
@@ -330,9 +302,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       const kioskBootstrap = (await kioskResponse.json()) as {
         products: VendorProduct[];
       };
-      const kioskProduct = kioskBootstrap.products.find(
-        (product) => product.id === created!.id,
-      );
+      const kioskProduct = kioskBootstrap.products.find((product) => product.id === created!.id);
       expect(kioskProduct).toBeDefined();
       expect(kioskProduct).not.toHaveProperty("compareAtPricePaise");
     });
@@ -340,9 +310,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
     await test.step("show the published product in the customer kiosk", async () => {
       const kioskPage = await context.newPage();
       await kioskPage.goto("/");
-      await expect(
-        kioskPage.getByRole("heading", { name: "Find the Perfect Gift" }),
-      ).toBeVisible();
+      await expect(kioskPage.getByRole("heading", { name: "Find the Perfect Gift" })).toBeVisible();
       await kioskPage.getByRole("button", { name: /Start Shopping/i }).click();
       await expect(
         kioskPage.getByRole("heading", { name: "Find a gift worth keeping" }),
@@ -385,9 +353,11 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
         },
       });
       expect(orderResponse.status()).toBe(201);
-      const preparedOrder = ((await orderResponse.json()) as {
-        order: VendorOrder;
-      }).order;
+      const preparedOrder = (
+        (await orderResponse.json()) as {
+          order: VendorOrder;
+        }
+      ).order;
       // The server assigns the display number; use the one it returned.
       const orderNumber = preparedOrder.orderNumber;
       expect(orderNumber).toMatch(/^GFT-\d{8}-\d{4,6}$/);
@@ -406,9 +376,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
 
       await page.getByRole("button", { name: "Refresh vendor data" }).click();
       await openVendorView(page, "Orders");
-      await page
-        .getByPlaceholder("Search number, customer, or gift")
-        .fill(orderNumber);
+      await page.getByPlaceholder("Search number, customer, or gift").fill(orderNumber);
       const orderListItem = page.locator(".vendor-order-list li").filter({
         hasText: orderNumber,
       });
@@ -429,9 +397,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
 
       await orderDetail.getByRole("button", { name: "Confirm order" }).click();
       await expect(
-        orderDetail
-          .locator(".vendor-order-detail-header")
-          .getByText("Confirmed", { exact: true }),
+        orderDetail.locator(".vendor-order-detail-header").getByText("Confirmed", { exact: true }),
       ).toBeVisible();
 
       const afterConfirmation = await vendorBootstrap(page);
@@ -475,9 +441,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       await expect(cancelDialog).toBeHidden();
       await page.getByRole("button", { name: /All orders/ }).click();
       await expect(
-        orderDetail
-          .locator(".vendor-order-detail-header")
-          .getByText("Cancelled", { exact: true }),
+        orderDetail.locator(".vendor-order-detail-header").getByText("Cancelled", { exact: true }),
       ).toBeVisible();
 
       const afterCancellation = await vendorBootstrap(page);
@@ -516,23 +480,17 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
 
     await test.step("open settings and archive the test product", async () => {
       await openVendorView(page, "Settings");
-      await expect(
-        page.getByRole("heading", { name: "Store profile" }),
-      ).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Store profile" })).toBeVisible();
       await expect(page.getByLabel("Accept kiosk orders")).toBeChecked();
       await expect(page.getByLabel("Owner WhatsApp number")).toHaveValue(
         beforeOrder.settings.ownerWhatsAppNumber,
       );
-      await expect(
-        page.getByRole("button", { name: "Publish settings" }),
-      ).toBeDisabled();
+      await expect(page.getByRole("button", { name: "Publish settings" })).toBeDisabled();
 
       await openVendorView(page, "Products");
       await page.getByPlaceholder("Search products").fill(productName);
       const row = page.getByRole("row").filter({ hasText: productName });
-      await row
-        .getByRole("button", { name: `Edit ${productName}` })
-        .click();
+      await row.getByRole("button", { name: `Edit ${productName}` }).click();
       const editor = page.getByRole("dialog", { name: "Edit product" });
       await editor.getByRole("button", { name: "Archive", exact: true }).click();
       // AUD-22: archiving is now confirmed through an alertdialog.
@@ -552,21 +510,14 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       const kioskBootstrap = (await kioskResponse.json()) as {
         products: VendorProduct[];
       };
-      expect(
-        kioskBootstrap.products.some((product) => product.name === productName),
-      ).toBe(false);
+      expect(kioskBootstrap.products.some((product) => product.name === productName)).toBe(false);
     });
   } catch (error) {
     testBodyFailed = true;
     throw error;
   } finally {
     try {
-      await cleanupCreatedRecords(
-        page,
-        origin,
-        productName,
-        idempotencyKey,
-      );
+      await cleanupCreatedRecords(page, origin, productName, idempotencyKey);
     } catch (cleanupError) {
       // Never let a cleanup failure mask the real test failure.
       if (!testBodyFailed) throw cleanupError;
@@ -581,13 +532,9 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       .getByRole("button", { name: "Sign out of Vendor Studio" })
       .click();
     await expect(page).toHaveURL(/\/vendor\/login\?vendor=chapega$/);
-    await expect(
-      page.getByRole("heading", { name: "Welcome back" }),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
     expect(
-      (await context.cookies()).some(
-        (cookie) => cookie.name === "chapega_vendor_session",
-      ),
+      (await context.cookies()).some((cookie) => cookie.name === "chapega_vendor_session"),
     ).toBe(false);
     const protectedResponse = await page.request.get("/api/vendor/bootstrap");
     expect(protectedResponse.status()).toBe(401);

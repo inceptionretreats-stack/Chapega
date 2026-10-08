@@ -160,9 +160,7 @@ describe("Vendor Studio state safeguards", () => {
       vendor,
       capabilities,
       revision: 1,
-      products: Array.from({ length: 6 }, (_, index) =>
-        product(index + 1, index),
-      ),
+      products: Array.from({ length: 6 }, (_, index) => product(index + 1, index)),
       orders: [],
       settings,
     };
@@ -177,9 +175,9 @@ describe("Vendor Studio state safeguards", () => {
       }),
     );
 
-    const lowStockSummary = [
-      ...container.querySelectorAll(".vendor-summary-stat"),
-    ].find((element) => element.textContent?.includes("Low stock"));
+    const lowStockSummary = [...container.querySelectorAll(".vendor-summary-stat")].find(
+      (element) => element.textContent?.includes("Low stock"),
+    );
     expect(lowStockSummary).toHaveTextContent("6Low stock");
     expect(container.querySelectorAll(".vendor-stock-list li")).toHaveLength(4);
   });
@@ -200,15 +198,11 @@ describe("Vendor Studio state safeguards", () => {
     );
     // AUD-22: the confirmation is now an alertdialog named for the order.
     await user.click(screen.getByRole("button", { name: "Cancel order" }));
-    expect(
-      screen.getByRole("alertdialog", { name: /GFT-001/ }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("alertdialog", { name: /GFT-001/ })).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /GFT-002/ }));
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Cancel order" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel order" })).toBeInTheDocument();
   });
 
   it("keeps a dirty settings draft when fresher server props arrive", async () => {
@@ -235,12 +229,8 @@ describe("Vendor Studio state safeguards", () => {
       }),
     );
 
-    expect(screen.getByRole("textbox", { name: "Shop name" })).toHaveValue(
-      "My draft shop",
-    );
-    expect(
-      screen.getByText(/newer settings revision is available/i),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Shop name" })).toHaveValue("My draft shop");
+    expect(screen.getByText(/newer settings revision is available/i)).toBeInTheDocument();
     const publishCard = screen.getByText("Publish changes").closest("section");
     expect(
       within(publishCard as HTMLElement).getByRole("button", {

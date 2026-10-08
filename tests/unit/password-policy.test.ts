@@ -61,9 +61,7 @@ describe("new password policy (NIST SP 800-63B-4)", () => {
     expect(
       newPasswordProblem("mira@example.com2026", { email: "mira@example.com" }),
     ).not.toBeNull();
-    expect(
-      newPasswordProblem("MIRA@EXAMPLE.COM", { email: "mira@example.com" }),
-    ).not.toBeNull();
+    expect(newPasswordProblem("MIRA@EXAMPLE.COM", { email: "mira@example.com" })).not.toBeNull();
   });
 });
 

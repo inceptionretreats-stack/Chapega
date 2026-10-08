@@ -24,8 +24,11 @@ afterEach(() => {
 
 describe("vendor status changes (AUD-16)", () => {
   it("sends the status the admin saw, not the vendor revision", async () => {
-    const fetchMock = vi.fn(async () =>
-      new Response(JSON.stringify({ vendor: makeAdminVendor({ status: "suspended" }) }), { status: 200 }),
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ vendor: makeAdminVendor({ status: "suspended" }) }), {
+          status: 200,
+        }),
     );
     vi.stubGlobal("fetch", fetchMock);
     const vendor = makeAdminVendor({ status: "active" });
@@ -35,7 +38,10 @@ describe("vendor status changes (AUD-16)", () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(JSON.parse(String(init.body))).toEqual({ status: "suspended", expectedStatus: "active" });
+    expect(JSON.parse(String(init.body))).toEqual({
+      status: "suspended",
+      expectedStatus: "active",
+    });
   });
 });
 

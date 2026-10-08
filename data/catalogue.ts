@@ -7,8 +7,7 @@ export const CATALOGUE_PRODUCTS = [
   {
     id: "wooden-box-products",
     name: "12x12 Wooden Box with Products",
-    shortDescription:
-      "A personalised wooden gift box filled with practical keepsakes.",
+    shortDescription: "A personalised wooden gift box filled with practical keepsakes.",
     description:
       "12x12 wooden box with personalised decoration, lights, photo clips, fillers, outer flower, gold acrylic name, caricature wood base, water bottle, passport cover, faux-leather wallet, steel mug, card holder, sunglasses cover and metal keychain.",
     category: "Gift Hampers",
@@ -27,8 +26,7 @@ export const CATALOGUE_PRODUCTS = [
   {
     id: "initial-letter-box-hamper",
     name: "12x18 Wooden Initial Letter Box Hamper",
-    shortDescription:
-      "A personalised initial-shaped hamper with lights and useful gifts.",
+    shortDescription: "A personalised initial-shaped hamper with lights and useful gifts.",
     description:
       "12x18 wooden initial letter box with lights, water bottle, black mug, fillers and faux-leather wallet. Chocolates and flowers are not included.",
     category: "Gift Hampers",
@@ -47,8 +45,7 @@ export const CATALOGUE_PRODUCTS = [
   {
     id: "hamper-box-black-10x10",
     name: "10x10 Black Hamper Box",
-    shortDescription:
-      "A black hamper box with personalised floral and light decoration.",
+    shortDescription: "A black hamper box with personalised floral and light decoration.",
     description:
       "10x10 black hamper box with personalised outer decoration, flowers, lights and an acrylic couple name. The listed price is for each outer-decorated box only.",
     category: "Gift Hampers",
@@ -68,8 +65,7 @@ export const CATALOGUE_PRODUCTS = [
     id: "hamper-decorated-8x8",
     name: "8x8 Decorated Hamper Box",
     shortDescription: "A wooden hamper box dressed with flowers and fairy lights.",
-    description:
-      "8x8 wooden box decorated with flowers, fairy lights and fillers.",
+    description: "8x8 wooden box decorated with flowers, fairy lights and fillers.",
     category: "Gift Hampers",
     pricePaise: 59_900,
     image: "/generated-products/hamper-decorated-8x8.png",
@@ -105,8 +101,7 @@ export const CATALOGUE_PRODUCTS = [
     id: "calendar-collage-frame-16x24",
     name: "16x24 Calendar Theme Wooden Collage Frame",
     shortDescription: "A personalised photo collage built around a calendar date.",
-    description:
-      "Personalised 16x24 wooden collage frame with a calendar theme.",
+    description: "Personalised 16x24 wooden collage frame with a calendar theme.",
     category: "Photo Frames",
     pricePaise: 140_000,
     image: "/generated-products/calendar-collage-frame-16x24.png",
@@ -178,8 +173,7 @@ export const CATALOGUE_PRODUCTS = [
     id: "wooden-clock-13-photos",
     name: "18x18 Wooden Clock with 13 Photos",
     shortDescription: "A personalised wooden clock displaying 13 photographs.",
-    description:
-      "Personalised 18x18 wooden photo clock for 13 photographs.",
+    description: "Personalised 18x18 wooden photo clock for 13 photographs.",
     category: "Personalized Gifts",
     pricePaise: 99_900,
     image: "/generated-products/wooden-clock-13-photos.png",
@@ -235,8 +229,7 @@ export const CATALOGUE_PRODUCTS = [
     id: "led-shape-collage-frame-16x16",
     name: "16x16 LED Wooden Shape Collage Frame",
     shortDescription: "A heart-shaped wooden photo collage with internal lighting.",
-    description:
-      "16x16 heart-shaped wooden collage frame with internal LED lighting.",
+    description: "16x16 heart-shaped wooden collage frame with internal LED lighting.",
     category: "Photo Frames",
     pricePaise: 120_000,
     image: "/generated-products/led-shape-collage-frame-16x16.png",
@@ -254,8 +247,7 @@ export const CATALOGUE_PRODUCTS = [
     id: "bouquet-preserve-frame-9x9",
     name: "9x9 Bouquet Flower Preservation Box Frame",
     shortDescription: "A handmade keepsake frame preserving real bouquet flowers.",
-    description:
-      "Handmade 9x9 box frame preserving real bouquet flowers.",
+    description: "Handmade 9x9 box frame preserving real bouquet flowers.",
     category: "Resin Art",
     pricePaise: 120_000,
     image: "/generated-products/bouquet-preserve-frame-9x9.png",
@@ -349,8 +341,7 @@ export const CATALOGUE_PRODUCTS = [
     id: "single-photo-frame-glass-18x24",
     name: "18x24 Single Photo Frame with Glass",
     shortDescription: "A glass-fronted frame for one portrait or landscape photo.",
-    description:
-      "18x24 single photo frame with glass for portrait or landscape orientation.",
+    description: "18x24 single photo frame with glass for portrait or landscape orientation.",
     category: "Photo Frames",
     pricePaise: 120_000,
     image: "/generated-products/single-photo-frame-glass-18x24.png",
@@ -387,8 +378,7 @@ export const CATALOGUE_PRODUCTS = [
     id: "single-photo-frame-laminated-24x36",
     name: "24x36 Single Photo Frame, Laminated Wood",
     shortDescription: "A large laminated wooden frame for one photograph.",
-    description:
-      "24x36 laminated wooden single photo frame for portrait or landscape orientation.",
+    description: "24x36 laminated wooden single photo frame for portrait or landscape orientation.",
     category: "Photo Frames",
     pricePaise: 195_000,
     image: "/generated-products/single-photo-frame-laminated-24x36.png",
@@ -424,8 +414,7 @@ export const CATALOGUE_PRODUCTS = [
     id: "single-photo-frame-glass-20x30",
     name: "20x30 Single Photo Frame with Glass",
     shortDescription: "A large glass-fronted frame for one photograph.",
-    description:
-      "20x30 single photo frame with glass for portrait or landscape orientation.",
+    description: "20x30 single photo frame with glass for portrait or landscape orientation.",
     category: "Photo Frames",
     pricePaise: 135_000,
     image: "/generated-products/single-photo-frame-glass-20x30.png",
@@ -472,8 +461,6 @@ export function getProductById(productId: string): Product | undefined {
   return productById.get(productId);
 }
 
-export function getProductsByCategory(
-  category: ProductCategory,
-): readonly Product[] {
+export function getProductsByCategory(category: ProductCategory): readonly Product[] {
   return CATALOGUE_PRODUCTS.filter((product) => product.category === category);
 }

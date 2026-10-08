@@ -28,12 +28,24 @@ function ScreenLoading() {
 
 // Screens after the welcome screen are split out so the first page only ships
 // the code it needs (keeps the hero LCP off a long hydration task).
-const CartScreen = dynamic(() => import("./cart-screen").then((m) => m.CartScreen), { loading: ScreenLoading });
-const CatalogueScreen = dynamic(() => import("./catalogue-screen").then((m) => m.CatalogueScreen), { loading: ScreenLoading });
-const CheckoutScreen = dynamic(() => import("./checkout-screen").then((m) => m.CheckoutScreen), { loading: ScreenLoading });
-const ReviewScreen = dynamic(() => import("./review-screen").then((m) => m.ReviewScreen), { loading: ScreenLoading });
-const ProductDetailModal = dynamic(() => import("./product-detail-modal").then((m) => m.ProductDetailModal));
-const IdleSessionDialog = dynamic(() => import("./idle-session-dialog").then((m) => m.IdleSessionDialog));
+const CartScreen = dynamic(() => import("./cart-screen").then((m) => m.CartScreen), {
+  loading: ScreenLoading,
+});
+const CatalogueScreen = dynamic(() => import("./catalogue-screen").then((m) => m.CatalogueScreen), {
+  loading: ScreenLoading,
+});
+const CheckoutScreen = dynamic(() => import("./checkout-screen").then((m) => m.CheckoutScreen), {
+  loading: ScreenLoading,
+});
+const ReviewScreen = dynamic(() => import("./review-screen").then((m) => m.ReviewScreen), {
+  loading: ScreenLoading,
+});
+const ProductDetailModal = dynamic(() =>
+  import("./product-detail-modal").then((m) => m.ProductDetailModal),
+);
+const IdleSessionDialog = dynamic(() =>
+  import("./idle-session-dialog").then((m) => m.IdleSessionDialog),
+);
 
 const OrderReadyScreen = dynamic(
   () => import("./order-ready-screen").then((module) => module.OrderReadyScreen),
@@ -51,16 +63,10 @@ function kioskOrderFromVendor(order: VendorOrder): Order {
     id: order.id,
     orderNumber: order.orderNumber,
     createdAt: order.createdAt,
-    ...(order.customer.customerName
-      ? { customerName: order.customer.customerName }
-      : {}),
-    ...(order.customer.customerPhone
-      ? { customerPhone: order.customer.customerPhone }
-      : {}),
+    ...(order.customer.customerName ? { customerName: order.customer.customerName } : {}),
+    ...(order.customer.customerPhone ? { customerPhone: order.customer.customerPhone } : {}),
     ...(order.customer.giftNote ? { giftNote: order.customer.giftNote } : {}),
-    ...(order.customer.orderNote
-      ? { orderNote: order.customer.orderNote }
-      : {}),
+    ...(order.customer.orderNote ? { orderNote: order.customer.orderNote } : {}),
     kioskName: order.kioskName,
     paymentMethod: order.paymentMethod,
     items: Object.freeze(
@@ -92,16 +98,14 @@ type KioskAppProps = Readonly<{
 export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps) {
   const router = useRouter();
   const store = useKioskStore();
-  const normalizedVendorSlug = (vendorSlug ?? "chapega")
-    .trim()
-    .toLocaleLowerCase("en-IN");
+  const normalizedVendorSlug = (vendorSlug ?? "chapega").trim().toLocaleLowerCase("en-IN");
   const kioskApiBase = vendorSlug
     ? `/api/kiosk/${encodeURIComponent(normalizedVendorSlug)}`
     : "/api/kiosk";
   const [browserOnline, setBrowserOnline] = useState(true);
-  const [backendStatus, setBackendStatus] = useState<
-    "checking" | "live" | "unavailable"
-  >(initialBootstrap ? "live" : "checking");
+  const [backendStatus, setBackendStatus] = useState<"checking" | "live" | "unavailable">(
+    initialBootstrap ? "live" : "checking",
+  );
   const [shopState, setShopState] = useState<ShopUnavailableKind | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
   const [copied, setCopied] = useState(false);
@@ -162,13 +166,9 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
         else state.syncBootstrap(bootstrap);
         setBackendStatus("live");
         const syncedState = useKioskStore.getState();
-        if (
-          state.hasHydrated &&
-          cartBefore !== JSON.stringify(syncedState.cartItems)
-        ) {
+        if (state.hasHydrated && cartBefore !== JSON.stringify(syncedState.cartItems)) {
           setToast({
-            message:
-              "Your cart was updated to match the latest prices and availability.",
+            message: "Your cart was updated to match the latest prices and availability.",
             tone: "success",
             screen: syncedState.screen,
           });
@@ -247,9 +247,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
         return;
       }
       setIdleWarningSeconds(
-        remaining <= KIOSK_IDLE_WARNING_MS
-          ? Math.max(1, Math.ceil(remaining / 1_000))
-          : null,
+        remaining <= KIOSK_IDLE_WARNING_MS ? Math.max(1, Math.ceil(remaining / 1_000)) : null,
       );
     };
 
@@ -261,7 +259,9 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       "touchstart",
       "scroll",
     ];
-    activityEvents.forEach((eventName) => window.addEventListener(eventName, recordActivity, { passive: true, capture: true }));
+    activityEvents.forEach((eventName) =>
+      window.addEventListener(eventName, recordActivity, { passive: true, capture: true }),
+    );
     const checkWhenVisible = () => {
       if (document.visibilityState === "visible") checkInactivity();
     };
@@ -269,7 +269,9 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
 
     return () => {
       window.clearInterval(interval);
-      activityEvents.forEach((eventName) => window.removeEventListener(eventName, recordActivity, { capture: true }));
+      activityEvents.forEach((eventName) =>
+        window.removeEventListener(eventName, recordActivity, { capture: true }),
+      );
       document.removeEventListener("visibilitychange", checkWhenVisible);
     };
   }, [store.hasHydrated, store.screen]);
@@ -320,11 +322,12 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
     return () => window.clearInterval(timer);
   }, [store.screen, store.currentOrder]);
 
-  const showToast = (message: string, tone: "success" | "error" = "success") => setToast({
-    message,
-    tone,
-    screen: useKioskStore.getState().screen,
-  });
+  const showToast = (message: string, tone: "success" | "error" = "success") =>
+    setToast({
+      message,
+      tone,
+      screen: useKioskStore.getState().screen,
+    });
 
   const vendorLoginHref = vendorSlug
     ? `/vendor/login?vendor=${encodeURIComponent(normalizedVendorSlug)}`
@@ -339,7 +342,10 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
     store.setScreen("cart");
   };
 
-  const handleCartResult = (result: ReturnType<typeof store.addToCart>, successMessage?: string) => {
+  const handleCartResult = (
+    result: ReturnType<typeof store.addToCart>,
+    successMessage?: string,
+  ) => {
     if (!result.ok) {
       showToast(result.error.message, "error");
       return false;
@@ -349,11 +355,15 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
   };
 
   const quickAdd = (product: Product) => {
-    handleCartResult(store.addToCart(product.id), `${product.name} added. ${unitCount + 1} of ${store.settings.maxCartQuantity} gifts selected.`);
+    handleCartResult(
+      store.addToCart(product.id),
+      `${product.name} added. ${unitCount + 1} of ${store.settings.maxCartQuantity} gifts selected.`,
+    );
   };
 
   const changeQuantity = (key: string, quantity: number) => {
-    const result = quantity < 1 ? store.removeFromCart(key) : store.updateCartQuantity(key, quantity);
+    const result =
+      quantity < 1 ? store.removeFromCart(key) : store.updateCartQuantity(key, quantity);
     handleCartResult(result);
   };
 
@@ -366,12 +376,23 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
   const toggleWrap = (key: string) => {
     const line = store.cartItems.find((item) => item.key === key);
     if (!line) return;
-    handleCartResult(store.setCartGiftWrapped(key, !line.giftWrapped), line.giftWrapped ? "Gift wrap removed." : "Gift wrap added.");
+    handleCartResult(
+      store.setCartGiftWrapped(key, !line.giftWrapped),
+      line.giftWrapped ? "Gift wrap removed." : "Gift wrap added.",
+    );
   };
 
-  const addFromDetails = (input: { productId: string; variantId?: string; quantity: number; giftWrapped: boolean }) => {
+  const addFromDetails = (input: {
+    productId: string;
+    variantId?: string;
+    quantity: number;
+    giftWrapped: boolean;
+  }) => {
     const product = store.products.find((item) => item.id === input.productId);
-    const ok = handleCartResult(store.addToCart(input.productId, input), product ? `${product.name} added to your cart.` : "Gift added to your cart.");
+    const ok = handleCartResult(
+      store.addToCart(input.productId, input),
+      product ? `${product.name} added to your cart.` : "Gift added to your cart.",
+    );
     if (ok) store.closeProduct();
   };
 
@@ -385,7 +406,10 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       return;
     }
     if (!store.storeOpen) {
-      showToast(`The shop has paused new kiosk orders. Please ask a ${store.settings.shopName} team member for help.`, "error");
+      showToast(
+        `The shop has paused new kiosk orders. Please ask a ${store.settings.shopName} team member for help.`,
+        "error",
+      );
       return;
     }
     setCopyError(null);
@@ -417,32 +441,26 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
           items: pendingSubmission.items,
         }),
       });
-      const payload = (await response.json().catch(() => null)) as
-        | { order?: VendorOrder; error?: { message?: string } }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        order?: VendorOrder;
+        error?: { message?: string };
+      } | null;
       if (!response.ok || !payload?.order) {
-        throw new Error(
-          payload?.error?.message ?? "The vendor queue could not be updated.",
-        );
+        throw new Error(payload?.error?.message ?? "The vendor queue could not be updated.");
       }
-      useKioskStore
-        .getState()
-        .completeOrderCreation(kioskOrderFromVendor(payload.order));
+      useKioskStore.getState().completeOrderCreation(kioskOrderFromVendor(payload.order));
     } catch (caught) {
       const message =
         caught instanceof DOMException && caught.name === "AbortError"
           ? "The ordering service took too long to respond. Your order is safe to retry."
           : caught instanceof Error
-          ? caught.message
-          : "The vendor queue could not be updated.";
+            ? caught.message
+            : "The vendor queue could not be updated.";
       useKioskStore.getState().failOrderCreation({
         code: "INVALID_CART",
         message,
       });
-      showToast(
-        `We could not prepare this order: ${message}`,
-        "error",
-      );
+      showToast(`We could not prepare this order: ${message}`, "error");
     } finally {
       window.clearTimeout(orderTimeout);
       setGenerating(false);
@@ -490,7 +508,16 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       const { shopName, kioskName, showPreviewLabel } = initialBootstrap.settings;
       return (
         <div className="kiosk-shell kiosk-shell--welcome">
-          <WelcomeScreen key="welcome" shopName={shopName} kioskName={kioskName} showPreviewLabel={showPreviewLabel} online onStart={() => undefined} vendorLoginHref={vendorLoginHref} ready={false} />
+          <WelcomeScreen
+            key="welcome"
+            shopName={shopName}
+            kioskName={kioskName}
+            showPreviewLabel={showPreviewLabel}
+            online
+            onStart={() => undefined}
+            vendorLoginHref={vendorLoginHref}
+            ready={false}
+          />
         </div>
       );
     }
@@ -499,7 +526,17 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
 
   const renderScreen = () => {
     if (store.screen === "welcome") {
-      return <WelcomeScreen key="welcome" shopName={store.settings.shopName} kioskName={store.settings.kioskName} showPreviewLabel={store.settings.showPreviewLabel} online={online} onStart={store.startShopping} vendorLoginHref={vendorLoginHref} />;
+      return (
+        <WelcomeScreen
+          key="welcome"
+          shopName={store.settings.shopName}
+          kioskName={store.settings.kioskName}
+          showPreviewLabel={store.settings.showPreviewLabel}
+          online={online}
+          onStart={store.startShopping}
+          vendorLoginHref={vendorLoginHref}
+        />
+      );
     }
 
     if (store.screen === "catalogue" || store.screen === "product-details") {
@@ -520,31 +557,123 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
             onQuantityChange={changeQuantity}
             onRemove={removeLine}
             onOpenCart={openCart}
-            onClearFilters={() => { store.setSearchQuery(""); store.setSelectedCategory("all"); }}
-            onNeedHelp={() => showToast(`A ${store.settings.shopName} team member can help you choose or customize a gift.`)}
+            onClearFilters={() => {
+              store.setSearchQuery("");
+              store.setSelectedCategory("all");
+            }}
+            onNeedHelp={() =>
+              showToast(
+                `A ${store.settings.shopName} team member can help you choose or customize a gift.`,
+              )
+            }
           />
-          {store.screen === "product-details" && selectedProduct ? <ProductDetailModal key={selectedProduct.id} product={selectedProduct} remainingCapacity={remainingCapacity} giftWrapFeePaise={store.settings.giftWrapFeePaise} onClose={store.closeProduct} onAdd={addFromDetails} /> : null}
+          {store.screen === "product-details" && selectedProduct ? (
+            <ProductDetailModal
+              key={selectedProduct.id}
+              product={selectedProduct}
+              remainingCapacity={remainingCapacity}
+              giftWrapFeePaise={store.settings.giftWrapFeePaise}
+              onClose={store.closeProduct}
+              onAdd={addFromDetails}
+            />
+          ) : null}
         </>
       );
     }
 
     if (store.screen === "cart") {
-      return <CartScreen cart={store.cartItems} products={store.products} unitCount={unitCount} maxUnits={store.settings.maxCartQuantity} totals={totals} giftWrapFeePaise={store.settings.giftWrapFeePaise} onQuantityChange={changeQuantity} onRemove={removeLine} onToggleWrap={toggleWrap} onContinueShopping={() => store.setScreen("catalogue")} onCheckout={() => store.setScreen("customer")} />;
+      return (
+        <CartScreen
+          cart={store.cartItems}
+          products={store.products}
+          unitCount={unitCount}
+          maxUnits={store.settings.maxCartQuantity}
+          totals={totals}
+          giftWrapFeePaise={store.settings.giftWrapFeePaise}
+          onQuantityChange={changeQuantity}
+          onRemove={removeLine}
+          onToggleWrap={toggleWrap}
+          onContinueShopping={() => store.setScreen("catalogue")}
+          onCheckout={() => store.setScreen("customer")}
+        />
+      );
     }
 
     if (store.screen === "customer") {
-      return <CheckoutScreen customer={store.customer} cart={store.cartItems} totals={totals} unitCount={unitCount} onChange={store.updateCustomer} onEditSelection={() => store.setScreen("cart")} onReview={() => store.setScreen("review")} />;
+      return (
+        <CheckoutScreen
+          customer={store.customer}
+          cart={store.cartItems}
+          totals={totals}
+          unitCount={unitCount}
+          onChange={store.updateCustomer}
+          onEditSelection={() => store.setScreen("cart")}
+          onReview={() => store.setScreen("review")}
+        />
+      );
     }
 
     if (store.screen === "review") {
-      return <ReviewScreen cart={store.cartItems} totals={totals} customer={store.customer} settings={store.settings} creating={generating || store.isCreatingOrder} onEditGifts={() => store.setScreen("cart")} onEditDetails={() => store.setScreen("customer")} onCreateOrder={createOrder} onOpenSettings={openVendorStudio} />;
+      return (
+        <ReviewScreen
+          cart={store.cartItems}
+          totals={totals}
+          customer={store.customer}
+          settings={store.settings}
+          creating={generating || store.isCreatingOrder}
+          onEditGifts={() => store.setScreen("cart")}
+          onEditDetails={() => store.setScreen("customer")}
+          onCreateOrder={createOrder}
+          onOpenSettings={openVendorStudio}
+        />
+      );
     }
 
     if (store.screen === "qr") {
       if (!store.currentOrder) {
-        return <main className="screen-page narrow"><div className="empty-state"><AlertCircle size={46} /><div><h2 data-screen-heading tabIndex={-1}>The prepared order could not be restored</h2><p>Your cart is still available. Return to review and generate the WhatsApp QR again.</p><button className="primary-button" onClick={() => store.setScreen(store.cartItems.length ? "review" : "catalogue")}>Return to order</button></div></div></main>;
+        return (
+          <main className="screen-page narrow">
+            <div className="empty-state">
+              <AlertCircle size={46} />
+              <div>
+                <h2 data-screen-heading tabIndex={-1}>
+                  The prepared order could not be restored
+                </h2>
+                <p>
+                  Your cart is still available. Return to review and generate the WhatsApp QR again.
+                </p>
+                <button
+                  className="primary-button"
+                  onClick={() => store.setScreen(store.cartItems.length ? "review" : "catalogue")}
+                >
+                  Return to order
+                </button>
+              </div>
+            </div>
+          </main>
+        );
       }
-      return <QrErrorBoundary key={store.currentOrder.id} order={store.currentOrder} onCopy={copyMessage} onStartNewOrder={store.resetSession}><OrderReadyScreen shopName={store.settings.shopName} order={store.currentOrder} products={store.products} secondsRemaining={store.countdownSeconds} extended={store.qrExtended} copied={copied} copyError={copyError} onCopy={copyMessage} onKeepOpen={store.keepQrOpen} onStartNewOrder={store.resetSession} /></QrErrorBoundary>;
+      return (
+        <QrErrorBoundary
+          key={store.currentOrder.id}
+          order={store.currentOrder}
+          onCopy={copyMessage}
+          onStartNewOrder={store.resetSession}
+        >
+          <OrderReadyScreen
+            shopName={store.settings.shopName}
+            order={store.currentOrder}
+            products={store.products}
+            secondsRemaining={store.countdownSeconds}
+            extended={store.qrExtended}
+            copied={copied}
+            copyError={copyError}
+            onCopy={copyMessage}
+            onKeepOpen={store.keepQrOpen}
+            onStartNewOrder={store.resetSession}
+          />
+        </QrErrorBoundary>
+      );
     }
 
     return null;
@@ -568,8 +697,17 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
           onBack={headerBack}
         />
       ) : null}
-      {store.screen !== "welcome" && !online ? <div className="offline-notice" role="status">Showing the last available catalogue. Your cart remains usable, but reconnect to validate stock and prepare the WhatsApp QR.</div> : null}
-      {store.screen !== "welcome" && online && !store.storeOpen ? <div className="offline-notice" role="status">The shop has paused new orders. You can still browse and build a cart while you wait.</div> : null}
+      {store.screen !== "welcome" && !online ? (
+        <div className="offline-notice" role="status">
+          Showing the last available catalogue. Your cart remains usable, but reconnect to validate
+          stock and prepare the WhatsApp QR.
+        </div>
+      ) : null}
+      {store.screen !== "welcome" && online && !store.storeOpen ? (
+        <div className="offline-notice" role="status">
+          The shop has paused new orders. You can still browse and build a cart while you wait.
+        </div>
+      ) : null}
       {renderScreen()}
       {idleWarningSeconds !== null ? (
         <IdleSessionDialog
@@ -586,9 +724,32 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
         />
       ) : null}
       <div className="toast-region">
-        {toast && (toast.screen === store.screen || (toast.screen === "product-details" && store.screen === "catalogue")) ? <div className={`toast ${toast.tone === "error" ? "error" : ""}`} role={toast.tone === "error" ? "alert" : "status"} aria-atomic="true">{toast.tone === "error" ? <AlertCircle size={19} /> : <CheckCircle2 size={19} className="icon-success" />}<span>{toast.message}</span></div> : null}
+        {toast &&
+        (toast.screen === store.screen ||
+          (toast.screen === "product-details" && store.screen === "catalogue")) ? (
+          <div
+            className={`toast ${toast.tone === "error" ? "error" : ""}`}
+            role={toast.tone === "error" ? "alert" : "status"}
+            aria-atomic="true"
+          >
+            {toast.tone === "error" ? (
+              <AlertCircle size={19} />
+            ) : (
+              <CheckCircle2 size={19} className="icon-success" />
+            )}
+            <span>{toast.message}</span>
+          </div>
+        ) : null}
       </div>
-      {store.screen !== "welcome" && store.screen !== "catalogue" && store.screen !== "product-details" && unitCount > 0 ? <div className="sr-only" aria-live="polite"><ShoppingBag size={1} />{unitCount} of {store.settings.maxCartQuantity} gifts selected.</div> : null}
+      {store.screen !== "welcome" &&
+      store.screen !== "catalogue" &&
+      store.screen !== "product-details" &&
+      unitCount > 0 ? (
+        <div className="sr-only" aria-live="polite">
+          <ShoppingBag size={1} />
+          {unitCount} of {store.settings.maxCartQuantity} gifts selected.
+        </div>
+      ) : null}
     </div>
   );
 }

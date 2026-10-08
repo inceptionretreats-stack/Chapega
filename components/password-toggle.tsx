@@ -36,7 +36,11 @@ export function PasswordToggle({
       onClick={onToggle}
       disabled={disabled}
     >
-      {visible ? <EyeOff size={iconSize} aria-hidden="true" /> : <Eye size={iconSize} aria-hidden="true" />}
+      {visible ? (
+        <EyeOff size={iconSize} aria-hidden="true" />
+      ) : (
+        <Eye size={iconSize} aria-hidden="true" />
+      )}
     </button>
   );
 }

@@ -36,15 +36,11 @@ describe("server-side shop status (AUD-11)", () => {
   });
 
   it("maps unknown shops to not-found and suspended shops to suspended", async () => {
-    getKioskBootstrap.mockRejectedValueOnce(
-      new VendorServiceError(404, "VENDOR_NOT_FOUND", "x"),
-    );
+    getKioskBootstrap.mockRejectedValueOnce(new VendorServiceError(404, "VENDOR_NOT_FOUND", "x"));
     await expect(loadKioskShop("no-such-shop")).resolves.toEqual({
       status: "not-found",
     });
-    getKioskBootstrap.mockRejectedValueOnce(
-      new VendorServiceError(403, "VENDOR_SUSPENDED", "x"),
-    );
+    getKioskBootstrap.mockRejectedValueOnce(new VendorServiceError(403, "VENDOR_SUSPENDED", "x"));
     await expect(loadKioskShop("paused-shop")).resolves.toEqual({
       status: "suspended",
     });

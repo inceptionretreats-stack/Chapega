@@ -2,10 +2,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  DEFAULT_PRESENTER_SETTINGS,
-  useKioskStore,
-} from "@/store/kiosk-store";
+import { DEFAULT_PRESENTER_SETTINGS, useKioskStore } from "@/store/kiosk-store";
 import type { Order } from "@/types/kiosk";
 
 const ORDER = {

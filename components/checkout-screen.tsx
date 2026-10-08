@@ -33,7 +33,15 @@ type CheckoutScreenProps = {
   onReview: () => void;
 };
 
-export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, onEditSelection, onReview }: CheckoutScreenProps) {
+export function CheckoutScreen({
+  customer,
+  cart,
+  totals,
+  unitCount,
+  onChange,
+  onEditSelection,
+  onReview,
+}: CheckoutScreenProps) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
   const phoneInputRef = useRef<HTMLInputElement>(null);
@@ -44,20 +52,27 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
       <CheckoutStepper active={2} />
       <header className="transaction-intro">
         <div className="checkout-intro__heading-row">
-          <h1 className="screen-heading" data-screen-heading tabIndex={-1}>A few optional details</h1>
+          <h1 className="screen-heading" data-screen-heading tabIndex={-1}>
+            A few optional details
+          </h1>
           <div className="checkout-optional-cue">
             <Check size={17} aria-hidden="true" />
             <span>Nothing here is required</span>
           </div>
         </div>
-        <p className="screen-subtitle">These help the shop prepare the gift. You can continue without entering personal information.</p>
+        <p className="screen-subtitle">
+          These help the shop prepare the gift. You can continue without entering personal
+          information.
+        </p>
       </header>
       <div className="checkout-grid">
         <aside className="transaction-summary sticky-summary" aria-label="Order summary">
           <header className="transaction-summary__header">
             <div>
               <h2>Your Gifts</h2>
-              <span>{unitCount} {unitCount === 1 ? "item" : "items"}</span>
+              <span>
+                {unitCount} {unitCount === 1 ? "item" : "items"}
+              </span>
             </div>
             <div className="checkout-summary__header-actions">
               <button
@@ -70,7 +85,11 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
                 {summaryExpanded ? "Hide summary" : "View summary"}
                 <ChevronDown size={17} aria-hidden="true" />
               </button>
-              <button type="button" className="text-button checkout-summary__edit" onClick={onEditSelection}>
+              <button
+                type="button"
+                className="text-button checkout-summary__edit"
+                onClick={onEditSelection}
+              >
                 <PencilLine size={15} aria-hidden="true" /> Edit selection
               </button>
             </div>
@@ -83,16 +102,32 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
               <ul className="transaction-summary__items">
                 {cart.map((line) => (
                   <li className="transaction-summary__item" key={line.key}>
-                    <span className="transaction-summary__item-image"><Image src={line.productImage} alt="" width={112} height={112} sizes="56px" /></span>
-                    <span className="transaction-summary__item-copy"><strong>{line.productName}</strong><small>{line.quantity} {line.quantity === 1 ? "unit" : "units"}</small></span>
+                    <span className="transaction-summary__item-image">
+                      <Image src={line.productImage} alt="" width={112} height={112} sizes="56px" />
+                    </span>
+                    <span className="transaction-summary__item-copy">
+                      <strong>{line.productName}</strong>
+                      <small>
+                        {line.quantity} {line.quantity === 1 ? "unit" : "units"}
+                      </small>
+                    </span>
                     <b>{formatInr(line.quantity * line.unitPricePaise)}</b>
                   </li>
                 ))}
               </ul>
               <div className="transaction-summary__totals">
-                <div className="totals-row"><span>Subtotal</span><strong>{formatInr(totals.subtotalPaise)}</strong></div>
-                <div className="totals-row"><span>Gift wrapping</span><strong>{formatInr(totals.giftWrapPaise)}</strong></div>
-                <div className="totals-row total"><span>Total</span><strong>{formatInr(totals.totalPaise)}</strong></div>
+                <div className="totals-row">
+                  <span>Subtotal</span>
+                  <strong>{formatInr(totals.subtotalPaise)}</strong>
+                </div>
+                <div className="totals-row">
+                  <span>Gift wrapping</span>
+                  <strong>{formatInr(totals.giftWrapPaise)}</strong>
+                </div>
+                <div className="totals-row total">
+                  <span>Total</span>
+                  <strong>{formatInr(totals.totalPaise)}</strong>
+                </div>
               </div>
             </div>
           </div>
@@ -119,8 +154,8 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
             <p className="checkout-form-section__helper">
               <ShieldCheck size={17} aria-hidden="true" />
               <span>
-                Share only what you’re comfortable sending; we use it only to prepare
-                this order on WhatsApp (<Link href="/privacy">privacy notice</Link>).
+                Share only what you’re comfortable sending; we use it only to prepare this order on
+                WhatsApp (<Link href="/privacy">privacy notice</Link>).
               </span>
             </p>
             <div className="form-grid">
@@ -130,7 +165,9 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
                   <UserRound size={18} aria-hidden="true" />
                   <input
                     value={customer.customerName}
-                    onChange={(event) => onChange({ customerName: event.target.value.slice(0, 40) })}
+                    onChange={(event) =>
+                      onChange({ customerName: event.target.value.slice(0, 40) })
+                    }
                     placeholder="e.g. Rahul"
                     autoComplete="given-name"
                     maxLength={40}
@@ -155,11 +192,17 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
                     autoComplete="tel"
                     maxLength={20}
                     aria-invalid={phoneTouched && Boolean(phoneError)}
-                    aria-describedby={phoneTouched && phoneError ? "customer-phone-error" : undefined}
+                    aria-describedby={
+                      phoneTouched && phoneError ? "customer-phone-error" : undefined
+                    }
                   />
                 </span>
                 <span data-phone-error-region aria-live="polite" aria-atomic="true">
-                  {phoneTouched && phoneError ? <small id="customer-phone-error" className="field-error">{phoneError}</small> : null}
+                  {phoneTouched && phoneError ? (
+                    <small id="customer-phone-error" className="field-error">
+                      {phoneError}
+                    </small>
+                  ) : null}
                 </span>
               </label>
             </div>
@@ -202,21 +245,45 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
             </div>
           </fieldset>
 
-          <div className="payment-card" role="group" aria-label="Payment method: Pay Later or Pay at Counter">
-            <span className="payment-card__icon"><CreditCard size={25} aria-hidden="true" /></span>
-            <div><h3>Pay Later / Pay at Counter</h3><p>No online payment is collected. Pay when the shop confirms your order.</p></div>
-            <span className="selected-check" aria-hidden="true"><Check size={18} /></span>
+          <div
+            className="payment-card"
+            role="group"
+            aria-label="Payment method: Pay Later or Pay at Counter"
+          >
+            <span className="payment-card__icon">
+              <CreditCard size={25} aria-hidden="true" />
+            </span>
+            <div>
+              <h3>Pay Later / Pay at Counter</h3>
+              <p>No online payment is collected. Pay when the shop confirms your order.</p>
+            </div>
+            <span className="selected-check" aria-hidden="true">
+              <Check size={18} />
+            </span>
           </div>
 
           <div className="checkout-final-actions">
             <div className="checkout-form-actions">
-              <button type="submit" className="primary-button">Review Order <ChevronRight size={19} /></button>
-              <p><Info size={16} /> You’ll check everything next before sending it to WhatsApp.</p>
+              <button type="submit" className="primary-button">
+                Review Order <ChevronRight size={19} />
+              </button>
+              <p>
+                <Info size={16} /> You’ll check everything next before sending it to WhatsApp.
+              </p>
             </div>
             <ul className="checkout-trust-row" aria-label="Order assurances">
-              <li><CreditCard size={18} aria-hidden="true" /><span>No online payment</span></li>
-              <li><Eye size={18} aria-hidden="true" /><span>Review before sending</span></li>
-              <li><MessageCircle size={18} aria-hidden="true" /><span>You tap Send in WhatsApp</span></li>
+              <li>
+                <CreditCard size={18} aria-hidden="true" />
+                <span>No online payment</span>
+              </li>
+              <li>
+                <Eye size={18} aria-hidden="true" />
+                <span>Review before sending</span>
+              </li>
+              <li>
+                <MessageCircle size={18} aria-hidden="true" />
+                <span>You tap Send in WhatsApp</span>
+              </li>
             </ul>
           </div>
         </form>

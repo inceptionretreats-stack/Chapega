@@ -14,7 +14,8 @@ import { resolveThemeChoice, THEME_COOKIE, themeCookieString } from "@/domain/th
 const cookieJar = new Map<string, string>();
 vi.mock("next/headers", () => ({
   cookies: async () => ({
-    get: (name: string) => (cookieJar.has(name) ? { name, value: cookieJar.get(name)! } : undefined),
+    get: (name: string) =>
+      cookieJar.has(name) ? { name, value: cookieJar.get(name)! } : undefined,
   }),
 }));
 
@@ -52,14 +53,20 @@ describe("theme cookie resolution (AUD-32)", () => {
 });
 
 describe("server-rendered theme attribute (AUD-32)", () => {
-  type AsyncLayout = (props: { children: React.ReactNode; params: Promise<object> }) => Promise<ReactElement>;
+  type AsyncLayout = (props: {
+    children: React.ReactNode;
+    params: Promise<object>;
+  }) => Promise<ReactElement>;
   for (const [surface, Layout, className] of [
     ["Vendor Studio", VendorLayout as unknown as AsyncLayout, "vendor-route"],
     ["admin", AdminLayout as unknown as AsyncLayout, "admin-route"],
   ] as const) {
     it(`${surface} renders the cookie's choice as data-theme`, async () => {
       cookieJar.set(THEME_COOKIE, "dark");
-      const element = (await Layout({ children: createElement("p", null, "content"), params: Promise.resolve({}) })) as ReactElement;
+      const element = (await Layout({
+        children: createElement("p", null, "content"),
+        params: Promise.resolve({}),
+      })) as ReactElement;
       const { container } = render(element);
       const wrapper = container.querySelector(`.${className}`);
       expect(wrapper).toHaveAttribute("data-theme", "dark");
@@ -68,7 +75,10 @@ describe("server-rendered theme attribute (AUD-32)", () => {
 
     it(`${surface} falls back to data-theme="system" for a missing or invalid cookie`, async () => {
       cookieJar.set(THEME_COOKIE, "neon");
-      const element = (await Layout({ children: null, params: Promise.resolve({}) })) as ReactElement;
+      const element = (await Layout({
+        children: null,
+        params: Promise.resolve({}),
+      })) as ReactElement;
       const { container } = render(element);
       expect(container.querySelector(`.${className}`)).toHaveAttribute("data-theme", "system");
       cleanup();
@@ -83,7 +93,11 @@ describe("server-rendered theme attribute (AUD-32)", () => {
 describe("System / Light / Dark control (AUD-32)", () => {
   function renderControl(initialTheme: "system" | "light" | "dark" = "system") {
     const { container } = render(
-      createElement(ThemeRoot, { className: "vendor-route", initialTheme }, createElement(ThemeControl)),
+      createElement(
+        ThemeRoot,
+        { className: "vendor-route", initialTheme },
+        createElement(ThemeControl),
+      ),
     );
     return container.querySelector(".vendor-route")!;
   }

@@ -87,17 +87,12 @@ async function loadVerifiedSnapshot(): Promise<VerifiedSnapshot> {
   );
 }
 
-function referencedRuntimeImages(
-  database: VendorDatabase,
-  vendorId: string,
-): string[] {
+function referencedRuntimeImages(database: VendorDatabase, vendorId: string): string[] {
   const references = new Set<string>();
   for (const product of database.products) {
     if (product.vendorId === vendorId) references.add(product.image);
   }
-  for (const order of database.orders.filter(
-    (record) => record.vendorId === vendorId,
-  )) {
+  for (const order of database.orders.filter((record) => record.vendorId === vendorId)) {
     for (const item of order.items) references.add(item.image);
   }
   return [...references].filter((image) => image.startsWith("/vendor-products/"));
@@ -211,26 +206,16 @@ async function main(): Promise<void> {
   }
 
   const snapshot = await loadVerifiedSnapshot();
-  const vendor = snapshot.data.vendors.find(
-    (candidate) => candidate.slug === vendorSlug,
-  );
+  const vendor = snapshot.data.vendors.find((candidate) => candidate.slug === vendorSlug);
   if (!vendor) {
     throw new Error(`The verified snapshot does not contain vendor ${vendorSlug}.`);
   }
   const runtimeImages = await readRuntimeImages(snapshot.data, vendor.id);
   const counts = {
-    memberships: snapshot.data.memberships.filter(
-      (record) => record.vendorId === vendor.id,
-    ).length,
-    products: snapshot.data.products.filter(
-      (record) => record.vendorId === vendor.id,
-    ).length,
-    orders: snapshot.data.orders.filter(
-      (record) => record.vendorId === vendor.id,
-    ).length,
-    audit: snapshot.data.audit.filter(
-      (record) => record.vendorId === vendor.id,
-    ).length,
+    memberships: snapshot.data.memberships.filter((record) => record.vendorId === vendor.id).length,
+    products: snapshot.data.products.filter((record) => record.vendorId === vendor.id).length,
+    orders: snapshot.data.orders.filter((record) => record.vendorId === vendor.id).length,
+    audit: snapshot.data.audit.filter((record) => record.vendorId === vendor.id).length,
     runtimeImages: runtimeImages.length,
   };
   console.log(
@@ -239,19 +224,21 @@ async function main(): Promise<void> {
   if (dryRun) return;
 
   const { getSupabaseConfiguration } = await import("../server/supabase/config");
-  const { replaceSupabaseVendorDatabase } = await import(
-    "../server/vendor/supabase-database"
-  );
+  const { replaceSupabaseVendorDatabase } = await import("../server/vendor/supabase-database");
   const configuration = getSupabaseConfiguration();
   const imageCount = await uploadRuntimeImages(
     runtimeImages,
     configuration.projectUrl,
     configuration.secretKey,
   );
-  const outcome = await replaceSupabaseVendorDatabase(snapshot.data, {
-    sourceName: path.basename(snapshot.sourcePath),
-    sourceChecksum: snapshot.checksum,
-  }, { vendorSlug });
+  const outcome = await replaceSupabaseVendorDatabase(
+    snapshot.data,
+    {
+      sourceName: path.basename(snapshot.sourcePath),
+      sourceChecksum: snapshot.checksum,
+    },
+    { vendorSlug },
+  );
   console.log(
     outcome === "already_imported"
       ? `Snapshot was already imported; verified ${imageCount} runtime images.`

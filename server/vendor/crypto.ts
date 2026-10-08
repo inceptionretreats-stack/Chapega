@@ -1,11 +1,6 @@
 import "server-only";
 
-import {
-  createHash,
-  randomBytes,
-  scrypt as nodeScrypt,
-  timingSafeEqual,
-} from "node:crypto";
+import { createHash, randomBytes, scrypt as nodeScrypt, timingSafeEqual } from "node:crypto";
 
 const KEY_LENGTH = 64;
 
@@ -86,11 +81,7 @@ function acceptable(parameters: ScryptParameters): boolean {
   );
 }
 
-function scryptKey(
-  password: string,
-  salt: string,
-  parameters: ScryptParameters,
-): Promise<Buffer> {
+function scryptKey(password: string, salt: string, parameters: ScryptParameters): Promise<Buffer> {
   const { N, r, p } = parameters;
   return withDerivationSlot(
     () =>
@@ -121,9 +112,7 @@ function decodeHash(stored: string): DecodedHash | null {
   if (!stored.startsWith(HASH_PREFIX)) {
     // Legacy format: the bare base64 key derived with the legacy parameters.
     const key = Buffer.from(stored, "base64");
-    return key.length === KEY_LENGTH
-      ? { parameters: LEGACY_SCRYPT_PARAMETERS, key }
-      : null;
+    return key.length === KEY_LENGTH ? { parameters: LEGACY_SCRYPT_PARAMETERS, key } : null;
   }
   const match = ENCODED_HASH.exec(stored);
   if (!match) return null;
@@ -157,9 +146,7 @@ export async function verifyPassword(
   const decoded = decodeHash(expectedHash);
   if (!decoded) return false;
   const actual = await scryptKey(password, salt, decoded.parameters);
-  return (
-    actual.length === decoded.key.length && timingSafeEqual(actual, decoded.key)
-  );
+  return actual.length === decoded.key.length && timingSafeEqual(actual, decoded.key);
 }
 
 /** True when a verified password should be re-hashed with current parameters. */

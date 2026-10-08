@@ -144,9 +144,7 @@ describe("request identifiers", () => {
         headers: { "x-vercel-id": "bom1::abcde-1700000000000-0123456789ab" },
       }),
     );
-    expect(vercel.headers.get("x-request-id")).toBe(
-      "bom1::abcde-1700000000000-0123456789ab",
-    );
+    expect(vercel.headers.get("x-request-id")).toBe("bom1::abcde-1700000000000-0123456789ab");
 
     const generated = await handler(
       new NextRequest("http://localhost/api/test", {
@@ -185,9 +183,7 @@ describe("API failure logging", () => {
   it("logs and fails properly when the public kiosk catalogue cannot load", async () => {
     mocks.getKioskBootstrap.mockRejectedValueOnce(new Error("database offline"));
 
-    const response = await kioskBootstrap(
-      new NextRequest("http://localhost/api/kiosk/bootstrap"),
-    );
+    const response = await kioskBootstrap(new NextRequest("http://localhost/api/kiosk/bootstrap"));
 
     expect(response.status).toBeGreaterThanOrEqual(500);
     expect(response.headers.get("x-request-id")).toBeTruthy();

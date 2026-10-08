@@ -20,7 +20,7 @@ vi.mock("@/server/vendor/database", () => ({
     createdAt: new Date().toISOString(),
   }),
   readVendorDatabase: async () => structuredClone(memory.database),
-  updateVendorDatabase: async <T,>(mutation: (database: VendorDatabase) => T | Promise<T>) => {
+  updateVendorDatabase: async <T>(mutation: (database: VendorDatabase) => T | Promise<T>) => {
     const draft = structuredClone(memory.database) as VendorDatabase;
     const result = await mutation(draft);
     memory.database = draft;
@@ -107,9 +107,9 @@ describe("vendor sign-in with a legacy password hash", () => {
     const stored = (memory.database as VendorDatabase).users[0];
     expect(stored.passwordHash).toMatch(/^scrypt\$N=131072,r=8,p=1\$/);
     expect(passwordHashNeedsRehash(stored.passwordHash)).toBe(false);
-    await expect(
-      verifyPassword(password, stored.passwordSalt, stored.passwordHash),
-    ).resolves.toBe(true);
+    await expect(verifyPassword(password, stored.passwordSalt, stored.passwordHash)).resolves.toBe(
+      true,
+    );
   });
 
   it("leaves the hash alone when the password is wrong", async () => {

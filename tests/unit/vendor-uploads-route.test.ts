@@ -14,8 +14,7 @@ vi.mock("@/server/vendor/auth", () => ({
 }));
 vi.mock("@/server/vendor/image-lifecycle", () => ({
   deleteUnusedVendorImage: mocks.deleteUnusedVendorImage,
-  VENDOR_UPLOAD_PATH_PATTERN:
-    /^\/vendor-products\/[0-9a-f-]{36}\/[a-f0-9]{64}\.(?:png|jpg)$/,
+  VENDOR_UPLOAD_PATH_PATTERN: /^\/vendor-products\/[0-9a-f-]{36}\/[a-f0-9]{64}\.(?:png|jpg)$/,
 }));
 vi.mock("@/server/vendor/images", () => ({
   saveVendorImage: mocks.saveVendorImage,
@@ -88,10 +87,7 @@ describe("DELETE /api/vendor/uploads", () => {
       ok: true,
       image: { path: imagePath },
     });
-    expect(mocks.deleteUnusedVendorImage).toHaveBeenCalledWith(
-      imagePath,
-      owner.activeVendor.id,
-    );
+    expect(mocks.deleteUnusedVendorImage).toHaveBeenCalledWith(imagePath, owner.activeVendor.id);
   });
 
   it("forbids staff before attempting deletion", async () => {
@@ -130,17 +126,14 @@ describe("DELETE /api/vendor/uploads", () => {
   });
 
   it("rejects cross-site requests", async () => {
-    const crossSiteRequest = new NextRequest(
-      "http://localhost/api/vendor/uploads",
-      {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-          origin: "https://attacker.example",
-        },
-        body: JSON.stringify({ path: imagePath }),
+    const crossSiteRequest = new NextRequest("http://localhost/api/vendor/uploads", {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://attacker.example",
       },
-    );
+      body: JSON.stringify({ path: imagePath }),
+    });
 
     const response = await DELETE(crossSiteRequest);
 

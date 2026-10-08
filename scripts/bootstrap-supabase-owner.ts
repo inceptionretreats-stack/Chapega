@@ -126,12 +126,11 @@ async function main() {
     throw new Error(`Refusing to create an account without ${confirmationFlag}.`);
   }
   const vendorSlug =
-    process.argv.find((argument) => argument.startsWith("--vendor="))?.slice("--vendor=".length) ?? "";
+    process.argv.find((argument) => argument.startsWith("--vendor="))?.slice("--vendor=".length) ??
+    "";
 
   const { derivePasswordHash } = await import("../server/vendor/crypto");
-  const { PREVIEW_VENDOR_EMAIL, PREVIEW_VENDOR_PASSWORD } = await import(
-    "../server/vendor/config"
-  );
+  const { PREVIEW_VENDOR_EMAIL, PREVIEW_VENDOR_PASSWORD } = await import("../server/vendor/config");
   const input = validateBootstrapOwnerInput(
     {
       vendorSlug,

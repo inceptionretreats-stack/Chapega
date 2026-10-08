@@ -16,7 +16,5 @@ export default async function Home() {
   const shop = await loadKioskShop(DEFAULT_VENDOR_SLUG);
   if (shop.status === "not-found") return <ShopUnavailable kind="not-found" />;
   if (shop.status === "suspended") return <ShopUnavailable kind="suspended" />;
-  return (
-    <KioskApp initialBootstrap={shop.status === "ok" ? shop.bootstrap : null} />
-  );
+  return <KioskApp initialBootstrap={shop.status === "ok" ? shop.bootstrap : null} />;
 }

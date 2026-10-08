@@ -72,9 +72,7 @@ describe("ConfirmDialog (AUD-22)", () => {
 
   it("focuses Cancel, not the destructive action, when it opens", async () => {
     await openDialog();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus(),
-    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus());
   });
 
   it("closes on Escape and returns focus to the control that opened it", async () => {

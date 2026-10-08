@@ -1,10 +1,4 @@
-import {
-  ArrowLeft,
-  LogIn,
-  Search,
-  ShoppingBag,
-  X,
-} from "lucide-react";
+import { ArrowLeft, LogIn, Search, ShoppingBag, X } from "lucide-react";
 import { BrandLogo } from "./brand-logo";
 
 type HeaderProps = {
@@ -55,7 +49,12 @@ export function KioskHeader({
             placeholder="Search gifts, occasions or recipients"
           />
           {searchValue ? (
-            <button className="header-search__clear" type="button" onClick={() => onSearchChange?.("")} aria-label="Clear search">
+            <button
+              className="header-search__clear"
+              type="button"
+              onClick={() => onSearchChange?.("")}
+              aria-label="Clear search"
+            >
               <X size={17} aria-hidden="true" />
             </button>
           ) : null}
@@ -70,10 +69,16 @@ export function KioskHeader({
           <span>{online ? "Online" : "Offline"}</span>
         </span>
         <span className="kiosk-header__divider" aria-hidden="true" />
-        <button className="cart-header-button" onClick={onCart} aria-label={`Open cart, ${cartUnits} of ${maxUnits} gifts selected`}>
+        <button
+          className="cart-header-button"
+          onClick={onCart}
+          aria-label={`Open cart, ${cartUnits} of ${maxUnits} gifts selected`}
+        >
           <ShoppingBag size={21} aria-hidden="true" />
           <span className="cart-header-button__count">{cartUnits}</span>
-          <span className="cart-header-button__label">{cartUnits} of {maxUnits}</span>
+          <span className="cart-header-button__label">
+            {cartUnits} of {maxUnits}
+          </span>
         </button>
         <span className="kiosk-header__divider" aria-hidden="true" />
         <button className="kiosk-vendor-access" onClick={onSettings} aria-label="Vendor login">

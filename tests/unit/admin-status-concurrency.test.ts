@@ -14,7 +14,13 @@ vi.mock("@/server/admin/auth", () => ({
   }),
 }));
 vi.mock("@/server/vendor/database", () => ({
-  newAuditRecord: (actorId: string, action: string, entityType: string, entityId: string, vendor: string | null) => ({
+  newAuditRecord: (
+    actorId: string,
+    action: string,
+    entityType: string,
+    entityId: string,
+    vendor: string | null,
+  ) => ({
     id: `audit-${++memory.counter}`,
     actorId,
     action,
@@ -24,7 +30,7 @@ vi.mock("@/server/vendor/database", () => ({
     createdAt: new Date().toISOString(),
   }),
   readVendorDatabase: async () => structuredClone(memory.database),
-  updateVendorDatabase: async <T,>(mutation: (database: VendorDatabase) => T | Promise<T>) => {
+  updateVendorDatabase: async <T>(mutation: (database: VendorDatabase) => T | Promise<T>) => {
     const draft = structuredClone(memory.database) as VendorDatabase;
     const result = await mutation(draft);
     memory.database = draft;

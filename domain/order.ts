@@ -37,10 +37,7 @@ function error(errorValue: OrderError): OrderResult {
   return { ok: false, error: Object.freeze(errorValue) };
 }
 
-export function createOrderNumber(
-  now = new Date(),
-  random: () => number = Math.random,
-): string {
+export function createOrderNumber(now = new Date(), random: () => number = Math.random): string {
   const date = [
     now.getFullYear(),
     String(now.getMonth() + 1).padStart(2, "0"),
@@ -87,8 +84,7 @@ function rebuildCartFromCatalogue(
       return undefined;
     }
 
-    const nextProductQuantity =
-      (productQuantities.get(product.id) ?? 0) + line.quantity;
+    const nextProductQuantity = (productQuantities.get(product.id) ?? 0) + line.quantity;
     if (nextProductQuantity > product.stock) {
       return undefined;
     }
@@ -96,8 +92,7 @@ function rebuildCartFromCatalogue(
 
     const stockLimit = variant?.stock ?? product.stock;
     const stockKey = JSON.stringify([product.id, variant?.id ?? null]);
-    const nextVariantQuantity =
-      (variantQuantities.get(stockKey) ?? 0) + line.quantity;
+    const nextVariantQuantity = (variantQuantities.get(stockKey) ?? 0) + line.quantity;
     if (variant?.stock !== undefined && nextVariantQuantity > variant.stock) {
       return undefined;
     }
@@ -112,8 +107,7 @@ function rebuildCartFromCatalogue(
         variantId: variant?.id,
         variantName: variant?.name,
         quantity: line.quantity,
-        unitPricePaise:
-          product.pricePaise + (variant?.priceAdjustmentPaise ?? 0),
+        unitPricePaise: product.pricePaise + (variant?.priceAdjustmentPaise ?? 0),
         giftWrapped: line.giftWrapped,
         productStockLimit: product.stock,
         variantStockLimit: variant?.stock,
@@ -128,9 +122,7 @@ function rebuildCartFromCatalogue(
 function freezeOrder(order: Order): Order {
   return Object.freeze({
     ...order,
-    items: Object.freeze(
-      order.items.map((item) => Object.freeze({ ...item })),
-    ),
+    items: Object.freeze(order.items.map((item) => Object.freeze({ ...item }))),
   });
 }
 
@@ -150,9 +142,7 @@ export function createOrder(input: CreateOrderInput): OrderResult {
     });
   }
 
-  const customerPhoneError = optionalCustomerPhoneError(
-    input.customer.customerPhone,
-  );
+  const customerPhoneError = optionalCustomerPhoneError(input.customer.customerPhone);
   if (customerPhoneError) {
     return error({
       code: "INVALID_CUSTOMER_PHONE",
@@ -183,10 +173,7 @@ export function createOrder(input: CreateOrderInput): OrderResult {
     });
   }
 
-  const authoritativeCart = rebuildCartFromCatalogue(
-    input.cartItems,
-    input.products,
-  );
+  const authoritativeCart = rebuildCartFromCatalogue(input.cartItems, input.products);
   if (!authoritativeCart) {
     return error({
       code: "INVALID_CART",
@@ -198,10 +185,7 @@ export function createOrder(input: CreateOrderInput): OrderResult {
   try {
     const now = input.now ?? new Date();
     const orderNumber = createOrderNumber(now, input.random);
-    const totals = calculateCartTotals(
-      authoritativeCart,
-      input.settings.giftWrapFeePaise,
-    );
+    const totals = calculateCartTotals(authoritativeCart, input.settings.giftWrapFeePaise);
     const items: readonly OrderItem[] = Object.freeze(
       authoritativeCart.map((line) =>
         Object.freeze({
@@ -270,10 +254,7 @@ export function redactOrderForHistory(order: Order): OrderHistoryItem {
     orderNumber: order.orderNumber,
     createdAt: order.createdAt,
     kioskName: order.kioskName,
-    itemCount: order.items.reduce(
-      (total, item) => total + item.quantity,
-      0,
-    ),
+    itemCount: order.items.reduce((total, item) => total + item.quantity, 0),
     totalPaise: order.totalPaise,
     status: order.status,
   });

@@ -133,9 +133,7 @@ describe("admin status dialog (AUD-22)", () => {
         onSaved: vi.fn(),
       }),
     );
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus(),
-    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus());
   });
 
   // Intended change (AUD-22): destructive confirmations are alertdialogs.

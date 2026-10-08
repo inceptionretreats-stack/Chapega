@@ -107,7 +107,9 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
 
   afterAll(async () => {
     const { getSupabasePostgres } = await import("@/server/supabase/postgres");
-    await getSupabasePostgres().end({ timeout: 5 }).catch(() => undefined);
+    await getSupabasePostgres()
+      .end({ timeout: 5 })
+      .catch(() => undefined);
     await admin?.end({ timeout: 5 });
     await root?.unsafe(`drop database if exists ${databaseName} with (force)`);
     await root?.end({ timeout: 5 });
@@ -211,16 +213,21 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
           return run(sql);
         });
       await expect(
-        scoped((sql) => sql`update private.vendors set revision = revision + 1 where id = ${CHAPEGA_ID}`),
+        scoped(
+          (sql) => sql`update private.vendors set revision = revision + 1 where id = ${CHAPEGA_ID}`,
+        ),
       ).resolves.toBeDefined();
       await expect(
         scoped((sql) => sql`update private.vendors set slug = 'hijacked' where id = ${CHAPEGA_ID}`),
       ).rejects.toMatchObject({ code: "42501" });
       await expect(
-        scoped((sql) => sql`update private.vendors set status = 'suspended' where id = ${CHAPEGA_ID}`),
+        scoped(
+          (sql) => sql`update private.vendors set status = 'suspended' where id = ${CHAPEGA_ID}`,
+        ),
       ).rejects.toMatchObject({ code: "42501" });
       const otherTenant = await scoped(
-        (sql) => sql`update private.vendors set revision = revision + 1 where id = ${vendorB.id} returning id`,
+        (sql) =>
+          sql`update private.vendors set revision = revision + 1 where id = ${vendorB.id} returning id`,
       );
       expect(otherTenant).toHaveLength(0);
     } finally {
@@ -305,7 +312,10 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
     const { createAdminVendor } = await import("@/server/admin/service");
     const attempt = (email: string) =>
       createAdminVendor(
-        { user: { id: owner.id, email: OWNER.email, name: OWNER.name, role: "super_admin" }, sessionHash },
+        {
+          user: { id: owner.id, email: OWNER.email, name: OWNER.name, role: "super_admin" },
+          sessionHash,
+        },
         {
           displayName: "Race Shop",
           slug: "race-shop",
@@ -405,13 +415,24 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
       select orders_redacted::int from private.redact_order_personal_data(interval '365 days')`;
     expect(result.orders_redacted).toBeGreaterThanOrEqual(1);
 
-    const [row] = await admin<{
-      customer_name: string; customer_phone: string; gift_note: string;
-      order_note: string; whatsapp_message: string; whatsapp_url: string;
-    }[]>`
+    const [row] = await admin<
+      {
+        customer_name: string;
+        customer_phone: string;
+        gift_note: string;
+        order_note: string;
+        whatsapp_message: string;
+        whatsapp_url: string;
+      }[]
+    >`
       select customer_name, customer_phone, gift_note, order_note, whatsapp_message, whatsapp_url
       from private.orders where vendor_id = ${CHAPEGA_ID} and id = ${order.id}`;
-    expect(row).toMatchObject({ customer_name: "", customer_phone: "", gift_note: "", order_note: "" });
+    expect(row).toMatchObject({
+      customer_name: "",
+      customer_phone: "",
+      gift_note: "",
+      order_note: "",
+    });
     expect(row.whatsapp_message).not.toContain("Retention Customer");
     expect(row.whatsapp_url).toMatch(/^https:\/\/wa\.me\/\d+$/);
 
@@ -431,7 +452,12 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
     await expect(
       bootstrapFirstOwner(
         admin,
-        { vendorSlug: "chapega", email: "another@integration.test", password: "Another-Owner-Pass-2026", name: "Another" },
+        {
+          vendorSlug: "chapega",
+          email: "another@integration.test",
+          password: "Another-Owner-Pass-2026",
+          name: "Another",
+        },
         (password) => derivePasswordHash(password),
       ),
     ).rejects.toThrow(/already exists/);
@@ -513,7 +539,10 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
       const rows = await admin<{ id: string; hash: string; salt: string }[]>`
         select id, password_hash as hash, password_salt as salt
         from private.vendor_users where id in (${owner.id}, ${other.id})`;
-      expect(rows.find((row) => row.id === owner.id)).toMatchObject({ hash: modern, salt: "integration-new-salt" });
+      expect(rows.find((row) => row.id === owner.id)).toMatchObject({
+        hash: modern,
+        salt: "integration-new-salt",
+      });
       expect(rows.find((row) => row.id === other.id)?.hash).toBe(other.hash);
     } finally {
       await app.end({ timeout: 5 });

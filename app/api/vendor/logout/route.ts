@@ -1,8 +1,5 @@
 import type { NextRequest } from "next/server";
-import {
-  VENDOR_SESSION_COOKIE,
-  destroyVendorSession,
-} from "@/server/vendor/auth";
+import { VENDOR_SESSION_COOKIE, destroyVendorSession } from "@/server/vendor/auth";
 import { apiError, assertSameOrigin, jsonResponse } from "@/server/vendor/api";
 import { withRequestContext } from "@/server/observability/request-context";
 

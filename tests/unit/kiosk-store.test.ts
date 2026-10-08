@@ -3,10 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CATALOGUE_PRODUCTS } from "@/data/catalogue";
-import {
-  DEFAULT_PRESENTER_SETTINGS,
-  useKioskStore,
-} from "@/store/kiosk-store";
+import { DEFAULT_PRESENTER_SETTINGS, useKioskStore } from "@/store/kiosk-store";
 
 function configureOwnerNumber() {
   useKioskStore.setState({
@@ -129,25 +126,21 @@ describe("kiosk order retries", () => {
 
     useKioskStore.getState().setTenant("reset-scope");
     useKioskStore.getState().setTenant("chapega");
-    useKioskStore.getState().hydrate(
-      bootstrap("chapega", "00000000-0000-4000-8000-000000000001"),
-    );
+    useKioskStore.getState().hydrate(bootstrap("chapega", "00000000-0000-4000-8000-000000000001"));
     expect(useKioskStore.getState().addToCart(CATALOGUE_PRODUCTS[0].id).ok).toBe(true);
     useKioskStore.getState().updateCustomer({ customerName: "Chapega customer" });
     expect(useKioskStore.getState().cartItems).toHaveLength(1);
 
     useKioskStore.getState().setTenant("second-store");
-    useKioskStore.getState().hydrate(
-      bootstrap("second-store", "00000000-0000-4000-8000-000000000002"),
-    );
+    useKioskStore
+      .getState()
+      .hydrate(bootstrap("second-store", "00000000-0000-4000-8000-000000000002"));
     expect(useKioskStore.getState().cartItems).toEqual([]);
     expect(useKioskStore.getState().customer.customerName).toBe("");
     expect(useKioskStore.getState().addToCart(CATALOGUE_PRODUCTS[1].id).ok).toBe(true);
 
     useKioskStore.getState().setTenant("chapega");
-    useKioskStore.getState().hydrate(
-      bootstrap("chapega", "00000000-0000-4000-8000-000000000001"),
-    );
+    useKioskStore.getState().hydrate(bootstrap("chapega", "00000000-0000-4000-8000-000000000001"));
     expect(useKioskStore.getState().cartItems).toHaveLength(1);
     expect(useKioskStore.getState().cartItems[0].productId).toBe(CATALOGUE_PRODUCTS[0].id);
     expect(useKioskStore.getState().customer.customerName).toBe("Chapega customer");

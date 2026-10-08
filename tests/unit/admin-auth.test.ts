@@ -55,9 +55,7 @@ vi.mock("@/server/vendor/database", () => ({
     createdAt: new Date().toISOString(),
   }),
   readLocalVendorDatabase: async () => structuredClone(memory.database),
-  updateLocalVendorDatabase: async <T>(
-    mutation: (database: VendorDatabase) => T | Promise<T>,
-  ) => {
+  updateLocalVendorDatabase: async <T>(mutation: (database: VendorDatabase) => T | Promise<T>) => {
     const draft = structuredClone(memory.database) as VendorDatabase;
     memory.inMutation = true;
     let result: T;
@@ -167,10 +165,7 @@ describe("platform administrator authentication", () => {
   });
 
   it("creates and resolves only a platform-scoped super-admin session", async () => {
-    const login = await authenticateAdminLogin(
-      "admin@example.com",
-      "CorrectPassword1",
-    );
+    const login = await authenticateAdminLogin("admin@example.com", "CorrectPassword1");
 
     expect(login?.token).toBe("test-admin-token");
     expect(login?.user.role).toBe("super_admin");
@@ -193,9 +188,7 @@ describe("platform administrator authentication", () => {
   it("upgrades a hash with outdated parameters after a successful sign-in", async () => {
     await authenticateAdminLogin("admin@example.com", "CorrectPassword1");
 
-    const admin = (memory.database as VendorDatabase).users.find(
-      (user) => user.id === adminId,
-    );
+    const admin = (memory.database as VendorDatabase).users.find((user) => user.id === adminId);
     expect(admin).toMatchObject({
       passwordSalt: "upgraded-salt",
       passwordHash: "scrypt$upgraded",
@@ -222,9 +215,9 @@ describe("platform administrator authentication", () => {
     await authenticateAdminLogin("admin@example.com", "CorrectPassword1");
     await destroyAdminSession("test-admin-token");
 
-    expect(
-      (memory.database as VendorDatabase).sessions.map((session) => session.scope),
-    ).toEqual(["vendor"]);
+    expect((memory.database as VendorDatabase).sessions.map((session) => session.scope)).toEqual([
+      "vendor",
+    ]);
   });
 });
 
@@ -245,13 +238,9 @@ describe("platform administrator credential guard", () => {
     vi.stubEnv("ALLOW_VENDOR_PREVIEW_LOGIN", "");
     promotePreviewOwner();
 
-    await expect(
-      authenticateAdminLogin("owner@chapega.com", "Chapega@2026"),
-    ).resolves.toBeNull();
+    await expect(authenticateAdminLogin("owner@chapega.com", "Chapega@2026")).resolves.toBeNull();
     expect(
-      (memory.database as VendorDatabase).sessions.some(
-        (session) => session.scope === "platform",
-      ),
+      (memory.database as VendorDatabase).sessions.some((session) => session.scope === "platform"),
     ).toBe(false);
   });
 

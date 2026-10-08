@@ -40,9 +40,7 @@ afterEach(() => {
 });
 
 function stubResponse(status: number, body: object) {
-  const fetchMock = vi.fn<typeof fetch>(
-    async () => new Response(JSON.stringify(body), { status }),
-  );
+  const fetchMock = vi.fn<typeof fetch>(async () => new Response(JSON.stringify(body), { status }));
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
 }
@@ -153,9 +151,7 @@ describe("order cancellation confirmation (AUD-22)", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "Cancel order" }));
     await waitFor(() => expect(onOrderSaved).toHaveBeenCalled());
     expect(screen.queryByRole("alertdialog")).toBeNull();
-    await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "GFT-001" })).toHaveFocus(),
-    );
+    await waitFor(() => expect(screen.getByRole("heading", { name: "GFT-001" })).toHaveFocus());
   });
 });
 

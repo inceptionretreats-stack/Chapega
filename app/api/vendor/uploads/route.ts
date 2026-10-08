@@ -26,11 +26,7 @@ const deleteVendorImageSchema = z
 
 function assertCanManageImages(canManageCatalogue: boolean): void {
   if (!canManageCatalogue) {
-    throw new VendorServiceError(
-      403,
-      "FORBIDDEN",
-      "Your role cannot manage catalogue images.",
-    );
+    throw new VendorServiceError(403, "FORBIDDEN", "Your role cannot manage catalogue images.");
   }
 }
 
@@ -44,7 +40,10 @@ export const POST = withRequestContext(async function POST(request: NextRequest)
     if (!(file instanceof File)) {
       throw new VendorServiceError(400, "IMAGE_REQUIRED", "Choose an image to upload.");
     }
-    return jsonResponse({ image: await saveVendorImage(file, access.vendor.id, access.user.id) }, 201);
+    return jsonResponse(
+      { image: await saveVendorImage(file, access.vendor.id, access.user.id) },
+      201,
+    );
   } catch (error) {
     return apiError(error);
   }

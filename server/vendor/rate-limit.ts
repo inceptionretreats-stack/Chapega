@@ -114,9 +114,7 @@ export async function consumeRateLimit(
       delete from private.rate_limit_buckets
       where reset_at < now() - interval '1 day'
     `;
-    const rows = await sql<
-      Array<{ attempt_count: number | string; reset_at: Date | string }>
-    >`
+    const rows = await sql<Array<{ attempt_count: number | string; reset_at: Date | string }>>`
       insert into private.rate_limit_buckets (bucket, attempt_count, reset_at)
       values (
         ${bucket},
@@ -199,10 +197,7 @@ export type ProgressiveState = Readonly<{
   resetAt: number;
 }>;
 
-export function progressiveDelayMs(
-  attempts: number,
-  policy: ProgressivePolicy,
-): number {
+export function progressiveDelayMs(attempts: number, policy: ProgressivePolicy): number {
   if (attempts < policy.freeAttempts) return 0;
   const exponent = Math.min(30, attempts - policy.freeAttempts);
   return Math.min(policy.maxDelayMs, policy.baseDelayMs * 2 ** exponent);

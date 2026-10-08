@@ -20,7 +20,7 @@ vi.mock("@/server/vendor/crypto", async (importOriginal) => ({
 }));
 vi.mock("@/server/vendor/database", () => {
   const read = async () => structuredClone(memory.database);
-  const update = async <T,>(mutation: (database: VendorDatabase) => T | Promise<T>) => {
+  const update = async <T>(mutation: (database: VendorDatabase) => T | Promise<T>) => {
     const draft = structuredClone(memory.database) as VendorDatabase;
     const result = await mutation(draft);
     memory.database = draft;
@@ -238,7 +238,8 @@ describe("background refreshes are not activity (AUD-17)", () => {
 
   it("lets an admin tab that only polls reach its idle timeout", async () => {
     await authenticateAdminLogin("owner@example.com", "correct password here");
-    const poll = () => getRequestAdmin(request("/api/admin/bootstrap", "chapega_admin_session", true));
+    const poll = () =>
+      getRequestAdmin(request("/api/admin/bootstrap", "chapega_admin_session", true));
 
     advance(14);
     await expect(poll()).resolves.not.toBeNull();
@@ -289,6 +290,8 @@ describe("supabase migration for session refresh", () => {
     expect(policy).toContain("for update");
     expect(policy).toContain("to chapega_app");
     expect(policy).toContain("id_hash = nullif(current_setting('app.session_hash', true), '')");
-    expect(policy).toMatch(/with check \([\s\S]*id_hash = nullif\(current_setting\('app\.session_hash', true\), ''\)/);
+    expect(policy).toMatch(
+      /with check \([\s\S]*id_hash = nullif\(current_setting\('app\.session_hash', true\), ''\)/,
+    );
   });
 });

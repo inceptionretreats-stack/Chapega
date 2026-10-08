@@ -1,15 +1,11 @@
 import type { NextConfig } from "next";
-import {
-  selectVendorDataBackend,
-  supabaseProjectOrigin,
-} from "./server/config/data-backend";
+import { selectVendorDataBackend, supabaseProjectOrigin } from "./server/config/data-backend";
 
 // Same selection rule as the runtime (server/supabase/config.ts): Supabase is
 // used when CHAPEGA_DATA_BACKEND=supabase *or* when the Supabase variables
 // are present, not only for the literal setting.
 const dataBackend = selectVendorDataBackend(process.env);
-const supabaseOrigin =
-  dataBackend === "supabase" ? supabaseProjectOrigin(process.env) : undefined;
+const supabaseOrigin = dataBackend === "supabase" ? supabaseProjectOrigin(process.env) : undefined;
 const isDevelopment = process.env.NODE_ENV === "development";
 
 /**

@@ -112,8 +112,7 @@ function sanitizePng(buffer: Buffer): SanitizedImage {
 }
 
 const SOF_MARKERS = new Set([
-  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce,
-  0xcf,
+  0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf,
 ]);
 
 function invalidJpeg(message = "The JPEG file is invalid."): VendorServiceError {
@@ -179,9 +178,7 @@ function sanitizeJpeg(buffer: Buffer): SanitizedImage {
     }
     const payload = buffer.subarray(offset + 2, segmentEnd);
     const isApplication = marker >= 0xe0 && marker <= 0xef;
-    const keep = isApplication
-      ? keepApplicationSegment(marker, payload)
-      : marker !== 0xfe;
+    const keep = isApplication ? keepApplicationSegment(marker, payload) : marker !== 0xfe;
     if (keep) chunks.push(Buffer.from([0xff, marker]), buffer.subarray(offset, segmentEnd));
     offset = segmentEnd;
 
@@ -219,11 +216,7 @@ export function sanitizeVendorImage(buffer: Buffer, mimeType: string): Sanitized
 function sanitizeImage(buffer: Buffer, mimeType: string): SanitizedImage {
   if (mimeType === "image/png") return sanitizePng(buffer);
   if (mimeType === "image/jpeg") return sanitizeJpeg(buffer);
-  throw new VendorServiceError(
-    400,
-    "UNSUPPORTED_IMAGE_TYPE",
-    "Upload a PNG or JPEG image.",
-  );
+  throw new VendorServiceError(400, "UNSUPPORTED_IMAGE_TYPE", "Upload a PNG or JPEG image.");
 }
 
 export async function saveVendorImage(file: File): Promise<
@@ -233,14 +226,22 @@ export async function saveVendorImage(file: File): Promise<
     height: number;
   }>
 >;
-export async function saveVendorImage(file: File, vendorId?: string, createdBy?: string): Promise<
+export async function saveVendorImage(
+  file: File,
+  vendorId?: string,
+  createdBy?: string,
+): Promise<
   Readonly<{
     path: ProductImagePath;
     width: number;
     height: number;
   }>
 >;
-export async function saveVendorImage(file: File, vendorId?: string, createdBy?: string): Promise<
+export async function saveVendorImage(
+  file: File,
+  vendorId?: string,
+  createdBy?: string,
+): Promise<
   Readonly<{
     path: ProductImagePath;
     width: number;
@@ -258,23 +259,23 @@ export async function saveVendorImage(file: File, vendorId?: string, createdBy?:
   const image = sanitizeImage(raw, file.type);
   const hash = sha256(image.buffer);
   const filename = `${hash}.${image.extension}`;
-  if (vendorId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(vendorId)) {
+  if (
+    vendorId &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(vendorId)
+  ) {
     throw new VendorServiceError(400, "INVALID_VENDOR", "The vendor workspace is invalid.");
   }
   const storageKey = vendorId ? `${vendorId}/${filename}` : filename;
   if (usesSupabaseBackend()) {
-    const { error } = await getSupabaseAdmin().storage
-      .from("vendor-products")
+    const { error } = await getSupabaseAdmin()
+      .storage.from("vendor-products")
       .upload(storageKey, image.buffer, {
         cacheControl: "31536000",
         contentType: image.extension === "png" ? "image/png" : "image/jpeg",
         upsert: false,
       });
     if (error && !/duplicate|already exists/i.test(error.message)) {
-      throw storageUnavailable(
-        "The product image could not be stored. Please try again.",
-        error,
-      );
+      throw storageUnavailable("The product image could not be stored. Please try again.", error);
     }
     if (vendorId) {
       try {
@@ -325,14 +326,10 @@ export async function saveVendorImage(file: File, vendorId?: string, createdBy?:
   );
   await mkdir(directory, { recursive: true });
   try {
-    await writeFile(
-      path.join(/* turbopackIgnore: true */ directory, filename),
-      image.buffer,
-      {
+    await writeFile(path.join(/* turbopackIgnore: true */ directory, filename), image.buffer, {
       flag: "wx",
       mode: 0o600,
-      },
-    );
+    });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }

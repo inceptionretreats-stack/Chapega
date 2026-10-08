@@ -34,7 +34,9 @@ describe("supplied product catalogue", () => {
       expect(product.pricePaise).toBeGreaterThan(0);
       expect(product.stock).toBe(5);
       expect(
-        existsSync(join(process.cwd(), "public", product.image.replace(/^\/products\//, "products/"))),
+        existsSync(
+          join(process.cwd(), "public", product.image.replace(/^\/products\//, "products/")),
+        ),
       ).toBe(true);
     }
   });

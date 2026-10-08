@@ -1,10 +1,5 @@
 import type { NextRequest } from "next/server";
-import {
-  apiError,
-  assertSameOrigin,
-  jsonResponse,
-  parseJson,
-} from "@/server/vendor/api";
+import { apiError, assertSameOrigin, jsonResponse, parseJson } from "@/server/vendor/api";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { kioskOrderSubmissionSchema } from "@/server/vendor/schemas";
 import { recordKioskOrder } from "@/server/vendor/service";

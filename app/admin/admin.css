@@ -1,7 +1,11 @@
 .admin-route {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--surface-rose) 25%, transparent), transparent 28rem),
+    radial-gradient(
+      circle at 88% 0%,
+      color-mix(in srgb, var(--surface-rose) 25%, transparent),
+      transparent 28rem
+    ),
     var(--surface-page);
   color: var(--text);
   font-family: var(--font-ui, var(--font-body), "Segoe UI", sans-serif);
@@ -36,7 +40,10 @@
   font-size: 14px;
   font-weight: 750;
   line-height: 1;
-  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
 }
 
 .admin-primary {
@@ -107,7 +114,9 @@
 }
 
 @keyframes admin-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Login */
@@ -124,7 +133,11 @@
   padding: clamp(36px, 5vw, 76px);
   border-right: 1px solid color-mix(in srgb, var(--border-accent) 12%, transparent);
   background:
-    radial-gradient(circle at 76% 25%, color-mix(in srgb, var(--surface) 74%, transparent), transparent 18rem),
+    radial-gradient(
+      circle at 76% 25%,
+      color-mix(in srgb, var(--surface) 74%, transparent),
+      transparent 18rem
+    ),
     linear-gradient(145deg, var(--surface-3), var(--surface-7));
   display: flex;
   flex-direction: column;
@@ -408,8 +421,13 @@
   gap: 14px;
 }
 
-.admin-skeleton__brand { height: 58px; margin-bottom: 22px; }
-.admin-skeleton__nav { height: 50px; }
+.admin-skeleton__brand {
+  height: 58px;
+  margin-bottom: 22px;
+}
+.admin-skeleton__nav {
+  height: 50px;
+}
 
 .admin-skeleton__main {
   padding: 96px clamp(20px, 3vw, 44px) 40px;
@@ -418,9 +436,19 @@
   gap: 18px;
 }
 
-.admin-skeleton__title { width: min(460px, 80%); height: 60px; }
-.admin-skeleton__lede { width: min(420px, 70%); height: 18px; }
-.admin-skeleton__band { height: 118px; margin-top: 12px; border-radius: 14px; }
+.admin-skeleton__title {
+  width: min(460px, 80%);
+  height: 60px;
+}
+.admin-skeleton__lede {
+  width: min(420px, 70%);
+  height: 18px;
+}
+.admin-skeleton__band {
+  height: 118px;
+  margin-top: 12px;
+  border-radius: 14px;
+}
 
 .admin-skeleton__grid {
   display: grid;
@@ -436,14 +464,27 @@
   gap: 14px;
 }
 
-.admin-skeleton__row { height: 56px; }
-.admin-skeleton__rail { min-height: 280px; border-radius: 14px; }
+.admin-skeleton__row {
+  height: 56px;
+}
+.admin-skeleton__rail {
+  min-height: 280px;
+  border-radius: 14px;
+}
 
 @media (max-width: 900px) {
-  .admin-skeleton > .skeleton-reveal__body { grid-template-columns: 1fr; }
-  .admin-skeleton__sidebar { display: none; }
-  .admin-skeleton__main { padding-top: 32px; }
-  .admin-skeleton__grid { grid-template-columns: 1fr; }
+  .admin-skeleton > .skeleton-reveal__body {
+    grid-template-columns: 1fr;
+  }
+  .admin-skeleton__sidebar {
+    display: none;
+  }
+  .admin-skeleton__main {
+    padding-top: 32px;
+  }
+  .admin-skeleton__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Application shell */
@@ -488,7 +529,10 @@ html:has(.admin-shell) {
   padding: 31px 15px 25px;
   border-right: 1px solid color-mix(in srgb, var(--border-accent) 13%, transparent);
   background:
-    linear-gradient(color-mix(in srgb, var(--surface-4) 96%, transparent), color-mix(in srgb, var(--surface-3) 96%, transparent)),
+    linear-gradient(
+      color-mix(in srgb, var(--surface-4) 96%, transparent),
+      color-mix(in srgb, var(--surface-3) 96%, transparent)
+    ),
     var(--surface-page);
   position: fixed;
   inset: 0 auto 0 0;
@@ -742,7 +786,11 @@ html:has(.admin-shell) {
   border: 1px solid color-mix(in srgb, var(--border-accent) 13%, transparent);
   border-radius: 12px;
   background:
-    linear-gradient(100deg, color-mix(in srgb, var(--surface) 18%, transparent), color-mix(in srgb, var(--surface-tint-strong) 50%, transparent)),
+    linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--surface) 18%, transparent),
+      color-mix(in srgb, var(--surface-tint-strong) 50%, transparent)
+    ),
     var(--surface-tint);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1390,7 +1438,10 @@ html:has(.admin-shell) {
 }
 
 @keyframes admin-toast-in {
-  from { opacity: 0; transform: translateY(8px); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
 }
 
 @media (max-width: 1100px) {
@@ -1680,7 +1731,11 @@ html:has(.admin-shell) {
     padding: 18px;
     border: 1px solid color-mix(in srgb, var(--border-accent) 8%, transparent);
     border-radius: 14px;
-    background: linear-gradient(100deg, color-mix(in srgb, var(--surface-tint-strong) 62%, transparent), color-mix(in srgb, var(--surface-page) 92%, transparent));
+    background: linear-gradient(
+      100deg,
+      color-mix(in srgb, var(--surface-tint-strong) 62%, transparent),
+      color-mix(in srgb, var(--surface-page) 92%, transparent)
+    );
     display: grid;
     grid-template-columns: 62px minmax(0, 1fr) 44px;
     align-items: center;

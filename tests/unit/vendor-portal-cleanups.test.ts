@@ -48,12 +48,24 @@ function renderPortal(data = makeBootstrap()) {
 describe("admin activity icons (AUD-35)", () => {
   it("gives a created vendor its own icon rather than the generic store icon", () => {
     const items: AdminActivityItem[] = [
-      { id: "a", kind: "vendor_created", title: "Created", detail: "", createdAt: "2026-09-01T00:00:00.000Z" },
-      { id: "b", kind: "settings", title: "Settings", detail: "", createdAt: "2026-09-01T00:00:00.000Z" },
+      {
+        id: "a",
+        kind: "vendor_created",
+        title: "Created",
+        detail: "",
+        createdAt: "2026-09-01T00:00:00.000Z",
+      },
+      {
+        id: "b",
+        kind: "settings",
+        title: "Settings",
+        detail: "",
+        createdAt: "2026-09-01T00:00:00.000Z",
+      },
     ];
     const { container } = render(createElement(AdminActivityRail, { items }));
-    const icons = [...container.querySelectorAll(".admin-activity__icon svg")].map(
-      (svg) => svg.getAttribute("class"),
+    const icons = [...container.querySelectorAll(".admin-activity__icon svg")].map((svg) =>
+      svg.getAttribute("class"),
     );
     expect(icons).toHaveLength(2);
     expect(icons[0]).not.toEqual(icons[1]);
@@ -102,7 +114,10 @@ describe("Switch shop link (AUD-35)", () => {
       ...base,
       user: { ...base.user, memberships: [...base.user.memberships, second("active")] },
     });
-    expect(screen.getByRole("link", { name: /switch shop/i })).toHaveAttribute("href", "/vendor/select");
+    expect(screen.getByRole("link", { name: /switch shop/i })).toHaveAttribute(
+      "href",
+      "/vendor/select",
+    );
   });
 });
 
@@ -110,7 +125,10 @@ describe("session redirects keep the vendor slug (AUD-35)", () => {
   it("keeps ?vendor= when the session expires during a refresh", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ error: { message: "Expired" } }), { status: 401 })),
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: { message: "Expired" } }), { status: 401 }),
+      ),
     );
     renderPortal();
     await userEvent.click(screen.getByRole("button", { name: /refresh vendor data/i }));

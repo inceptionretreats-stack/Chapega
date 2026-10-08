@@ -1,14 +1,6 @@
 import type { NextRequest } from "next/server";
-import {
-  VENDOR_SESSION_COOKIE,
-  authenticateVendorLogin,
-} from "@/server/vendor/auth";
-import {
-  apiError,
-  assertSameOrigin,
-  jsonResponse,
-  parseJson,
-} from "@/server/vendor/api";
+import { VENDOR_SESSION_COOKIE, authenticateVendorLogin } from "@/server/vendor/auth";
+import { apiError, assertSameOrigin, jsonResponse, parseJson } from "@/server/vendor/api";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { sha256 } from "@/server/vendor/crypto";
 import { beginLoginAttempt } from "@/server/vendor/throttle";
@@ -25,11 +17,7 @@ export const POST = withRequestContext(async function POST(request: NextRequest)
     const normalizedEmail = input.email.trim().toLocaleLowerCase("en-IN");
     // Throws RateLimitExceededError (429 + Retry-After) when throttled.
     const attempt = await beginLoginAttempt("vendor", request, normalizedEmail);
-    const login = await authenticateVendorLogin(
-      input.email,
-      input.password,
-      input.vendorSlug,
-    );
+    const login = await authenticateVendorLogin(input.email, input.password, input.vendorSlug);
     if (!login) {
       logger.warn("auth.login_failed", {
         scope: "vendor",

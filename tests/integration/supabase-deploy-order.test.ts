@@ -50,7 +50,10 @@ describe.skipIf(!ADMIN_URL)("deploying the audit release app-first", () => {
       context,
     );
     const bootstrap = await services.getVendorBootstrap(context);
-    await services.updateVendorSettings({ ...bootstrap.settings, kioskName: `${label} Desk` }, context);
+    await services.updateVendorSettings(
+      { ...bootstrap.settings, kioskName: `${label} Desk` },
+      context,
+    );
     const order = await services.recordKioskOrder(
       {
         idempotencyKey: randomUUID(),
@@ -60,7 +63,12 @@ describe.skipIf(!ADMIN_URL)("deploying the audit release app-first", () => {
       },
       "chapega",
     );
-    const confirmed = await services.transitionVendorOrder(order.id, "confirmed", order.version, context);
+    const confirmed = await services.transitionVendorOrder(
+      order.id,
+      "confirmed",
+      order.version,
+      context,
+    );
     return { price: edited.pricePaise, status: confirmed.status };
   }
 

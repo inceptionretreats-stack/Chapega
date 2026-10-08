@@ -34,10 +34,7 @@ export function resetReadinessCache(): void {
 async function withTimeout<T>(operation: Promise<T>, ms: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => reject(new Error(`Readiness check timed out after ${ms} ms`)),
-      ms,
-    );
+    timer = setTimeout(() => reject(new Error(`Readiness check timed out after ${ms} ms`)), ms);
   });
   try {
     return await Promise.race([operation, timeout]);

@@ -47,12 +47,16 @@ describe("password show/hide toggle (AUD-32)", () => {
   });
 
   it("is the same control on the vendor sign-in form", async () => {
-    render(createElement(VendorLoginForm, { authenticationAvailable: true, previewCredentials: null }));
+    render(
+      createElement(VendorLoginForm, { authenticationAvailable: true, previewCredentials: null }),
+    );
     await expectToggleCycle(screen.getByLabelText("Password"));
   });
 
   it("is the same control on the admin sign-in form", async () => {
-    render(createElement(AdminLoginForm, { authenticationAvailable: true, previewCredentials: null }));
+    render(
+      createElement(AdminLoginForm, { authenticationAvailable: true, previewCredentials: null }),
+    );
     await expectToggleCycle(screen.getByLabelText("Password"));
   });
 });

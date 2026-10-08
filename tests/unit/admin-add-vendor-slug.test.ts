@@ -51,17 +51,18 @@ describe("add-vendor slug field (AUD-40)", () => {
   it("shows a server slug error (for example a reserved slug) on the slug field", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () =>
-        new Response(
-          JSON.stringify({
-            error: {
-              code: "VALIDATION_ERROR",
-              message: "Check the highlighted information and try again.",
-              fields: { slug: ["That vendor URL is reserved."] },
-            },
-          }),
-          { status: 400 },
-        ),
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: {
+                code: "VALIDATION_ERROR",
+                message: "Check the highlighted information and try again.",
+                fields: { slug: ["That vendor URL is reserved."] },
+              },
+            }),
+            { status: 400 },
+          ),
       ),
     );
     const { name, slug } = renderDialog();

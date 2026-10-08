@@ -16,7 +16,7 @@ vi.mock("@/server/vendor/auth", () => ({
 }));
 vi.mock("@/server/supabase/postgres", () => ({
   getSupabasePostgres: () => ({
-    begin: async <T,>(operation: (transaction: unknown) => Promise<T>) => {
+    begin: async <T>(operation: (transaction: unknown) => Promise<T>) => {
       const context = new Map<string, string>();
       const transaction = async (strings: TemplateStringsArray, ...values: unknown[]) => {
         const text = strings.join("?").replace(/\s+/g, " ").trim();
@@ -26,12 +26,14 @@ vi.mock("@/server/supabase/postgres", () => ({
         }
         if (text.includes("from private.vendor_sessions")) {
           return state.session
-            ? [{
-                user_id: "11111111-1111-4111-8111-111111111111",
-                active_vendor_id: "00000000-0000-4000-8000-000000000001",
-                ...state.session,
-                now: new Date(NOW).toISOString(),
-              }]
+            ? [
+                {
+                  user_id: "11111111-1111-4111-8111-111111111111",
+                  active_vendor_id: "00000000-0000-4000-8000-000000000001",
+                  ...state.session,
+                  now: new Date(NOW).toISOString(),
+                },
+              ]
             : [];
         }
         if (text.startsWith("update private.vendor_sessions")) {
@@ -42,33 +44,37 @@ vi.mock("@/server/supabase/postgres", () => ({
           return state.updateReturnsRows ? [{ id_hash: values[1] }] : [];
         }
         if (text.includes("from private.vendor_users")) {
-          return [{
-            id: "11111111-1111-4111-8111-111111111111",
-            email: "owner@example.com",
-            name: "Owner",
-            platform_role: "super_admin",
-            password_salt: "s",
-            password_hash: "h",
-            active: true,
-            created_at: "2026-09-18T00:00:00.000Z",
-          }];
+          return [
+            {
+              id: "11111111-1111-4111-8111-111111111111",
+              email: "owner@example.com",
+              name: "Owner",
+              platform_role: "super_admin",
+              password_salt: "s",
+              password_hash: "h",
+              active: true,
+              created_at: "2026-09-18T00:00:00.000Z",
+            },
+          ];
         }
         if (text.includes("from private.vendor_memberships")) return [];
         if (text.includes("from private.vendors")) {
-          return [{
-            id: "00000000-0000-4000-8000-000000000001",
-            slug: "chapega",
-            display_name: "Chapega",
-            status: "active",
-            revision: 1,
-            created_at: "2026-09-18T00:00:00.000Z",
-            updated_at: "2026-09-18T00:00:00.000Z",
-          }];
+          return [
+            {
+              id: "00000000-0000-4000-8000-000000000001",
+              slug: "chapega",
+              display_name: "Chapega",
+              status: "active",
+              revision: 1,
+              created_at: "2026-09-18T00:00:00.000Z",
+              updated_at: "2026-09-18T00:00:00.000Z",
+            },
+          ];
         }
         return [];
       };
       Object.assign(transaction, {
-        savepoint: async <S,>(inner: (savepoint: unknown) => Promise<S>) => inner(transaction),
+        savepoint: async <S>(inner: (savepoint: unknown) => Promise<S>) => inner(transaction),
       });
       return operation(transaction);
     },
@@ -148,10 +154,18 @@ describe("Supabase session sliding", () => {
   it("warns once when row-level security denies the refresh", async () => {
     state.updateReturnsRows = false;
     state.session = session(10, 5);
-    await getSupabasePlatformUserByToken(tokenHash, { idleMs: 15 * MINUTE, absoluteMs: 8 * 60 * MINUTE });
-    await getSupabasePlatformUserByToken(tokenHash, { idleMs: 15 * MINUTE, absoluteMs: 8 * 60 * MINUTE });
+    await getSupabasePlatformUserByToken(tokenHash, {
+      idleMs: 15 * MINUTE,
+      absoluteMs: 8 * 60 * MINUTE,
+    });
+    await getSupabasePlatformUserByToken(tokenHash, {
+      idleMs: 15 * MINUTE,
+      absoluteMs: 8 * 60 * MINUTE,
+    });
 
     expect(state.updates).toHaveLength(2);
-    expect(state.logs.filter((line) => line.includes("auth.session_refresh_denied"))).toHaveLength(1);
+    expect(state.logs.filter((line) => line.includes("auth.session_refresh_denied"))).toHaveLength(
+      1,
+    );
   });
 });

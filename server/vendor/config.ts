@@ -1,10 +1,7 @@
 import "server-only";
 
 import { loginSchema } from "@/server/vendor/schemas";
-import {
-  isSupabaseConfigurationAvailable,
-  usesSupabaseBackend,
-} from "@/server/supabase/config";
+import { isSupabaseConfigurationAvailable, usesSupabaseBackend } from "@/server/supabase/config";
 
 export const PREVIEW_VENDOR_EMAIL = "owner@chapega.com";
 export const PREVIEW_VENDOR_PASSWORD = "Chapega@2026";
@@ -20,19 +17,12 @@ type VendorCredentialConfiguration = Readonly<{
 }>;
 
 export function vendorPreviewAccessAllowed(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" ||
-    process.env.ALLOW_VENDOR_PREVIEW_LOGIN === "true"
-  );
+  return process.env.NODE_ENV !== "production" || process.env.ALLOW_VENDOR_PREVIEW_LOGIN === "true";
 }
 
-export function isKnownPreviewCredentialPair(
-  email: string,
-  password: string,
-): boolean {
+export function isKnownPreviewCredentialPair(email: string, password: string): boolean {
   return (
-    email.trim().toLowerCase() === PREVIEW_VENDOR_EMAIL &&
-    password === PREVIEW_VENDOR_PASSWORD
+    email.trim().toLowerCase() === PREVIEW_VENDOR_EMAIL && password === PREVIEW_VENDOR_PASSWORD
   );
 }
 
@@ -77,11 +67,12 @@ export function getVendorCredentialConfiguration(): VendorCredentialConfiguratio
   }
 
   const previewAllowed = vendorPreviewAccessAllowed();
-  const rawCredentials = configuredEmail && configuredPassword
-    ? { email: configuredEmail, password: configuredPassword }
-    : previewAllowed
-      ? { email: PREVIEW_VENDOR_EMAIL, password: PREVIEW_VENDOR_PASSWORD }
-      : null;
+  const rawCredentials =
+    configuredEmail && configuredPassword
+      ? { email: configuredEmail, password: configuredPassword }
+      : previewAllowed
+        ? { email: PREVIEW_VENDOR_EMAIL, password: PREVIEW_VENDOR_PASSWORD }
+        : null;
 
   if (!rawCredentials) {
     return { available: false, preview: false, credentials: null };
@@ -94,10 +85,7 @@ export function getVendorCredentialConfiguration(): VendorCredentialConfiguratio
     );
   }
 
-  const preview = isKnownPreviewCredentialPair(
-    parsed.data.email,
-    parsed.data.password,
-  );
+  const preview = isKnownPreviewCredentialPair(parsed.data.email, parsed.data.password);
   if (preview && !previewAllowed) {
     return { available: false, preview: false, credentials: null };
   }

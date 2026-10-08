@@ -1,10 +1,7 @@
 import "server-only";
 
 import type { NextRequest } from "next/server";
-import {
-  proxyHeadersTrusted,
-  trustedClientAddress,
-} from "@/server/http/request-identity";
+import { proxyHeadersTrusted, trustedClientAddress } from "@/server/http/request-identity";
 import { logger } from "@/server/observability/logger";
 import { sha256 } from "@/server/vendor/crypto";
 import {
@@ -176,11 +173,7 @@ export async function beginLoginAttempt(
 
   const safetyBucket = `login-safety:${scope}`;
   rejectIfLimited(
-    consumeMemoryRateLimit(
-      safetyBucket,
-      LOGIN_SAFETY_CAP.maximum,
-      LOGIN_SAFETY_CAP.windowMs,
-    ),
+    consumeMemoryRateLimit(safetyBucket, LOGIN_SAFETY_CAP.maximum, LOGIN_SAFETY_CAP.windowMs),
     logScope,
     "safety-cap",
     LOGIN_MESSAGE,
@@ -247,10 +240,7 @@ export async function assertKioskOrderAllowed(
 
 const CATALOGUE_MESSAGE = "The catalogue is busy. Please try again shortly.";
 
-export function assertKioskBootstrapAllowed(
-  request: NextRequest,
-  vendorSlug: string,
-): void {
+export function assertKioskBootstrapAllowed(request: NextRequest, vendorSlug: string): void {
   const address = clientAddressFor(request);
   if (address) {
     rejectIfLimited(

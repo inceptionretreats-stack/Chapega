@@ -37,10 +37,7 @@ async function serve(request: NextRequest, context: Context): Promise<Response> 
     const key = segments.join("/");
     if (!/^(?:[0-9a-f-]{36}\/)?[a-f0-9]{64}\.(?:png|jpg)$/.test(key)) return notFound();
     const { projectUrl } = getSupabaseConfiguration();
-    return Response.redirect(
-      `${projectUrl}/storage/v1/object/public/vendor-products/${key}`,
-      307,
-    );
+    return Response.redirect(`${projectUrl}/storage/v1/object/public/vendor-products/${key}`, 307);
   }
 
   const upload = await findLocalVendorUpload(segments);
@@ -54,13 +51,18 @@ async function serve(request: NextRequest, context: Context): Promise<Response> 
     ETag: etag,
   };
   const ifNoneMatch = request.headers.get("if-none-match");
-  if (ifNoneMatch && ifNoneMatch.split(",").some((tag) => tag.trim().replace(/^W\//, "") === etag)) {
+  if (
+    ifNoneMatch &&
+    ifNoneMatch.split(",").some((tag) => tag.trim().replace(/^W\//, "") === etag)
+  ) {
     return new Response(null, { status: 304, headers });
   }
   const body =
     request.method === "HEAD"
       ? null
-      : (Readable.toWeb(createReadStream(upload.filePath)) as unknown as ReadableStream<Uint8Array>);
+      : (Readable.toWeb(
+          createReadStream(upload.filePath),
+        ) as unknown as ReadableStream<Uint8Array>);
   return new Response(body, {
     status: 200,
     headers: { ...headers, "Content-Length": String(upload.size) },

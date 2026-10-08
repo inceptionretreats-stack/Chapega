@@ -25,7 +25,9 @@ export function ShopUnavailable({ kind }: Readonly<{ kind: ShopUnavailableKind }
       <div className="empty-state">
         <Icon size={46} aria-hidden="true" />
         <div>
-          <h1 data-screen-heading tabIndex={-1}>{title}</h1>
+          <h1 data-screen-heading tabIndex={-1}>
+            {title}
+          </h1>
           <p>{body}</p>
           {kind === "unreachable" ? (
             <a className="primary-button" href="">

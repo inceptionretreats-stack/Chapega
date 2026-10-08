@@ -15,13 +15,14 @@ export default async function VendorLoginPage({ searchParams }: PageProps) {
   const rawVendor = (await searchParams).vendor;
   const candidate = Array.isArray(rawVendor) ? rawVendor[0] : rawVendor;
   const requestedVendorSlug = candidate?.trim().toLocaleLowerCase("en-IN");
-  const safeVendorSlug = requestedVendorSlug && VENDOR_SLUG_PATTERN.test(requestedVendorSlug)
-    ? requestedVendorSlug
-    : undefined;
+  const safeVendorSlug =
+    requestedVendorSlug && VENDOR_SLUG_PATTERN.test(requestedVendorSlug)
+      ? requestedVendorSlug
+      : undefined;
   const credentialConfiguration = getVendorCredentialConfiguration();
   const currentUser = await getCurrentVendorUser();
   if (currentUser) {
-    if (safeVendorSlug && await getCurrentVendorContext(safeVendorSlug)) {
+    if (safeVendorSlug && (await getCurrentVendorContext(safeVendorSlug))) {
       redirect(`/vendor/${safeVendorSlug}`);
     }
     redirect(

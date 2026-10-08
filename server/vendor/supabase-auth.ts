@@ -83,11 +83,7 @@ function backendUnavailable(message: string, cause: unknown): VendorServiceError
   return error;
 }
 
-async function setContext(
-  sql: QueryClient,
-  name: string,
-  value: string,
-): Promise<void> {
+async function setContext(sql: QueryClient, name: string, value: string): Promise<void> {
   await sql`select set_config(${name}, ${value}, true)`;
 }
 
@@ -192,13 +188,8 @@ async function credentialsStillValid(
 type Rehash = Readonly<{ salt: string; hash: string }>;
 
 /** Compute an upgraded hash (outside any transaction) when one is due. */
-async function rehashIfNeeded(
-  password: string,
-  user: CredentialUserRow,
-): Promise<Rehash | null> {
-  return passwordHashNeedsRehash(user.password_hash)
-    ? derivePasswordHash(password)
-    : null;
+async function rehashIfNeeded(password: string, user: CredentialUserRow): Promise<Rehash | null> {
+  return passwordHashNeedsRehash(user.password_hash) ? derivePasswordHash(password) : null;
 }
 
 /**
@@ -240,10 +231,7 @@ async function membershipsForUser(
   return rows.map(membershipRecord);
 }
 
-async function vendorById(
-  sql: QueryClient,
-  vendorId: string,
-): Promise<VendorRecord | undefined> {
+async function vendorById(sql: QueryClient, vendorId: string): Promise<VendorRecord | undefined> {
   await setContext(sql, "app.vendor_id", vendorId);
   const [row] = await sql<VendorRow[]>`
     select id, slug, display_name, status, revision, created_at, updated_at
@@ -254,10 +242,7 @@ async function vendorById(
   return row ? vendorRecord(row) : undefined;
 }
 
-async function vendorBySlug(
-  sql: QueryClient,
-  slug: string,
-): Promise<VendorRecord | undefined> {
+async function vendorBySlug(sql: QueryClient, slug: string): Promise<VendorRecord | undefined> {
   await setContext(sql, "app.vendor_slug", slug);
   const [row] = await sql<VendorRow[]>`
     select id, slug, display_name, status, revision, created_at, updated_at
@@ -277,8 +262,7 @@ async function activeVendorForLogin(
   const activeMemberships = memberships.filter((record) => record.active);
   if (requestedSlug) {
     const vendor = await vendorBySlug(sql, requestedSlug);
-    return vendor &&
-      activeMemberships.some((record) => record.vendorId === vendor.id)
+    return vendor && activeMemberships.some((record) => record.vendorId === vendor.id)
       ? vendor
       : undefined;
   }
@@ -311,11 +295,7 @@ async function publicVendorUser(
   await setContext(sql, "app.user_id", user.id);
   const memberships = await membershipsForUser(sql, user.id);
   const vendors = await vendorsForMemberships(sql, memberships, activeVendorId);
-  return vendorUserFromDatabase(
-    { memberships, vendors },
-    userRecord(user),
-    activeVendorId,
-  );
+  return vendorUserFromDatabase({ memberships, vendors }, userRecord(user), activeVendorId);
 }
 
 export async function authenticateSupabaseVendorLogin(
@@ -343,11 +323,7 @@ export async function authenticateSupabaseVendorLogin(
       if (!user) return null;
       if (rehash) await storeRehash(transaction, user, rehash);
       const memberships = await membershipsForUser(transaction, user.id);
-      const vendor = await activeVendorForLogin(
-        transaction,
-        memberships,
-        input.vendorSlug,
-      );
+      const vendor = await activeVendorForLogin(transaction, memberships, input.vendorSlug);
       if (!vendor) {
         throw new VendorServiceError(
           403,
@@ -388,15 +364,11 @@ export async function authenticateSupabaseVendorLogin(
   }
 }
 
-export async function destroySupabaseVendorSession(
-  tokenHash: string,
-): Promise<void> {
+export async function destroySupabaseVendorSession(tokenHash: string): Promise<void> {
   try {
     await getSupabasePostgres().begin(async (transaction) => {
       await setContext(transaction, "app.session_hash", tokenHash);
-      const [session] = await transaction<
-        Array<{ user_id: string; active_vendor_id: string }>
-      >`
+      const [session] = await transaction<Array<{ user_id: string; active_vendor_id: string }>>`
         select user_id, active_vendor_id
         from private.vendor_sessions
         where id_hash = ${tokenHash}
@@ -518,11 +490,7 @@ export async function getSupabaseVendorUserByToken(
       if (!user) return null;
       const memberships = await membershipsForUser(transaction, user.id);
       const vendor = vendorSlug
-        ? await activeVendorForLogin(
-            transaction,
-            memberships,
-            vendorSlug.trim().toLowerCase(),
-          )
+        ? await activeVendorForLogin(transaction, memberships, vendorSlug.trim().toLowerCase())
         : await vendorById(transaction, session.active_vendor_id);
       if (!vendor || vendor.status !== "active") return null;
       const publicUser = await publicVendorUser(transaction, user, vendor.id);
@@ -558,12 +526,7 @@ export async function authenticateSupabasePlatformLogin(
     candidate?.password_salt ?? input.dummySalt,
     candidate?.password_hash ?? input.dummyHash,
   );
-  if (
-    !candidate ||
-    !candidate.active ||
-    candidate.platform_role !== "super_admin" ||
-    !valid
-  ) {
+  if (!candidate || !candidate.active || candidate.platform_role !== "super_admin" || !valid) {
     return null;
   }
   const rehash = await rehashIfNeeded(input.password, candidate);
@@ -648,15 +611,11 @@ export async function getSupabasePlatformUserByToken(
   }
 }
 
-export async function destroySupabasePlatformSession(
-  tokenHash: string,
-): Promise<void> {
+export async function destroySupabasePlatformSession(tokenHash: string): Promise<void> {
   try {
     await getSupabasePostgres().begin(async (transaction) => {
       await setContext(transaction, "app.session_hash", tokenHash);
-      const [session] = await transaction<
-        Array<{ user_id: string; live: boolean }>
-      >`
+      const [session] = await transaction<Array<{ user_id: string; live: boolean }>>`
         select user_id, expires_at > now() as live
         from private.vendor_sessions
         where id_hash = ${tokenHash}

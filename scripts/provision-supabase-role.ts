@@ -132,9 +132,7 @@ async function main() {
   loadEnvConfig(process.cwd());
 
   if (!process.argv.includes(confirmationFlag)) {
-    throw new Error(
-      `Refusing to change a database role without ${confirmationFlag}.`,
-    );
+    throw new Error(`Refusing to change a database role without ${confirmationFlag}.`);
   }
 
   const adminDatabaseUrl = requireEnvironment("SUPABASE_ADMIN_DATABASE_URL");
@@ -188,10 +186,7 @@ async function main() {
         (select count(*)::int from pg_tables where schemaname = 'private') as "tableCount"
     `;
 
-    if (
-      verification.currentUser !== "chapega_app" ||
-      verification.tableCount < 1
-    ) {
+    if (verification.currentUser !== "chapega_app" || verification.tableCount < 1) {
       throw new Error("The application role verification returned unexpected data.");
     }
 

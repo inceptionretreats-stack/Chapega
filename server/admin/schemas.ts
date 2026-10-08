@@ -71,37 +71,36 @@ export const RESERVED_VENDOR_SLUGS: ReadonlySet<string> = new Set([
   "www",
 ]);
 
-export const createAdminVendorSchema = z.object({
-  displayName: z.string().trim().min(2).max(80),
-  slug: z
-    .string()
-    .trim()
-    .toLowerCase()
-    .min(2)
-    .max(63)
-    .regex(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      "Use lowercase letters, numbers and single hyphens.",
-    )
-    .refine(
-      (value) => !RESERVED_VENDOR_SLUGS.has(value),
-      "This web address is reserved by Chapega. Choose another one.",
-    ),
-  ownerName: z.string().trim().min(2).max(80),
-  ownerEmail: z.string().trim().toLowerCase().email().max(160),
-  ownerWhatsAppNumber: z.string().trim().min(8).max(24),
-  temporaryPassword: newPasswordSchema,
-}).superRefine((value, context) => {
-  // Context-free problems were already reported on the field itself.
-  if (newPasswordProblem(value.temporaryPassword)) return;
-  const problem = newPasswordProblem(value.temporaryPassword, {
-    email: value.ownerEmail,
-    name: value.ownerName,
+export const createAdminVendorSchema = z
+  .object({
+    displayName: z.string().trim().min(2).max(80),
+    slug: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .min(2)
+      .max(63)
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and single hyphens.")
+      .refine(
+        (value) => !RESERVED_VENDOR_SLUGS.has(value),
+        "This web address is reserved by Chapega. Choose another one.",
+      ),
+    ownerName: z.string().trim().min(2).max(80),
+    ownerEmail: z.string().trim().toLowerCase().email().max(160),
+    ownerWhatsAppNumber: z.string().trim().min(8).max(24),
+    temporaryPassword: newPasswordSchema,
+  })
+  .superRefine((value, context) => {
+    // Context-free problems were already reported on the field itself.
+    if (newPasswordProblem(value.temporaryPassword)) return;
+    const problem = newPasswordProblem(value.temporaryPassword, {
+      email: value.ownerEmail,
+      name: value.ownerName,
+    });
+    if (problem) {
+      context.addIssue({ code: "custom", path: ["temporaryPassword"], message: problem });
+    }
   });
-  if (problem) {
-    context.addIssue({ code: "custom", path: ["temporaryPassword"], message: problem });
-  }
-});
 
 const vendorStatusSchema = z.enum(["active", "suspended"]);
 

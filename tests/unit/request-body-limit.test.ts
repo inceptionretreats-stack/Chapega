@@ -126,9 +126,9 @@ describe("streamed JSON body limits", () => {
       body: JSON.stringify({ name: "Frame" }),
     });
 
-    await expect(
-      parseJson(request, z.object({ name: z.string() })),
-    ).resolves.toEqual({ name: "Frame" });
+    await expect(parseJson(request, z.object({ name: z.string() }))).resolves.toEqual({
+      name: "Frame",
+    });
   });
 });
 
@@ -153,10 +153,9 @@ describe("streamed multipart upload limits", () => {
         origin: "http://localhost",
       });
 
-      const response = await (handler as (
-        request: NextRequest,
-        context: unknown,
-      ) => Promise<Response>)(request, args);
+      const response = await (
+        handler as (request: NextRequest, context: unknown) => Promise<Response>
+      )(request, args);
 
       expect(response.status).toBe(413);
       expect(meter.pulled).toBeLessThan(9 * 1024 * 1024 + 4 * CHUNK);
