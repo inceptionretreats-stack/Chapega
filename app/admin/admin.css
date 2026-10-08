@@ -45,10 +45,13 @@
   color: #fff;
 }
 
-.admin-primary:not(:disabled):hover {
-  background: var(--wine-deep, #5f182b);
-  box-shadow: 0 14px 30px rgba(95, 24, 43, 0.22);
-  transform: translateY(-1px);
+/* Hover styles apply only with a real hovering pointer (no sticky hover on touch). */
+@media (hover: hover) and (pointer: fine) {
+  .admin-primary:not(:disabled):hover {
+    background: var(--wine-deep, #5f182b);
+    box-shadow: 0 14px 30px rgba(95, 24, 43, 0.22);
+    transform: translateY(-1px);
+  }
 }
 
 .admin-secondary {
@@ -57,9 +60,11 @@
   color: var(--wine, #7a263a);
 }
 
-.admin-secondary:not(:disabled):hover {
-  border-color: #bd8992;
-  background: var(--blush-50, #fff4f2);
+@media (hover: hover) and (pointer: fine) {
+  .admin-secondary:not(:disabled):hover {
+    border-color: #bd8992;
+    background: var(--blush-50, #fff4f2);
+  }
 }
 
 .admin-danger {
@@ -68,9 +73,11 @@
   color: #982d3b;
 }
 
-.admin-danger:not(:disabled):hover {
-  background: #fbe3e6;
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .admin-danger:not(:disabled):hover {
+    background: #fbe3e6;
+    transform: translateY(-1px);
+  }
 }
 
 .admin-icon-button,
@@ -87,10 +94,12 @@
   place-items: center;
 }
 
-.admin-icon-button:hover,
-.admin-row-action:hover {
-  border-color: #c8929b;
-  background: var(--blush-50, #fff4f2);
+@media (hover: hover) and (pointer: fine) {
+  .admin-icon-button:hover,
+  .admin-row-action:hover {
+    border-color: #c8929b;
+    background: var(--blush-50, #fff4f2);
+  }
 }
 
 .admin-spin {
@@ -504,8 +513,10 @@
   font-weight: 650;
 }
 
-.admin-sidebar nav button:hover {
-  background: rgba(251, 232, 231, 0.52);
+@media (hover: hover) and (pointer: fine) {
+  .admin-sidebar nav button:hover {
+    background: rgba(251, 232, 231, 0.52);
+  }
 }
 
 .admin-sidebar nav button.is-selected {
@@ -588,10 +599,16 @@
   font-weight: 650;
 }
 
-.admin-account__button:hover,
 .admin-account__button[aria-expanded="true"] {
   border-color: var(--line, #e5d5ca);
   background: var(--blush-50, #fff4f2);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .admin-account__button:hover {
+    border-color: var(--line, #e5d5ca);
+    background: var(--blush-50, #fff4f2);
+  }
 }
 
 .admin-account-avatar {
@@ -910,8 +927,10 @@
   transition: background 150ms ease;
 }
 
-.admin-vendor-table tbody tr:hover {
-  background: #fff8f5;
+@media (hover: hover) and (pointer: fine) {
+  .admin-vendor-table tbody tr:hover {
+    background: #fff8f5;
+  }
 }
 
 .admin-vendor-table tbody tr:first-child {

@@ -73,10 +73,17 @@
   gap: 15px;
 }
 
-.vendor-select-list a:hover,
 .vendor-select-list a:focus-visible {
   border-color: #b67782;
   box-shadow: 0 12px 30px rgba(95, 24, 43, 0.09);
+}
+
+/* Hover styles apply only with a real hovering pointer (no sticky hover on touch). */
+@media (hover: hover) and (pointer: fine) {
+  .vendor-select-list a:hover {
+    border-color: #b67782;
+    box-shadow: 0 12px 30px rgba(95, 24, 43, 0.09);
+  }
 }
 
 .vendor-select-list a > span:first-child {
@@ -132,9 +139,11 @@
   color: #fff;
 }
 
-.vendor-primary:not(:disabled):hover {
-  box-shadow: 0 14px 30px rgba(95, 24, 43, 0.22);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .vendor-primary:not(:disabled):hover {
+    box-shadow: 0 14px 30px rgba(95, 24, 43, 0.22);
+    transform: translateY(-1px);
+  }
 }
 
 .vendor-secondary,
@@ -144,10 +153,12 @@
   color: #6c1f34;
 }
 
-.vendor-secondary:not(:disabled):hover,
-.vendor-quiet:not(:disabled):hover {
-  border-color: #b67782;
-  background: #fff;
+@media (hover: hover) and (pointer: fine) {
+  .vendor-secondary:not(:disabled):hover,
+  .vendor-quiet:not(:disabled):hover {
+    border-color: #b67782;
+    background: #fff;
+  }
 }
 
 .vendor-danger {
@@ -352,9 +363,11 @@
   font-weight: 750;
 }
 
-.vendor-login-back:hover {
-  border-color: #b67782;
-  background: #fff;
+@media (hover: hover) and (pointer: fine) {
+  .vendor-login-back:hover {
+    border-color: #b67782;
+    background: #fff;
+  }
 }
 
 .vendor-login-mobile-brand {
@@ -708,7 +721,9 @@
   left: 0;
 }
 
-.vendor-sidebar nav button:hover { background: rgba(251, 232, 231, 0.52); }
+@media (hover: hover) and (pointer: fine) {
+  .vendor-sidebar nav button:hover { background: rgba(251, 232, 231, 0.52); }
+}
 
 .vendor-sidebar nav button.is-selected {
   background: linear-gradient(90deg, #f9e4e2, #fff4f2);
@@ -759,7 +774,9 @@
   font-weight: 700;
 }
 
-.vendor-signout:hover { background: #fff0f1; color: #8e2939; }
+@media (hover: hover) and (pointer: fine) {
+  .vendor-signout:hover { background: #fff0f1; color: #8e2939; }
+}
 .vendor-sidebar-scrim { display: none; }
 
 .vendor-main {
@@ -1067,7 +1084,9 @@
 }
 
 .vendor-table tbody tr:last-child td { border-bottom: 0; }
-.vendor-table tbody tr:hover { background: rgba(255, 249, 242, 0.78); }
+@media (hover: hover) and (pointer: fine) {
+  .vendor-table tbody tr:hover { background: rgba(255, 249, 242, 0.78); }
+}
 
 .vendor-table td > strong { color: #3c3032; font-weight: 800; }
 .vendor-table td > small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
@@ -1078,7 +1097,9 @@
   background: transparent;
 }
 
-.vendor-row-action:hover { border-color: #dfc8c3; background: #fff4f2; }
+@media (hover: hover) and (pointer: fine) {
+  .vendor-row-action:hover { border-color: #dfc8c3; background: #fff4f2; }
+}
 
 .vendor-status {
   min-height: 30px;
@@ -1422,10 +1443,12 @@
   transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
-.vendor-option-add:not(:disabled):hover {
-  border-color: #a96674;
-  box-shadow: 0 10px 23px rgba(98, 32, 49, 0.11);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .vendor-option-add:not(:disabled):hover {
+    border-color: #a96674;
+    box-shadow: 0 10px 23px rgba(98, 32, 49, 0.11);
+    transform: translateY(-1px);
+  }
 }
 
 .vendor-option-add:disabled {
@@ -1560,10 +1583,12 @@
   transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
 }
 
-.vendor-option-remove:not(:disabled):hover {
-  border-color: #e3c2c5;
-  background: #fff1f2;
-  color: #962f3e;
+@media (hover: hover) and (pointer: fine) {
+  .vendor-option-remove:not(:disabled):hover {
+    border-color: #e3c2c5;
+    background: #fff1f2;
+    color: #962f3e;
+  }
 }
 
 .vendor-option-remove:disabled { opacity: 0.45; }
@@ -1722,7 +1747,9 @@
   inset: 0 auto 0 0;
 }
 
-.vendor-order-list li > button:hover { background: #fffaf6; }
+@media (hover: hover) and (pointer: fine) {
+  .vendor-order-list li > button:hover { background: #fffaf6; }
+}
 .vendor-order-list li > button.is-selected { background: linear-gradient(90deg, #fff1ef, #fffbf8); }
 .vendor-order-list li > button.is-selected::before { opacity: 1; }
 .vendor-order-list-main,

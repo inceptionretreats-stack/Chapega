@@ -213,10 +213,14 @@ summary:focus-visible,
   box-shadow: 0 10px 24px rgba(122, 38, 58, 0.16);
 }
 
-.primary-button:not(:disabled):hover {
-  transform: translateY(-2px);
-  background: var(--wine-deep);
-  box-shadow: 0 14px 30px rgba(122, 38, 58, 0.22);
+/* Hover styles apply only with a real hovering pointer, so touch kiosks never
+   keep a "stuck" hover state after a tap. */
+@media (hover: hover) and (pointer: fine) {
+  .primary-button:not(:disabled):hover {
+    transform: translateY(-2px);
+    background: var(--wine-deep);
+    box-shadow: 0 14px 30px rgba(122, 38, 58, 0.22);
+  }
 }
 
 .secondary-button,
@@ -228,11 +232,13 @@ summary:focus-visible,
   color: var(--wine);
 }
 
-.secondary-button:not(:disabled):hover,
-.quiet-button:not(:disabled):hover,
-.detail-button:not(:disabled):hover {
-  border-color: var(--wine-soft);
-  background: var(--blush-50);
+@media (hover: hover) and (pointer: fine) {
+  .secondary-button:not(:disabled):hover,
+  .quiet-button:not(:disabled):hover,
+  .detail-button:not(:disabled):hover {
+    border-color: var(--wine-soft);
+    background: var(--blush-50);
+  }
 }
 
 .quick-button {
@@ -241,9 +247,11 @@ summary:focus-visible,
   color: white;
 }
 
-.quick-button:not(:disabled):hover {
-  background: var(--wine-deep);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .quick-button:not(:disabled):hover {
+    background: var(--wine-deep);
+    transform: translateY(-1px);
+  }
 }
 
 .whatsapp-button {
@@ -253,9 +261,11 @@ summary:focus-visible,
   box-shadow: 0 10px 24px rgba(31, 109, 67, 0.15);
 }
 
-.whatsapp-button:not(:disabled):hover {
-  transform: translateY(-2px);
-  background: #175838;
+@media (hover: hover) and (pointer: fine) {
+  .whatsapp-button:not(:disabled):hover {
+    transform: translateY(-2px);
+    background: #175838;
+  }
 }
 
 .danger-button {
@@ -272,10 +282,12 @@ summary:focus-visible,
   color: var(--wine);
 }
 
-.text-button:hover {
-  color: var(--wine-deep);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+@media (hover: hover) and (pointer: fine) {
+  .text-button:hover {
+    color: var(--wine-deep);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
 }
 
 .icon-button {
@@ -291,10 +303,12 @@ summary:focus-visible,
   transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
 }
 
-.icon-button:not(:disabled):hover {
-  transform: translateY(-1px);
-  border-color: var(--line-strong);
-  background: var(--rose);
+@media (hover: hover) and (pointer: fine) {
+  .icon-button:not(:disabled):hover {
+    transform: translateY(-1px);
+    border-color: var(--line-strong);
+    background: var(--rose);
+  }
 }
 
 .kiosk-vendor-access {
@@ -315,10 +329,12 @@ summary:focus-visible,
   transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
 }
 
-.kiosk-vendor-access:not(:disabled):hover {
-  transform: translateY(-1px);
-  border-color: var(--wine-soft);
-  background: var(--blush-50);
+@media (hover: hover) and (pointer: fine) {
+  .kiosk-vendor-access:not(:disabled):hover {
+    transform: translateY(-1px);
+    border-color: var(--wine-soft);
+    background: var(--blush-50);
+  }
 }
 
 /* Brand and header */
@@ -971,9 +987,11 @@ summary:focus-visible,
   background: var(--blush-50);
 }
 
-.product-card:hover .product-card__image-wrap {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-soft);
+@media (hover: hover) and (pointer: fine) {
+  .product-card:hover .product-card__image-wrap {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-soft);
+  }
 }
 
 .product-card__image-wrap img {
@@ -983,8 +1001,10 @@ summary:focus-visible,
   transition: transform 260ms ease;
 }
 
-.product-card:hover .product-card__image-wrap img {
-  transform: scale(1.025);
+@media (hover: hover) and (pointer: fine) {
+  .product-card:hover .product-card__image-wrap img {
+    transform: scale(1.025);
+  }
 }
 
 .product-card__inscription {
@@ -3577,9 +3597,11 @@ summary:focus-visible,
   transition: background 180ms ease, transform 180ms ease;
 }
 
-.header-search__clear:hover {
-  transform: scale(1.04);
-  background: white;
+@media (hover: hover) and (pointer: fine) {
+  .header-search__clear:hover {
+    transform: scale(1.04);
+    background: white;
+  }
 }
 
 .welcome-assurance {
@@ -4036,10 +4058,12 @@ summary:focus-visible,
   transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
-.moment-filter__button:hover {
-  border-color: var(--wine-soft);
-  background: white;
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .moment-filter__button:hover {
+    border-color: var(--wine-soft);
+    background: white;
+    transform: translateY(-1px);
+  }
 }
 
 .moment-filter__button.active {
@@ -4164,10 +4188,16 @@ summary:focus-visible,
   transition: transform 180ms ease, background 180ms ease;
 }
 
-.product-card__image-button:hover .product-card__view-overlay,
 .product-card__image-button:focus-visible .product-card__view-overlay {
   transform: scale(1.08);
   background: white;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .product-card__image-button:hover .product-card__view-overlay {
+    transform: scale(1.08);
+    background: white;
+  }
 }
 
 .product-card__selected-badge {
@@ -4217,11 +4247,13 @@ summary:focus-visible,
   text-align: left;
 }
 
-.product-card__title-button:hover {
-  color: var(--wine);
-  text-decoration: underline;
-  text-decoration-color: rgba(122, 38, 58, 0.32);
-  text-underline-offset: 3px;
+@media (hover: hover) and (pointer: fine) {
+  .product-card__title-button:hover {
+    color: var(--wine);
+    text-decoration: underline;
+    text-decoration-color: rgba(122, 38, 58, 0.32);
+    text-underline-offset: 3px;
+  }
 }
 
 .product-card__actions {
@@ -4384,8 +4416,10 @@ summary:focus-visible,
   color: var(--wine);
 }
 
-.cart-rail__items .mini-cart-line:first-child > .remove-icon:hover {
-  background: var(--blush-100);
+@media (hover: hover) and (pointer: fine) {
+  .cart-rail__items .mini-cart-line:first-child > .remove-icon:hover {
+    background: var(--blush-100);
+  }
 }
 
 .cart-rail__footer .primary-button {
@@ -5055,19 +5089,6 @@ select:focus-visible {
   .modal-panel {
     scroll-padding-top: 76px;
     scroll-padding-bottom: clamp(140px, 36dvh, 420px);
-  }
-}
-
-@media (hover: none) {
-  .primary-button:not(:disabled):hover,
-  .quick-button:not(:disabled):hover,
-  .whatsapp-button:not(:disabled):hover,
-  .icon-button:not(:disabled):hover,
-  .product-card:hover .product-card__image-wrap,
-  .product-card:hover .product-card__image-wrap img,
-  .moment-filter__button:hover,
-  .header-search__clear:hover {
-    transform: none;
   }
 }
 
