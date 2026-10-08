@@ -61,7 +61,9 @@ describe("vendor input validation", () => {
   it("accepts a valid product and rejects price or media tampering", () => {
     const parsed = vendorProductSchema.safeParse(product);
     expect(parsed.success).toBe(true);
-    expect(parsed.data?.variants).toEqual([]);
+    // AUD-9: an omitted variants key must stay omitted so an update keeps the
+    // stored variants; the service treats it as "none" only on create.
+    expect(parsed.data?.variants).toBeUndefined();
     expect(
       vendorProductSchema.safeParse({
         ...product,

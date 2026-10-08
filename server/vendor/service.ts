@@ -418,6 +418,9 @@ export async function updateVendorProduct(
       const product: VendorProductRecord = {
         ...current,
         ...normalized,
+        // A partial edit (such as a visibility toggle) keeps the variants.
+        variants:
+          input.variants === undefined ? current.variants : normalized.variants,
         availability: availability(
           normalized.stock,
           settings.lowStockThreshold,

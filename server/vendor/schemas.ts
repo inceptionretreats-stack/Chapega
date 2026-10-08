@@ -54,7 +54,9 @@ export const vendorProductSchema = z
     tags: z.array(trimmed(48)).max(20).default([]),
     recipientTags: z.array(trimmed(48)).max(20).default([]),
     occasionTags: z.array(trimmed(48)).max(20).default([]),
-    variants: z.array(productVariantSchema).max(20).default([]),
+    // Omitted on update means "keep the current variants"; a create treats it
+    // as none. Defaulting to [] here silently erased variants (AUD-9).
+    variants: z.array(productVariantSchema).max(20).optional(),
     preparationTime: trimmed(120),
     giftWrapEligible: z.boolean(),
     visible: z.boolean(),
@@ -75,7 +77,7 @@ export const vendorProductSchema = z
 
     const variantIds = new Set<string>();
     const variantNames = new Set<string>();
-    for (const [index, variant] of value.variants.entries()) {
+    for (const [index, variant] of (value.variants ?? []).entries()) {
       const normalizedId = variant.id.toLowerCase();
       if (variantIds.has(normalizedId)) {
         context.addIssue({

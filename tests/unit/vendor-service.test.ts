@@ -405,6 +405,22 @@ describe("vendor service persistence rules", () => {
     ).toEqual(updated.variants);
   });
 
+  it("keeps existing variants when an update omits them (AUD-9)", async () => {
+    const existing = currentDatabase().products[0];
+    expect(existing.variants.length).toBeGreaterThan(0);
+    const { variants: _omitted, ...withoutVariants } = existing;
+    void _omitted;
+
+    const hidden = await updateVendorProduct(
+      existing.id,
+      { ...withoutVariants, visible: false, version: existing.version },
+      vendor,
+    );
+
+    expect(hidden.visible).toBe(false);
+    expect(hidden.variants).toEqual(existing.variants);
+  });
+
   it("returns an existing idempotent order after the shop is paused", async () => {
     const first = await recordKioskOrder(submission);
     currentDatabase().settings[0] = {
