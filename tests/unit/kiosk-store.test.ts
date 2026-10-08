@@ -1,16 +1,24 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CATALOGUE_PRODUCTS } from "@/data/catalogue";
 import { useKioskStore } from "@/store/kiosk-store";
 
+// The store is a module singleton. Snapshot its pristine state at import time
+// so every test starts from (and leaves behind) the exact initial state, no
+// matter which order the tests run in.
+const INITIAL_STATE = useKioskStore.getState();
+
+function resetKioskEnvironment() {
+  useKioskStore.setState(INITIAL_STATE, true);
+  window.localStorage.clear();
+  window.sessionStorage.clear();
+}
+
 describe("kiosk order retries", () => {
-  afterEach(() => {
-    useKioskStore.getState().resetAllLocalData();
-    window.localStorage.clear();
-    window.sessionStorage.clear();
-  });
+  beforeEach(resetKioskEnvironment);
+  afterEach(resetKioskEnvironment);
 
   it("reuses the same idempotency key after an uncertain request failure", () => {
     const store = useKioskStore.getState();
