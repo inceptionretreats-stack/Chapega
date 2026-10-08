@@ -2,14 +2,14 @@ import type { NextRequest } from "next/server";
 import {
   apiError,
   assertSameOrigin,
-  clientAddress,
   jsonResponse,
   parseJson,
 } from "@/server/vendor/api";
 import { VendorServiceError } from "@/server/vendor/errors";
-import { consumeRateLimit } from "@/server/vendor/rate-limit";
 import { kioskOrderSubmissionSchema } from "@/server/vendor/schemas";
 import { recordKioskOrder } from "@/server/vendor/service";
+import { assertKioskOrderAllowed } from "@/server/vendor/throttle";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
@@ -24,7 +24,7 @@ function normalizedVendorSlug(value: string): string {
   return slug;
 }
 
-export async function POST(request: NextRequest, context: Context) {
+export const POST = withRequestContext(async function POST(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const [{ vendorSlug }, input] = await Promise.all([
@@ -32,20 +32,10 @@ export async function POST(request: NextRequest, context: Context) {
       parseJson(request, kioskOrderSubmissionSchema),
     ]);
     const slug = normalizedVendorSlug(vendorSlug);
-    const rate = await consumeRateLimit(
-      `kiosk-order:${slug}:${clientAddress(request)}`,
-      30,
-      60 * 1_000,
-    );
-    if (!rate.allowed) {
-      throw new VendorServiceError(
-        429,
-        "RATE_LIMITED",
-        "Too many orders were prepared. Please wait a moment.",
-      );
-    }
+    // Throws RateLimitExceededError (429 + Retry-After) when throttled.
+    await assertKioskOrderAllowed(request, slug, input.kioskName);
     return jsonResponse({ order: await recordKioskOrder(input, slug) }, 201);
   } catch (error) {
     return apiError(error);
   }
-}
+});

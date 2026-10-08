@@ -1,13 +1,23 @@
-import { jsonResponse } from "@/server/vendor/api";
+import type { NextRequest } from "next/server";
+import { apiError, catalogueResponse, jsonResponse } from "@/server/vendor/api";
+import { DEFAULT_VENDOR_SLUG } from "@/server/vendor/database";
+import { VendorServiceError } from "@/server/vendor/errors";
 import { getKioskBootstrap } from "@/server/vendor/service";
+import { assertKioskBootstrapAllowed } from "@/server/vendor/throttle";
+import { logger, serializeError } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withRequestContext(async function GET(request: NextRequest) {
   try {
-    return jsonResponse(await getKioskBootstrap());
-  } catch {
+    // Throws RateLimitExceededError (429 + Retry-After) when flooded.
+    assertKioskBootstrapAllowed(request, DEFAULT_VENDOR_SLUG);
+    return catalogueResponse(request, await getKioskBootstrap());
+  } catch (error) {
+    if (error instanceof VendorServiceError) return apiError(error);
+    logger.error("kiosk.catalogue_unavailable", { error: serializeError(error) });
     return jsonResponse(
       {
         error: {
@@ -18,4 +28,4 @@ export async function GET() {
       503,
     );
   }
-}
+});

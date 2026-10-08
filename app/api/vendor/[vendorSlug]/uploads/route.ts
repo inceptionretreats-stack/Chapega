@@ -5,11 +5,13 @@ import {
   assertSameOrigin,
   jsonResponse,
   parseJson,
+  parseMultipart,
   requireVendorRequest,
 } from "@/server/vendor/api";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { deleteUnusedVendorImage, VENDOR_UPLOAD_PATH_PATTERN } from "@/server/vendor/image-lifecycle";
 import { saveVendorImage } from "@/server/vendor/images";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 type Context = Readonly<{ params: Promise<{ vendorSlug: string }> }>;
@@ -24,17 +26,13 @@ function assertCatalogueAccess(canManageCatalogue: boolean): void {
   }
 }
 
-export async function POST(request: NextRequest, context: Context) {
+export const POST = withRequestContext(async function POST(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const { vendorSlug } = await context.params;
     const access = await requireVendorRequest(request, vendorSlug);
     assertCatalogueAccess(access.capabilities.manage_catalogue);
-    const declaredLength = Number(request.headers.get("content-length") ?? 0);
-    if (declaredLength > 9 * 1024 * 1024) {
-      throw new VendorServiceError(413, "PAYLOAD_TOO_LARGE", "Image is too large.");
-    }
-    const formData = await request.formData();
+    const formData = await parseMultipart(request);
     const file = formData.get("image");
     if (!(file instanceof File)) {
       throw new VendorServiceError(400, "IMAGE_REQUIRED", "Choose an image to upload.");
@@ -43,9 +41,9 @@ export async function POST(request: NextRequest, context: Context) {
   } catch (error) {
     return apiError(error);
   }
-}
+});
 
-export async function DELETE(request: NextRequest, context: Context) {
+export const DELETE = withRequestContext(async function DELETE(request: NextRequest, context: Context) {
   try {
     assertSameOrigin(request);
     const [params, input] = await Promise.all([
@@ -61,4 +59,4 @@ export async function DELETE(request: NextRequest, context: Context) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

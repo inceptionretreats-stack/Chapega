@@ -4,10 +4,11 @@ import {
   destroyVendorSession,
 } from "@/server/vendor/auth";
 import { apiError, assertSameOrigin, jsonResponse } from "@/server/vendor/api";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const token = request.cookies.get(VENDOR_SESSION_COOKIE)?.value;
@@ -24,4 +25,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

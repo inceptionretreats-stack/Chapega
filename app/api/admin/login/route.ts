@@ -5,7 +5,6 @@ import {
 } from "@/server/admin/auth";
 import {
   adminApiError,
-  adminClientAddress,
   adminJsonResponse,
   assertAdminSameOrigin,
   parseAdminJson,
@@ -13,52 +12,37 @@ import {
 import { AdminServiceError } from "@/server/admin/errors";
 import { adminLoginSchema } from "@/server/admin/schemas";
 import { sha256 } from "@/server/vendor/crypto";
-import { consumeRateLimit, resetRateLimit } from "@/server/vendor/rate-limit";
+import { beginLoginAttempt } from "@/server/vendor/throttle";
+import { logger } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertAdminSameOrigin(request);
     const input = await parseAdminJson(request, adminLoginSchema);
-    const address = adminClientAddress(request);
-    const accountBucket = `admin-login-account:${address}:${sha256(input.email)}`;
-    const [addressRate, accountRate] = await Promise.all([
-      consumeRateLimit(`admin-login-address:${address}`, 30, 15 * 60 * 1_000),
-      consumeRateLimit(accountBucket, 6, 15 * 60 * 1_000),
-    ]);
-    if (!addressRate.allowed || !accountRate.allowed) {
-      const response = adminJsonResponse(
-        {
-          error: {
-            code: "RATE_LIMITED",
-            message: "Too many sign-in attempts. Wait a moment and try again.",
-          },
-        },
-        429,
-      );
-      response.headers.set(
-        "Retry-After",
-        String(Math.max(addressRate.retryAfterSeconds, accountRate.retryAfterSeconds)),
-      );
-      return response;
-    }
-
+    // Throws RateLimitExceededError (429 + Retry-After) when throttled.
+    const attempt = await beginLoginAttempt("admin", request, input.email);
     const login = await authenticateAdminLogin(input.email, input.password);
     if (!login) {
+      logger.warn("auth.login_failed", {
+        scope: "admin",
+        emailHash: sha256(input.email).slice(0, 16),
+      });
       throw new AdminServiceError(
         401,
         "INVALID_ADMIN_CREDENTIALS",
         "The email or password is incorrect, or this account is not a platform administrator.",
       );
     }
-    await resetRateLimit(accountBucket);
+    await attempt.succeeded();
     const response = adminJsonResponse({ user: login.user });
     response.cookies.set(ADMIN_SESSION_COOKIE, login.token, {
       httpOnly: true,
       secure: request.nextUrl.protocol === "https:",
       sameSite: "strict",
-      expires: login.expiresAt,
+      // Browser-session cookie: the server enforces idle and absolute expiry.
       path: "/",
       priority: "high",
     });
@@ -66,4 +50,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return adminApiError(error);
   }
-}
+});

@@ -1,10 +1,20 @@
 import "server-only";
 
-import { isIP } from "node:net";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
+import {
+  parseJsonBytes,
+  readBodyWithLimit,
+  RequestBodyTooLargeError,
+} from "@/server/http/body";
+import {
+  clientAddressLabel,
+  sameOriginRejection,
+} from "@/server/http/request-identity";
+import { logger, serializeError } from "@/server/observability/logger";
 import { VendorServiceError } from "@/server/vendor/errors";
+import { RateLimitExceededError } from "@/server/vendor/rate-limit";
 import { AdminServiceError } from "./errors";
 
 const MAX_JSON_BYTES = 64 * 1024;
@@ -16,13 +26,11 @@ export function adminJsonResponse(data: unknown, status = 200): NextResponse {
   return response;
 }
 
+/** Same CSRF rule as the vendor API (see server/http/request-identity). */
 export function assertAdminSameOrigin(request: NextRequest): void {
-  if (request.headers.get("sec-fetch-site") === "cross-site") {
-    throw new AdminServiceError(403, "CROSS_SITE_REQUEST", "Request rejected.");
-  }
-  const origin = request.headers.get("origin");
-  if (origin && origin !== request.nextUrl.origin) {
-    throw new AdminServiceError(403, "INVALID_ORIGIN", "Request rejected.");
+  const rejection = sameOriginRejection(request);
+  if (rejection) {
+    throw new AdminServiceError(403, rejection.code, "Request rejected.");
   }
 }
 
@@ -30,51 +38,43 @@ export async function parseAdminJson<T>(
   request: NextRequest,
   schema: ZodType<T>,
 ): Promise<T> {
-  const declaredLength = Number(request.headers.get("content-length") ?? 0);
-  if (declaredLength > MAX_JSON_BYTES) {
-    throw new AdminServiceError(413, "PAYLOAD_TOO_LARGE", "Request is too large.");
-  }
-  const text = await request.text();
-  if (Buffer.byteLength(text, "utf8") > MAX_JSON_BYTES) {
-    throw new AdminServiceError(413, "PAYLOAD_TOO_LARGE", "Request is too large.");
-  }
-  let value: unknown;
+  let bytes: Buffer;
   try {
-    value = JSON.parse(text);
-  } catch {
+    bytes = await readBodyWithLimit(request, MAX_JSON_BYTES);
+  } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) {
+      throw new AdminServiceError(413, "PAYLOAD_TOO_LARGE", "Request is too large.");
+    }
+    throw error;
+  }
+  const parsed = parseJsonBytes(bytes);
+  if (!parsed.ok) {
     throw new AdminServiceError(400, "INVALID_JSON", "Enter valid request data.");
   }
-  return schema.parse(value);
+  return schema.parse(parsed.value);
 }
 
 export function adminClientAddress(request: NextRequest): string {
-  const proxyPreference = process.env.TRUST_PROXY_HEADERS;
-  if (proxyPreference === "false") return "direct";
-  const onVercel = process.env.VERCEL === "1";
-  if (!onVercel && proxyPreference !== "true") return "direct";
-  const candidates = onVercel
-    ? [
-        request.headers.get("x-vercel-forwarded-for"),
-        request.headers.get("x-forwarded-for"),
-        request.headers.get("x-real-ip"),
-      ]
-    : [
-        request.headers.get("x-forwarded-for"),
-        request.headers.get("x-real-ip"),
-      ];
-  for (const candidate of candidates) {
-    const address = candidate?.split(",", 1)[0]?.trim();
-    if (address && isIP(address)) return address;
-  }
-  return "proxy";
+  return clientAddressLabel(request);
 }
 
 export function adminApiError(error: unknown): NextResponse {
   if (error instanceof AdminServiceError || error instanceof VendorServiceError) {
-    return adminJsonResponse(
+    if (error.status >= 500) {
+      logger.error("api.dependency_failed", {
+        status: error.status,
+        code: error.code,
+        error: serializeError(error),
+      });
+    }
+    const response = adminJsonResponse(
       { error: { code: error.code, message: error.message } },
       error.status,
     );
+    if (error instanceof RateLimitExceededError) {
+      response.headers.set("Retry-After", String(error.retryAfterSeconds));
+    }
+    return response;
   }
   if (error instanceof ZodError) {
     return adminJsonResponse(
@@ -88,7 +88,7 @@ export function adminApiError(error: unknown): NextResponse {
       400,
     );
   }
-  console.error("Platform admin request failed", error);
+  logger.error("api.unhandled_error", { error: serializeError(error) });
   return adminJsonResponse(
     {
       error: {

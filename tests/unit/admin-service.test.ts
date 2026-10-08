@@ -236,12 +236,12 @@ describe("platform administrator service", () => {
     expect(result.metrics.totalVendors).toBe(2);
   });
 
-  it("suspends and reactivates a vendor with optimistic revisions", async () => {
+  it("suspends and reactivates a vendor with status-specific concurrency checks", async () => {
     const suspended = await updateAdminVendorStatus(
       context,
       vendorId,
       "suspended",
-      1,
+      "active",
     );
     expect(suspended.vendor).toMatchObject({ status: "suspended", revision: 2 });
     expect(memory.updateAccess).toEqual({
@@ -253,7 +253,6 @@ describe("platform administrator service", () => {
       context,
       vendorId,
       "active",
-      2,
     );
     expect(reactivated.vendor).toMatchObject({ status: "active", revision: 3 });
     expect(

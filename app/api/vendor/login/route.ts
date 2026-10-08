@@ -6,72 +6,48 @@ import {
 import {
   apiError,
   assertSameOrigin,
-  clientAddress,
   jsonResponse,
   parseJson,
 } from "@/server/vendor/api";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { sha256 } from "@/server/vendor/crypto";
-import {
-  consumeRateLimit,
-  resetRateLimit,
-} from "@/server/vendor/rate-limit";
+import { beginLoginAttempt } from "@/server/vendor/throttle";
 import { loginSchema } from "@/server/vendor/schemas";
+import { logger } from "@/server/observability/logger";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const input = await parseJson(request, loginSchema);
-    const address = clientAddress(request);
-    const addressRate = await consumeRateLimit(
-      `login-address:${address}`,
-      30,
-      15 * 60 * 1_000,
-    );
-    const rateBucket = `login-account:${address}:${sha256(input.email.trim().toLocaleLowerCase("en-IN"))}`;
-    const accountRate = await consumeRateLimit(rateBucket, 6, 15 * 60 * 1_000);
-    if (!addressRate.allowed || !accountRate.allowed) {
-      const response = jsonResponse(
-        {
-          error: {
-            code: "RATE_LIMITED",
-            message: "Too many sign-in attempts. Please wait and try again.",
-          },
-        },
-        429,
-      );
-      response.headers.set(
-        "Retry-After",
-        String(
-          Math.max(
-            addressRate.retryAfterSeconds,
-            accountRate.retryAfterSeconds,
-          ),
-        ),
-      );
-      return response;
-    }
+    const normalizedEmail = input.email.trim().toLocaleLowerCase("en-IN");
+    // Throws RateLimitExceededError (429 + Retry-After) when throttled.
+    const attempt = await beginLoginAttempt("vendor", request, normalizedEmail);
     const login = await authenticateVendorLogin(
       input.email,
       input.password,
       input.vendorSlug,
     );
     if (!login) {
+      logger.warn("auth.login_failed", {
+        scope: "vendor",
+        emailHash: sha256(normalizedEmail).slice(0, 16),
+      });
       throw new VendorServiceError(
         401,
         "INVALID_CREDENTIALS",
         "The email or password is incorrect.",
       );
     }
-    await resetRateLimit(rateBucket);
+    await attempt.succeeded();
     const response = jsonResponse({ user: login.user });
     response.cookies.set(VENDOR_SESSION_COOKIE, login.token, {
       httpOnly: true,
       secure: request.nextUrl.protocol === "https:",
       sameSite: "strict",
-      expires: login.expiresAt,
+      // Browser-session cookie: the server enforces idle and absolute expiry.
       path: "/",
       priority: "high",
     });
@@ -79,4 +55,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

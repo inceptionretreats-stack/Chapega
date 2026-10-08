@@ -14,11 +14,24 @@ import {
 } from "@/server/vendor/database";
 import {
   getVendorCredentialConfiguration,
-  isKnownPreviewCredentialPair,
-  vendorPreviewAccessAllowed,
+  isRejectedLoginCredential,
 } from "@/server/vendor/config";
-import { randomToken, sha256, verifyPassword } from "@/server/vendor/crypto";
+import {
+  derivePasswordHash,
+  DUMMY_PASSWORD_HASH,
+  DUMMY_PASSWORD_SALT,
+  passwordHashNeedsRehash,
+  randomToken,
+  sha256,
+  verifyPassword,
+} from "@/server/vendor/crypto";
 import { VendorServiceError } from "@/server/vendor/errors";
+import {
+  initialSessionExpiry,
+  refreshedSessionExpiry,
+  sessionIsLive,
+  vendorSessionPolicy,
+} from "@/server/security/session-policy";
 import type {
   VendorAccessContext,
   VendorCapabilities,
@@ -29,16 +42,11 @@ import type {
 
 export const VENDOR_SESSION_COOKIE = "chapega_vendor_session";
 
-const DUMMY_SALT = "v9r5N8vpY2h1bGt0c2FsdA==";
-const DUMMY_HASH =
-  "BNH0RAvPGCKOsKbr6HzrvcwgPGvpAl91FN7vNxwsg6qQX5VYYVE3L89Bg4FPmIz2zxaiZMT7WhHf93PSvtiNGQ==";
+// Unknown accounts verify against a dummy hash with the current parameters,
+// so they cost exactly as much as a real account.
+const DUMMY_SALT = DUMMY_PASSWORD_SALT;
+const DUMMY_HASH = DUMMY_PASSWORD_HASH;
 
-function sessionHours(): number {
-  const candidate = Number(process.env.VENDOR_SESSION_HOURS ?? 12);
-  return Number.isFinite(candidate) && candidate >= 1 && candidate <= 168
-    ? candidate
-    : 12;
-}
 
 export function capabilitiesForVendorRole(
   role: VendorRole,
@@ -177,17 +185,16 @@ export async function authenticateVendorLogin(
       "Vendor sign-in is not configured. Add private vendor credentials on the server.",
     );
   }
-  if (
-    !vendorPreviewAccessAllowed() &&
-    isKnownPreviewCredentialPair(email, password)
-  ) {
-    return null;
-  }
+  if (isRejectedLoginCredential(email, password)) return null;
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedSlug = vendorSlug?.trim().toLowerCase() || undefined;
   const token = randomToken(32);
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + sessionHours() * 60 * 60 * 1_000);
+  // The stored expiry is the idle deadline; it slides with activity up to the
+  // absolute lifetime (server/security/session-policy.ts).
+  const expiresAt = new Date(
+    initialSessionExpiry(now.getTime(), vendorSessionPolicy()),
+  );
 
   if (usesSupabaseBackend()) {
     const { authenticateSupabaseVendorLogin } =
@@ -205,16 +212,40 @@ export async function authenticateVendorLogin(
     return user ? { user, token, expiresAt } : null;
   }
 
+  // Verify outside the serialized write queue: the hash is deliberately slow
+  // and must not stall every other write while it runs.
+  const snapshot = await readVendorDatabase();
+  const verified = snapshot.users.find(
+    (record) => record.email === normalizedEmail,
+  );
+  const valid = await verifyPassword(
+    password,
+    verified?.passwordSalt ?? DUMMY_SALT,
+    verified?.passwordHash ?? DUMMY_HASH,
+  );
+  if (!verified || !verified.active || !valid) return null;
+  // Upgrade hashes stored with older scrypt parameters (also outside the queue).
+  const rehashed = passwordHashNeedsRehash(verified.passwordHash)
+    ? await derivePasswordHash(password)
+    : null;
+
   const user = await updateVendorDatabase(async (database) => {
-    const candidate = database.users.find(
-      (record) => record.email === normalizedEmail,
-    );
-    const valid = await verifyPassword(
-      password,
-      candidate?.passwordSalt ?? DUMMY_SALT,
-      candidate?.passwordHash ?? DUMMY_HASH,
-    );
-    if (!candidate || !candidate.active || !valid) return null;
+    // Re-check under the write lock: a rotation or deactivation that landed
+    // while the hash was computed must win.
+    const index = database.users.findIndex((record) => record.id === verified.id);
+    const current = database.users[index];
+    if (
+      !current ||
+      !current.active ||
+      current.passwordHash !== verified.passwordHash ||
+      current.passwordSalt !== verified.passwordSalt
+    ) {
+      return null;
+    }
+    const candidate = rehashed
+      ? { ...current, passwordSalt: rehashed.salt, passwordHash: rehashed.hash }
+      : current;
+    database.users[index] = candidate;
     const activeVendorId = selectActiveVendorId(
       database,
       candidate.id,
@@ -299,19 +330,21 @@ export async function getVendorUserByToken(
 ): Promise<VendorUser | null> {
   if (!token || !getVendorCredentialConfiguration().available) return null;
   const tokenHash = sha256(token);
+  const rules = vendorSessionPolicy();
   if (usesSupabaseBackend()) {
     const { getSupabaseVendorUserByToken } =
       await import("@/server/vendor/supabase-auth");
-    return getSupabaseVendorUserByToken(tokenHash, vendorSlug);
+    return getSupabaseVendorUserByToken(tokenHash, vendorSlug, rules);
   }
   const database = await readVendorDatabase();
+  const now = Date.now();
   const session = database.sessions.find(
-    (candidate) =>
-      candidate.idHash === tokenHash &&
-      candidate.scope === "vendor" &&
-      Date.parse(candidate.expiresAt) > Date.now(),
+    (candidate) => candidate.idHash === tokenHash && candidate.scope === "vendor",
   );
-  if (!session) return null;
+  const times = session
+    ? { createdAt: Date.parse(session.createdAt), expiresAt: Date.parse(session.expiresAt) }
+    : null;
+  if (!session || !times || !sessionIsLive(times, now, rules)) return null;
   const user = database.users.find(
     (candidate) => candidate.id === session.userId && candidate.active,
   );
@@ -319,9 +352,25 @@ export async function getVendorUserByToken(
   const activeVendorId = vendorSlug
     ? selectActiveVendorId(database, user.id, vendorSlug)
     : session.activeVendorId;
-  return activeVendorId
+  const vendorUser = activeVendorId
     ? vendorUserFromDatabase(database, user, activeVendorId)
     : null;
+  if (!vendorUser) return null;
+
+  // Slide the idle deadline (at most about once a minute per session).
+  const refreshed = refreshedSessionExpiry(times, now, rules);
+  if (refreshed !== null) {
+    await updateVendorDatabase((draft) => {
+      const index = draft.sessions.findIndex(
+        (candidate) => candidate.idHash === tokenHash && candidate.scope === "vendor",
+      );
+      const current = draft.sessions[index];
+      if (current) {
+        draft.sessions[index] = { ...current, expiresAt: new Date(refreshed).toISOString() };
+      }
+    });
+  }
+  return vendorUser;
 }
 
 export async function getRequestVendorUser(

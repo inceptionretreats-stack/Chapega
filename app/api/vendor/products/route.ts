@@ -8,10 +8,11 @@ import {
 } from "@/server/vendor/api";
 import { createVendorProduct } from "@/server/vendor/service";
 import { vendorProductSchema } from "@/server/vendor/schemas";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function POST(request: NextRequest) {
+export const POST = withRequestContext(async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const user = await requireVendorRequest(request);
@@ -20,4 +21,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return apiError(error);
   }
-}
+});
