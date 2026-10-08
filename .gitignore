@@ -51,3 +51,6 @@ next-env.d.ts
 .claude/settings.local.json
 CLAUDE.local.md
 scratch/
+
+# Agent worktrees created by Claude Code
+.claude/worktrees/
