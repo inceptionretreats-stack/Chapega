@@ -1,14 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -43,12 +36,14 @@ const existingProduct: VendorProduct = {
   tags: ["keepsake"],
   recipientTags: ["For Couple"],
   occasionTags: ["Anniversary"],
-  variants: [{
-    id: "walnut",
-    name: "Walnut finish",
-    priceAdjustmentPaise: 15_000,
-    stock: 4,
-  }],
+  variants: [
+    {
+      id: "walnut",
+      name: "Walnut finish",
+      priceAdjustmentPaise: 15_000,
+      stock: 4,
+    },
+  ],
   preparationTime: "Ready in one business day",
   giftWrapEligible: true,
   visible: true,
@@ -82,13 +77,15 @@ afterEach(() => {
 function renderEditor() {
   const onClose = vi.fn();
   const onSaved = vi.fn();
-  render(createElement(VendorProductEditor, {
-    product: existingProduct,
-    categories: ["Personalized Gifts"],
-    onClose,
-    onSaved,
-    onArchived: vi.fn(),
-  }));
+  render(
+    createElement(VendorProductEditor, {
+      product: existingProduct,
+      categories: ["Personalized Gifts"],
+      onClose,
+      onSaved,
+      onArchived: vi.fn(),
+    }),
+  );
   return { onClose, onSaved };
 }
 
@@ -102,21 +99,13 @@ describe("VendorProductEditor product options", () => {
 
     const existingOption = screen.getByRole("group", { name: "Walnut finish" });
     await user.clear(within(existingOption).getByLabelText("Option name"));
-    await user.type(
-      within(existingOption).getByLabelText("Option name"),
-      "Warm walnut",
-    );
+    await user.type(within(existingOption).getByLabelText("Option name"), "Warm walnut");
 
     await user.click(screen.getByRole("button", { name: "Add option" }));
     const newOption = screen.getByRole("group", { name: "Option 2" });
     await user.type(within(newOption).getByLabelText("Option name"), "Matte white");
-    await user.clear(
-      within(newOption).getByLabelText("Price adjustment (₹)"),
-    );
-    await user.type(
-      within(newOption).getByLabelText("Price adjustment (₹)"),
-      "-50",
-    );
+    await user.clear(within(newOption).getByLabelText("Price adjustment (₹)"));
+    await user.type(within(newOption).getByLabelText("Price adjustment (₹)"), "-50");
 
     expect(within(newOption).getByText("₹450.00")).toBeInTheDocument();
     expect(within(newOption).getByLabelText("Option stock")).toHaveValue(null);
@@ -160,34 +149,22 @@ describe("VendorProductEditor product options", () => {
 
     await user.click(screen.getByRole("button", { name: "Add option" }));
     const newOption = screen.getByRole("group", { name: "Option 2" });
-    await user.type(
-      within(newOption).getByLabelText("Option name"),
-      "Walnut finish",
-    );
-    await user.clear(
-      within(newOption).getByLabelText("Price adjustment (₹)"),
-    );
-    await user.type(
-      within(newOption).getByLabelText("Price adjustment (₹)"),
-      "-501",
-    );
+    await user.type(within(newOption).getByLabelText("Option name"), "Walnut finish");
+    await user.clear(within(newOption).getByLabelText("Price adjustment (₹)"));
+    await user.type(within(newOption).getByLabelText("Price adjustment (₹)"), "-501");
     await user.type(within(newOption).getByLabelText("Option stock"), "2.5");
 
-    fireEvent.submit(screen.getByRole("button", { name: "Save changes" }).closest("form") as HTMLFormElement);
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Save changes" }).closest("form") as HTMLFormElement,
+    );
 
     expect(
       screen.getByText("Review the highlighted product options before saving."),
     ).toBeInTheDocument();
+    expect(screen.getAllByText("Use a unique name for every option.")).toHaveLength(2);
+    expect(screen.getByText("The final option price cannot be less than ₹0.")).toBeInTheDocument();
     expect(
-      screen.getAllByText("Use a unique name for every option."),
-    ).toHaveLength(2);
-    expect(
-      screen.getByText("The final option price cannot be less than ₹0."),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Use a whole number from 0 to 100,000, or leave this blank.",
-      ),
+      screen.getByText("Use a whole number from 0 to 100,000, or leave this blank."),
     ).toBeInTheDocument();
     expect(vendorRequestMock).not.toHaveBeenCalled();
   });

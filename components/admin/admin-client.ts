@@ -10,10 +10,7 @@ export class AdminClientError extends Error {
   }
 }
 
-export async function adminRequest<T>(
-  input: string,
-  init?: RequestInit,
-): Promise<T> {
+export async function adminRequest<T>(input: string, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
     ...init,
     headers: {
@@ -31,13 +28,17 @@ export async function adminRequest<T>(
   }
 
   if (!response.ok) {
-    const error = (payload as {
-      error?: {
-        code?: string;
-        message?: string;
-        fields?: Record<string, string[] | undefined>;
-      };
-    } | undefined)?.error;
+    const error = (
+      payload as
+        | {
+            error?: {
+              code?: string;
+              message?: string;
+              fields?: Record<string, string[] | undefined>;
+            };
+          }
+        | undefined
+    )?.error;
     throw new AdminClientError(
       response.status,
       error?.code ?? "REQUEST_FAILED",

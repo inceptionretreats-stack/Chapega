@@ -95,8 +95,7 @@ function createPostgresClient() {
   );
 
   return Object.assign(transaction, {
-    begin: async <T,>(operation: (sql: typeof transaction) => Promise<T>) =>
-      operation(transaction),
+    begin: async <T>(operation: (sql: typeof transaction) => Promise<T>) => operation(transaction),
   });
 }
 
@@ -123,9 +122,7 @@ describe("Supabase vendor audit persistence", () => {
     expect(database.audit).toEqual([]);
     expect(
       postgresState.calls.some(
-        (call) =>
-          /^select\b/i.test(call.text) &&
-          /\bfrom private\.audit_log\b/i.test(call.text),
+        (call) => /^select\b/i.test(call.text) && /\bfrom private\.audit_log\b/i.test(call.text),
       ),
     ).toBe(false);
   });
@@ -140,21 +137,15 @@ describe("Supabase vendor audit persistence", () => {
       new Set(["audit-historical-1", "audit-historical-2", "audit-new"]),
     );
     expect(
-      postgresState.calls.some((call) =>
-        /insert into private\.audit_log/i.test(call.text),
-      ),
+      postgresState.calls.some((call) => /insert into private\.audit_log/i.test(call.text)),
     ).toBe(true);
     expect(
       postgresState.calls.some(
-        (call) =>
-          /^select\b/i.test(call.text) &&
-          /\bfrom private\.audit_log\b/i.test(call.text),
+        (call) => /^select\b/i.test(call.text) && /\bfrom private\.audit_log\b/i.test(call.text),
       ),
     ).toBe(false);
     expect(
-      postgresState.calls.some((call) =>
-        /delete from private\.audit_log/i.test(call.text),
-      ),
+      postgresState.calls.some((call) => /delete from private\.audit_log/i.test(call.text)),
     ).toBe(false);
   });
 
@@ -196,9 +187,7 @@ describe("Supabase vendor audit persistence", () => {
       audit: [newAuditRecord],
     };
 
-    await expect(replaceSupabaseVendorDatabase(source)).resolves.toBe(
-      "imported",
-    );
+    await expect(replaceSupabaseVendorDatabase(source)).resolves.toBe("imported");
     expect(postgresState.auditIds).toEqual(new Set(["audit-new"]));
   });
 });

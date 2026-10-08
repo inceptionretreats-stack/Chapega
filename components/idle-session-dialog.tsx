@@ -33,10 +33,13 @@ export function IdleSessionDialog({
         <span className="kiosk-idle-icon" aria-hidden="true">
           <Clock3 size={30} />
         </span>
-        <p className="kiosk-idle-eyebrow"><ShieldCheck size={15} /> Privacy check</p>
+        <p className="kiosk-idle-eyebrow">
+          <ShieldCheck size={15} /> Privacy check
+        </p>
         <h2 id="kiosk-idle-title">Are you still choosing?</h2>
         <p id="kiosk-idle-description">
-          This kiosk will clear the cart and customer details in {secondsRemaining} {secondsRemaining === 1 ? "second" : "seconds"}.
+          This kiosk will clear the cart and customer details in {secondsRemaining}{" "}
+          {secondsRemaining === 1 ? "second" : "seconds"}.
         </p>
         <div className="kiosk-idle-actions">
           <button type="button" className="secondary-button" onClick={onReset}>

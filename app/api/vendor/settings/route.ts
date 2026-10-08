@@ -8,10 +8,11 @@ import {
 } from "@/server/vendor/api";
 import { vendorSettingsSchema } from "@/server/vendor/schemas";
 import { updateVendorSettings } from "@/server/vendor/service";
+import { withRequestContext } from "@/server/observability/request-context";
 
 export const runtime = "nodejs";
 
-export async function PATCH(request: NextRequest) {
+export const PATCH = withRequestContext(async function PATCH(request: NextRequest) {
   try {
     assertSameOrigin(request);
     const [user, input] = await Promise.all([
@@ -22,4 +23,4 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     return apiError(error);
   }
-}
+});

@@ -1,10 +1,7 @@
 import "server-only";
 
 import { loginSchema } from "@/server/vendor/schemas";
-import {
-  isSupabaseConfigurationAvailable,
-  usesSupabaseBackend,
-} from "@/server/supabase/config";
+import { isSupabaseConfigurationAvailable, usesSupabaseBackend } from "@/server/supabase/config";
 
 export const PREVIEW_VENDOR_EMAIL = "owner@chapega.com";
 export const PREVIEW_VENDOR_PASSWORD = "Chapega@2026";
@@ -20,20 +17,33 @@ type VendorCredentialConfiguration = Readonly<{
 }>;
 
 export function vendorPreviewAccessAllowed(): boolean {
+  return process.env.NODE_ENV !== "production" || process.env.ALLOW_VENDOR_PREVIEW_LOGIN === "true";
+}
+
+export function isKnownPreviewCredentialPair(email: string, password: string): boolean {
   return (
-    process.env.NODE_ENV !== "production" ||
-    process.env.ALLOW_VENDOR_PREVIEW_LOGIN === "true"
+    email.trim().toLowerCase() === PREVIEW_VENDOR_EMAIL && password === PREVIEW_VENDOR_PASSWORD
   );
 }
 
-export function isKnownPreviewCredentialPair(
-  email: string,
-  password: string,
-): boolean {
-  return (
-    email.trim().toLowerCase() === PREVIEW_VENDOR_EMAIL &&
-    password === PREVIEW_VENDOR_PASSWORD
-  );
+/** The sample value shipped in .env.example. It must never be a real password. */
+export const ENV_EXAMPLE_PLACEHOLDER_PASSWORD = "replace-with-a-long-unique-password";
+
+export function isPlaceholderPassword(password: string): boolean {
+  return password.trim() === ENV_EXAMPLE_PLACEHOLDER_PASSWORD;
+}
+
+/**
+ * The single credential guard shared by vendor and platform sign-in. It runs
+ * before any password verification:
+ * - the published preview pair is refused whenever preview access is not
+ *   allowed (production without ALLOW_VENDOR_PREVIEW_LOGIN=true), even if an
+ *   account still has that password;
+ * - the .env.example placeholder is refused everywhere, always.
+ */
+export function isRejectedLoginCredential(email: string, password: string): boolean {
+  if (isPlaceholderPassword(password)) return true;
+  return !vendorPreviewAccessAllowed() && isKnownPreviewCredentialPair(email, password);
 }
 
 export function getVendorCredentialConfiguration(): VendorCredentialConfiguration {
@@ -49,13 +59,20 @@ export function getVendorCredentialConfiguration(): VendorCredentialConfiguratio
   if (Boolean(configuredEmail) !== Boolean(configuredPassword)) {
     throw new Error("Set both VENDOR_EMAIL and VENDOR_PASSWORD, or leave both unset.");
   }
+  if (configuredPassword && isPlaceholderPassword(configuredPassword)) {
+    throw new Error(
+      "VENDOR_PASSWORD is still the placeholder from .env.example. Set a long, unique password " +
+        "(or unset VENDOR_EMAIL and VENDOR_PASSWORD to use the development preview account).",
+    );
+  }
 
   const previewAllowed = vendorPreviewAccessAllowed();
-  const rawCredentials = configuredEmail && configuredPassword
-    ? { email: configuredEmail, password: configuredPassword }
-    : previewAllowed
-      ? { email: PREVIEW_VENDOR_EMAIL, password: PREVIEW_VENDOR_PASSWORD }
-      : null;
+  const rawCredentials =
+    configuredEmail && configuredPassword
+      ? { email: configuredEmail, password: configuredPassword }
+      : previewAllowed
+        ? { email: PREVIEW_VENDOR_EMAIL, password: PREVIEW_VENDOR_PASSWORD }
+        : null;
 
   if (!rawCredentials) {
     return { available: false, preview: false, credentials: null };
@@ -68,10 +85,7 @@ export function getVendorCredentialConfiguration(): VendorCredentialConfiguratio
     );
   }
 
-  const preview = isKnownPreviewCredentialPair(
-    parsed.data.email,
-    parsed.data.password,
-  );
+  const preview = isKnownPreviewCredentialPair(parsed.data.email, parsed.data.password);
   if (preview && !previewAllowed) {
     return { available: false, preview: false, credentials: null };
   }

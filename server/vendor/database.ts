@@ -59,23 +59,15 @@ export type VendorSessionRecord = Readonly<{
   expiresAt: string;
 }>;
 
-export type VendorProductRecord = VendorProduct &
-  Readonly<{ vendorId: string }>;
+export type VendorProductRecord = VendorProduct & Readonly<{ vendorId: string }>;
 
 export type VendorOrderRecord = VendorOrder &
   Readonly<{ vendorId: string; submissionFingerprint: string }>;
 
-export type VendorSettingsRecord = VendorSettings &
-  Readonly<{ vendorId: string }>;
+export type VendorSettingsRecord = VendorSettings & Readonly<{ vendorId: string }>;
 
 export type VendorAuditEntityType =
-  | "auth"
-  | "product"
-  | "order"
-  | "settings"
-  | "vendor"
-  | "membership"
-  | "platform";
+  "auth" | "product" | "order" | "settings" | "vendor" | "membership" | "platform";
 
 export type VendorAuditRecord = Readonly<{
   id: string;
@@ -111,10 +103,7 @@ export type VendorDatabaseAccess = Readonly<{
 
 type LegacyVendorUserRecord = Omit<VendorUserRecord, "platformRole"> &
   Readonly<{ role: VendorRole }>;
-type LegacyVendorSessionRecord = Omit<
-  VendorSessionRecord,
-  "scope" | "activeVendorId"
->;
+type LegacyVendorSessionRecord = Omit<VendorSessionRecord, "scope" | "activeVendorId">;
 type LegacyVendorOrderRecord = Omit<VendorOrderRecord, "vendorId">;
 type LegacyVendorDatabase = {
   version: 1;
@@ -147,8 +136,7 @@ const globalRuntime = globalThis as typeof globalThis & {
   [runtimeKey]?: DatabaseRuntime;
 };
 const runtime =
-  globalRuntime[runtimeKey] ??
-  (globalRuntime[runtimeKey] = { queue: Promise.resolve() });
+  globalRuntime[runtimeKey] ?? (globalRuntime[runtimeKey] = { queue: Promise.resolve() });
 
 function clone<T>(value: T): T {
   return structuredClone(value);
@@ -203,9 +191,7 @@ function isDatabase(value: unknown): value is VendorDatabase {
 
 function migrateLegacyDatabase(source: LegacyVendorDatabase): VendorDatabase {
   const now = new Date().toISOString();
-  const owner = source.users.find(
-    (user) => user.active && user.role === "owner",
-  );
+  const owner = source.users.find((user) => user.active && user.role === "owner");
   const platformAdmin = owner ?? source.users.find((user) => user.active);
   return {
     version: 2,
@@ -260,9 +246,7 @@ function migrateLegacyDatabase(source: LegacyVendorDatabase): VendorDatabase {
   };
 }
 
-function verifyEnvelope(
-  raw: string,
-): Readonly<{ data: VendorDatabase; migrated: boolean }> | null {
+function verifyEnvelope(raw: string): Readonly<{ data: VendorDatabase; migrated: boolean }> | null {
   try {
     const parsed = JSON.parse(raw) as { checksum?: unknown; data?: unknown };
     if (typeof parsed.checksum !== "string") return null;
@@ -293,8 +277,7 @@ async function readSnapshot(filePath: string): Promise<SnapshotResult> {
 }
 
 function normalizedSeedNumber(): string {
-  const configured =
-    process.env.CHAPEGA_OWNER_WHATSAPP_NUMBER ?? "919876543210";
+  const configured = process.env.CHAPEGA_OWNER_WHATSAPP_NUMBER ?? "919876543210";
   try {
     return normalizeWhatsAppNumber(configured, "91");
   } catch {
@@ -396,10 +379,7 @@ async function syncDirectory(directory: string): Promise<void> {
   }
 }
 
-async function commitDatabase(
-  state: VendorDatabase,
-  rotateBackup = true,
-): Promise<void> {
+async function commitDatabase(state: VendorDatabase, rotateBackup = true): Promise<void> {
   const directory = dataDirectory();
   await mkdir(directory, { recursive: true });
   const payload = JSON.stringify(state);
@@ -407,10 +387,7 @@ async function commitDatabase(
     checksum: sha256(payload),
     data: state,
   };
-  const temporaryPath = path.join(
-    directory,
-    `vendor-db.${process.pid}.${randomUUID()}.tmp`,
-  );
+  const temporaryPath = path.join(directory, `vendor-db.${process.pid}.${randomUUID()}.tmp`);
   const handle = await open(temporaryPath, "wx", 0o600);
   try {
     await handle.writeFile(JSON.stringify(envelope, null, 2), "utf8");
@@ -433,9 +410,7 @@ async function loadDatabase(): Promise<VendorDatabase> {
   if (runtime.state) {
     if (isDatabase(runtime.state)) return runtime.state;
     if (isLegacyDatabase(runtime.state as unknown)) {
-      const migrated = migrateLegacyDatabase(
-        runtime.state as unknown as LegacyVendorDatabase,
-      );
+      const migrated = migrateLegacyDatabase(runtime.state as unknown as LegacyVendorDatabase);
       await commitDatabase(migrated);
       runtime.state = migrated;
       return migrated;
@@ -453,10 +428,7 @@ async function loadDatabase(): Promise<VendorDatabase> {
   const backup = await readSnapshot(backupPath());
   if (backup.kind === "valid") {
     if (primary.kind === "corrupt") {
-      const quarantinePath = path.join(
-        dataDirectory(),
-        `vendor-db.corrupt.${Date.now()}.json`,
-      );
+      const quarantinePath = path.join(dataDirectory(), `vendor-db.corrupt.${Date.now()}.json`);
       await rename(primaryPath(), quarantinePath);
     }
     await commitDatabase(backup.data, false);
@@ -487,9 +459,7 @@ function serialized<T>(operation: () => Promise<T>): Promise<T> {
 
 function pruneExpiredSessions(state: VendorDatabase): void {
   const now = Date.now();
-  state.sessions = state.sessions.filter(
-    (session) => Date.parse(session.expiresAt) > now,
-  );
+  state.sessions = state.sessions.filter((session) => Date.parse(session.expiresAt) > now);
 }
 
 export function findVendorBySlug(
@@ -515,6 +485,30 @@ export async function readLocalVendorDatabase(): Promise<VendorDatabase> {
   });
 }
 
+const MAX_LOCAL_AUDIT_RECORDS = 5_000;
+
+/**
+ * Bounds the local audit log without letting anonymous kiosk orders push out
+ * account and platform events: kiosk entries are trimmed first, oldest first.
+ */
+export function boundedAudit(
+  records: readonly VendorAuditRecord[],
+  limit: number,
+): VendorAuditRecord[] {
+  let excess = records.length - limit;
+  if (excess <= 0) return [...records];
+  const dropped = new Set<VendorAuditRecord>();
+  for (const record of records) {
+    if (excess === 0) break;
+    if (record.actorId === "kiosk") {
+      dropped.add(record);
+      excess -= 1;
+    }
+  }
+  const kept = records.filter((record) => !dropped.has(record));
+  return kept.slice(Math.max(0, kept.length - limit));
+}
+
 export async function updateLocalVendorDatabase<T>(
   mutation: (draft: VendorDatabase) => T | Promise<T>,
 ): Promise<T> {
@@ -523,19 +517,16 @@ export async function updateLocalVendorDatabase<T>(
     const draft = clone(current);
     pruneExpiredSessions(draft);
     const result = await mutation(draft);
-    draft.audit = draft.audit.slice(-500);
+    draft.audit = boundedAudit(draft.audit, MAX_LOCAL_AUDIT_RECORDS);
     await commitDatabase(draft);
     runtime.state = draft;
     return clone(result);
   });
 }
 
-export async function readVendorDatabase(
-  access?: VendorDatabaseAccess,
-): Promise<VendorDatabase> {
+export async function readVendorDatabase(access?: VendorDatabaseAccess): Promise<VendorDatabase> {
   if (usesSupabaseBackend()) {
-    const { readSupabaseVendorDatabase } =
-      await import("@/server/vendor/supabase-database");
+    const { readSupabaseVendorDatabase } = await import("@/server/vendor/supabase-database");
     return readSupabaseVendorDatabase(access);
   }
   return readLocalVendorDatabase();
@@ -546,8 +537,7 @@ export async function updateVendorDatabase<T>(
   access?: VendorDatabaseAccess,
 ): Promise<T> {
   if (usesSupabaseBackend()) {
-    const { updateSupabaseVendorDatabase } =
-      await import("@/server/vendor/supabase-database");
+    const { updateSupabaseVendorDatabase } = await import("@/server/vendor/supabase-database");
     return updateSupabaseVendorDatabase(mutation, access);
   }
   return updateLocalVendorDatabase(mutation);

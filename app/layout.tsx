@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./atelier.css";
 
@@ -13,9 +13,16 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Chapega.com",
+  title: { default: "Chapega.com", template: "%s | Chapega.com" },
   description:
     "Browse personalized gifts and prepare a Pay at Counter order for Chapega.com on WhatsApp.",
+};
+
+// The public kiosk is always light. Vendor Studio and admin override this
+// with THEMEABLE_VIEWPORT so a dark system gets a dark canvas there.
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#fff9f2",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

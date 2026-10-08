@@ -21,11 +21,12 @@ export function getAdminCredentialConfiguration(): AdminCredentialConfiguration 
   return {
     available: configuration.available,
     preview: configuration.preview,
-    credentials: configuration.preview && configuration.credentials
-      ? {
-          email: configuration.credentials.email,
-          password: configuration.credentials.password,
-        }
-      : null,
+    credentials:
+      configuration.preview && configuration.credentials
+        ? {
+            email: configuration.credentials.email,
+            password: configuration.credentials.password,
+          }
+        : null,
   };
 }

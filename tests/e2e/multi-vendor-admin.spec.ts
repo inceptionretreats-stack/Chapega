@@ -66,9 +66,7 @@ test("super admin creates an isolated vendor and controls its availability", asy
     user: { email: ownerEmail, role: "owner" },
   });
 
-  const unrelatedWorkspace = await page.request.get(
-    "/api/vendor/chapega/bootstrap",
-  );
+  const unrelatedWorkspace = await page.request.get("/api/vendor/chapega/bootstrap");
   expect(unrelatedWorkspace.status()).toBe(401);
 
   const suspendedResponse = await page.request.patch(
@@ -82,9 +80,7 @@ test("super admin creates an isolated vendor and controls its availability", asy
   const suspended = (await suspendedResponse.json()) as VendorMutation;
   expect(suspended.vendor.status).toBe("suspended");
 
-  const suspendedKiosk = await page.request.get(
-    `/api/kiosk/${slug}/bootstrap`,
-  );
+  const suspendedKiosk = await page.request.get(`/api/kiosk/${slug}/bootstrap`);
   expect(suspendedKiosk.status()).toBe(403);
   await expect(suspendedKiosk.json()).resolves.toMatchObject({
     error: { code: "VENDOR_SUSPENDED" },
@@ -107,8 +103,6 @@ test("super admin creates an isolated vendor and controls its availability", asy
   const reactivated = (await reactivatedResponse.json()) as VendorMutation;
   expect(reactivated.vendor.status).toBe("active");
 
-  const reactivatedKiosk = await page.request.get(
-    `/api/kiosk/${slug}/bootstrap`,
-  );
+  const reactivatedKiosk = await page.request.get(`/api/kiosk/${slug}/bootstrap`);
   expect(reactivatedKiosk.ok()).toBe(true);
 });

@@ -14,5 +14,21 @@ export default defineConfig({
     include: ["tests/unit/**/*.test.ts"],
     clearMocks: true,
     restoreMocks: true,
+    coverage: {
+      provider: "v8",
+      include: ["app/**", "components/**", "domain/**", "server/**", "store/**"],
+      exclude: ["**/*.d.ts", "**/*.css", ".next/**"],
+      reporter: ["text-summary", "json-summary", "lcov"],
+      reportsDirectory: "coverage",
+      // Ratchet: about one point under the current suite level (Linux CI can
+      // differ slightly from local runs) so regressions
+      // fail CI. Raise these as coverage improves; never lower them.
+      thresholds: {
+        statements: 62,
+        branches: 57,
+        functions: 61,
+        lines: 64,
+      },
+    },
   },
 });

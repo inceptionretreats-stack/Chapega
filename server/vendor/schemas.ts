@@ -4,8 +4,20 @@ import { normalizeWhatsAppNumber } from "@/domain/whatsapp";
 import type { ProductImagePath } from "@/types/kiosk";
 
 const trimmed = (maximum: number) => z.string().trim().min(1).max(maximum);
-const optionalTrimmed = (maximum: number) =>
-  z.string().trim().max(maximum).optional().default("");
+
+// Direction overrides/isolates and control characters (tab and line breaks
+// excepted) can spoof or garble the WhatsApp message; unpaired surrogates make
+// URL encoding throw. Customer-facing text is normalised before validation.
+const UNSAFE_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F‪-‮⁦-⁩]/g;
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+export function safeText(value: string): string {
+  return value.replace(LONE_SURROGATE, "�").replace(UNSAFE_CHARACTERS, "");
+}
+
+const safeTrimmed = (maximum: number) => z.string().transform(safeText).pipe(trimmed(maximum));
+const safeOptionalTrimmed = (maximum: number) =>
+  z.string().transform(safeText).pipe(z.string().trim().max(maximum)).optional().default("");
 
 export const vendorSlugSchema = z
   .string()
@@ -54,7 +66,9 @@ export const vendorProductSchema = z
     tags: z.array(trimmed(48)).max(20).default([]),
     recipientTags: z.array(trimmed(48)).max(20).default([]),
     occasionTags: z.array(trimmed(48)).max(20).default([]),
-    variants: z.array(productVariantSchema).max(20).default([]),
+    // Omitted on update means "keep the current variants"; a create treats it
+    // as none. Defaulting to [] here silently erased variants (AUD-9).
+    variants: z.array(productVariantSchema).max(20).optional(),
     preparationTime: trimmed(120),
     giftWrapEligible: z.boolean(),
     visible: z.boolean(),
@@ -62,10 +76,7 @@ export const vendorProductSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    if (
-      value.compareAtPricePaise !== undefined &&
-      value.compareAtPricePaise <= value.pricePaise
-    ) {
+    if (value.compareAtPricePaise !== undefined && value.compareAtPricePaise <= value.pricePaise) {
       context.addIssue({
         code: "custom",
         path: ["compareAtPricePaise"],
@@ -75,7 +86,7 @@ export const vendorProductSchema = z
 
     const variantIds = new Set<string>();
     const variantNames = new Set<string>();
-    for (const [index, variant] of value.variants.entries()) {
+    for (const [index, variant] of (value.variants ?? []).entries()) {
       const normalizedId = variant.id.toLowerCase();
       if (variantIds.has(normalizedId)) {
         context.addIssue({
@@ -123,28 +134,22 @@ export const vendorSettingsSchema = z
   .strict()
   .superRefine((value, context) => {
     try {
-      normalizeWhatsAppNumber(
-        value.ownerWhatsAppNumber,
-        value.defaultCountryCode,
-      );
+      normalizeWhatsAppNumber(value.ownerWhatsAppNumber, value.defaultCountryCode);
     } catch (error) {
       context.addIssue({
         code: "custom",
         path: ["ownerWhatsAppNumber"],
-        message:
-          error instanceof Error
-            ? error.message
-            : "Enter a valid WhatsApp number.",
+        message: error instanceof Error ? error.message : "Enter a valid WhatsApp number.",
       });
     }
   });
 
 const customerSchema = z
   .object({
-    customerName: optionalTrimmed(80),
-    customerPhone: optionalTrimmed(30),
-    giftNote: optionalTrimmed(240),
-    orderNote: optionalTrimmed(240),
+    customerName: safeOptionalTrimmed(80),
+    customerPhone: safeOptionalTrimmed(30),
+    giftNote: safeOptionalTrimmed(240),
+    orderNote: safeOptionalTrimmed(240),
   })
   .strict()
   .superRefine((value, context) => {
@@ -161,12 +166,14 @@ const customerSchema = z
 export const kioskOrderSubmissionSchema = z
   .object({
     idempotencyKey: trimmed(100),
+    // Older kiosks still send these; the server assigns its own number and time.
     orderNumber: z
       .string()
-      .regex(/^GFT-\d{8}-\d{4}$/)
-      .max(40),
-    createdAt: z.string().datetime(),
-    kioskName: trimmed(80),
+      .regex(/^GFT-\d{8}-\d{4,6}$/)
+      .max(40)
+      .optional(),
+    createdAt: z.string().datetime().optional(),
+    kioskName: safeTrimmed(80),
     customer: customerSchema,
     items: z
       .array(
@@ -183,22 +190,13 @@ export const kioskOrderSubmissionSchema = z
       .max(5),
   })
   .strict()
-  .refine(
-    (value) =>
-      value.items.reduce((total, item) => total + item.quantity, 0) <= 5,
-    { message: "A kiosk order can contain at most five gift units." },
-  );
+  .refine((value) => value.items.reduce((total, item) => total + item.quantity, 0) <= 5, {
+    message: "A kiosk order can contain at most five gift units.",
+  });
 
 export const orderTransitionSchema = z
   .object({
-    status: z.enum([
-      "prepared",
-      "confirmed",
-      "preparing",
-      "ready",
-      "completed",
-      "cancelled",
-    ]),
+    status: z.enum(["prepared", "confirmed", "preparing", "ready", "completed", "cancelled"]),
     version: z.number().int().positive(),
     note: z.string().trim().max(240).optional(),
   })

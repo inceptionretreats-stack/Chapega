@@ -13,11 +13,7 @@ export type PlatformRole = "super_admin";
 export type VendorStatus = "active" | "suspended";
 
 export type VendorCapability =
-  | "view_dashboard"
-  | "manage_orders"
-  | "manage_catalogue"
-  | "manage_settings"
-  | "manage_team";
+  "view_dashboard" | "manage_orders" | "manage_catalogue" | "manage_settings" | "manage_team";
 
 export type VendorCapabilities = Readonly<Record<VendorCapability, boolean>>;
 
@@ -156,8 +152,10 @@ export type VendorBootstrap = Readonly<{
 
 export type KioskOrderSubmission = Readonly<{
   idempotencyKey: string;
-  orderNumber: string;
-  createdAt: string;
+  /** Ignored: the server assigns the display number. Accepted from older kiosks. */
+  orderNumber?: string;
+  /** Ignored: the server records its own time. Accepted from older kiosks. */
+  createdAt?: string;
   kioskName: string;
   customer: CustomerDetails;
   items: readonly Readonly<{

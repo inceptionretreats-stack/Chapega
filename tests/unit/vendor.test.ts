@@ -53,15 +53,15 @@ describe("vendor input validation", () => {
     expect(optionalCustomerPhoneError("")).toBeNull();
     expect(optionalCustomerPhoneError("+91 98765-43210")).toBeNull();
     expect(optionalCustomerPhoneError("123")).toMatch(/7 to 15 digits/);
-    expect(optionalCustomerPhoneError("9876 CALL ME")).toMatch(
-      /7 to 15 digits/,
-    );
+    expect(optionalCustomerPhoneError("9876 CALL ME")).toMatch(/7 to 15 digits/);
   });
 
   it("accepts a valid product and rejects price or media tampering", () => {
     const parsed = vendorProductSchema.safeParse(product);
     expect(parsed.success).toBe(true);
-    expect(parsed.data?.variants).toEqual([]);
+    // AUD-9: an omitted variants key must stay omitted so an update keeps the
+    // stored variants; the service treats it as "none" only on create.
+    expect(parsed.data?.variants).toBeUndefined();
     expect(
       vendorProductSchema.safeParse({
         ...product,
@@ -74,9 +74,7 @@ describe("vendor input validation", () => {
         image: "https://attacker.example/product.svg",
       }).success,
     ).toBe(false);
-    expect(
-      vendorProductSchema.safeParse({ ...product, stock: -1 }).success,
-    ).toBe(false);
+    expect(vendorProductSchema.safeParse({ ...product, stock: -1 }).success).toBe(false);
     expect(
       vendorProductSchema.safeParse({
         ...product,
@@ -100,13 +98,8 @@ describe("vendor input validation", () => {
       },
     ];
 
-    expect(
-      vendorProductSchema.safeParse({ ...product, variants }).success,
-    ).toBe(true);
-    expect(
-      vendorProductSchema.safeParse({ ...product, variants, version: 2 })
-        .success,
-    ).toBe(true);
+    expect(vendorProductSchema.safeParse({ ...product, variants }).success).toBe(true);
+    expect(vendorProductSchema.safeParse({ ...product, variants, version: 2 }).success).toBe(true);
     expect(
       vendorProductSchema.safeParse({
         ...product,
@@ -189,6 +182,24 @@ describe("vendor input validation", () => {
         items: [{ ...order.items[0], quantity: 6 }],
       }).success,
     ).toBe(false);
+
+    // AUD-36: direction overrides, control characters and broken surrogates
+    // must never reach the WhatsApp message or crash its URL encoding.
+    const unsafe = kioskOrderSubmissionSchema.parse({
+      ...order,
+      kioskName: "Desk‮ A",
+      customer: {
+        ...order.customer,
+        customerName: "Asha\u0085⁦ R",
+        giftNote: "Love \uD800you",
+        orderNote: "Gift\u0007 wrap",
+      },
+    });
+    expect(unsafe.kioskName).toBe("Desk A");
+    expect(unsafe.customer.customerName).toBe("Asha R");
+    expect(unsafe.customer.giftNote).toBe("Love �you");
+    expect(unsafe.customer.orderNote).toBe("Gift wrap");
+    expect(() => encodeURIComponent(unsafe.customer.giftNote)).not.toThrow();
   });
 
   it("accepts only bounded, versioned shop settings", () => {
@@ -206,13 +217,8 @@ describe("vendor input validation", () => {
       version: 1,
     };
     expect(vendorSettingsSchema.safeParse(settings).success).toBe(true);
-    expect(
-      vendorSettingsSchema.safeParse({ ...settings, maxCartQuantity: 6 })
-        .success,
-    ).toBe(false);
-    expect(
-      vendorSettingsSchema.safeParse({ ...settings, version: 0 }).success,
-    ).toBe(false);
+    expect(vendorSettingsSchema.safeParse({ ...settings, maxCartQuantity: 6 }).success).toBe(false);
+    expect(vendorSettingsSchema.safeParse({ ...settings, version: 0 }).success).toBe(false);
     expect(
       vendorSettingsSchema.safeParse({
         ...settings,

@@ -11,12 +11,17 @@ const memory = vi.hoisted(() => ({
   auditCounter: 0,
   database: null as unknown,
   imageCheck: vi.fn(),
+  kioskSnapshot: vi.fn(),
   mutationActive: false,
+  supabase: false,
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/server/supabase/config", () => ({
-  usesSupabaseBackend: () => false,
+  usesSupabaseBackend: () => memory.supabase,
+}));
+vi.mock("@/server/vendor/supabase-database", () => ({
+  readSupabaseKioskSnapshot: memory.kioskSnapshot,
 }));
 vi.mock("@/server/vendor/image-lifecycle", () => ({
   assertProductImageExists: memory.imageCheck,
@@ -30,14 +35,7 @@ vi.mock("@/server/vendor/database", () => ({
   newAuditRecord: (
     actorId: string,
     action: string,
-    entityType:
-      | "auth"
-      | "product"
-      | "order"
-      | "settings"
-      | "vendor"
-      | "membership"
-      | "platform",
+    entityType: "auth" | "product" | "order" | "settings" | "vendor" | "membership" | "platform",
     entityId: string,
     vendorId: string | null = null,
   ) => ({
@@ -50,9 +48,7 @@ vi.mock("@/server/vendor/database", () => ({
     createdAt: new Date().toISOString(),
   }),
   readVendorDatabase: async () => structuredClone(memory.database),
-  updateVendorDatabase: async <T>(
-    mutation: (draft: VendorDatabase) => T | Promise<T>,
-  ) => {
+  updateVendorDatabase: async <T>(mutation: (draft: VendorDatabase) => T | Promise<T>) => {
     const draft = structuredClone(memory.database) as VendorDatabase;
     memory.mutationActive = true;
     try {
@@ -67,6 +63,7 @@ vi.mock("@/server/vendor/database", () => ({
 
 import {
   createVendorProduct,
+  getKioskBootstrap,
   getVendorBootstrap,
   recordKioskOrder,
   transitionVendorOrder,
@@ -233,22 +230,10 @@ describe("vendor service persistence rules", () => {
     });
 
     const created = await createVendorProduct(input, vendor);
-    await updateVendorProduct(
-      created.id,
-      { ...input, version: created.version },
-      vendor,
-    );
+    await updateVendorProduct(created.id, { ...input, version: created.version }, vendor);
 
-    expect(memory.imageCheck).toHaveBeenNthCalledWith(
-      1,
-      input.image,
-      vendor.activeVendor.id,
-    );
-    expect(memory.imageCheck).toHaveBeenNthCalledWith(
-      2,
-      input.image,
-      vendor.activeVendor.id,
-    );
+    expect(memory.imageCheck).toHaveBeenNthCalledWith(1, input.image, vendor.activeVendor.id);
+    expect(memory.imageCheck).toHaveBeenNthCalledWith(2, input.image, vendor.activeVendor.id);
   });
 
   it("does not persist a create when the referenced image is missing", async () => {
@@ -399,10 +384,24 @@ describe("vendor service persistence rules", () => {
       },
     ]);
     expect(
-      currentDatabase().products.find(
-        (candidate) => candidate.id === created.id,
-      )?.variants,
+      currentDatabase().products.find((candidate) => candidate.id === created.id)?.variants,
     ).toEqual(updated.variants);
+  });
+
+  it("keeps existing variants when an update omits them (AUD-9)", async () => {
+    const existing = currentDatabase().products[0];
+    expect(existing.variants.length).toBeGreaterThan(0);
+    const { variants: _omitted, ...withoutVariants } = existing;
+    void _omitted;
+
+    const hidden = await updateVendorProduct(
+      existing.id,
+      { ...withoutVariants, visible: false, version: existing.version },
+      vendor,
+    );
+
+    expect(hidden.visible).toBe(false);
+    expect(hidden.variants).toEqual(existing.variants);
   });
 
   it("returns an existing idempotent order after the shop is paused", async () => {
@@ -416,6 +415,87 @@ describe("vendor service persistence rules", () => {
 
     expect(retry).toEqual(first);
     expect(currentDatabase().orders).toHaveLength(1);
+  });
+
+  it("serves the Supabase kiosk catalogue without loading the whole tenant (AUD-14)", async () => {
+    const tenant = currentDatabase();
+    const saved = memory.database;
+    memory.kioskSnapshot.mockResolvedValue({
+      vendor: tenant.vendors[0],
+      revision: 7,
+      settings: tenant.settings[0],
+      products: tenant.products,
+    });
+    memory.supabase = true;
+    // Any full-tenant read would now fail: the catalogue must come only from
+    // the dedicated catalogue reader.
+    memory.database = null;
+    try {
+      const bootstrap = await getKioskBootstrap("chapega");
+      expect(memory.kioskSnapshot).toHaveBeenCalledWith("chapega");
+      expect(bootstrap.products.map((item) => item.id)).toEqual(
+        tenant.products.map((item) => item.id),
+      );
+      expect(bootstrap.storeOpen).toBe(tenant.settings[0].storeOpen);
+    } finally {
+      memory.supabase = false;
+      memory.database = saved;
+    }
+  });
+
+  it("keeps accepting orders when the local archive is full of stale drafts (AUD-20)", async () => {
+    const template = await recordKioskOrder(submission);
+    const stored = currentDatabase().orders[0];
+    const tenDaysAgo = new Date(Date.now() - 10 * 24 * 60 * 60 * 1_000).toISOString();
+    currentDatabase().orders = Array.from({ length: 500 }, (_, index) => ({
+      ...structuredClone(stored),
+      id: `stale-${index}`,
+      orderNumber: `GFT-20260901-${String(1_000 + index)}`,
+      idempotencyKey: `stale-${index}`,
+      status: "prepared" as const,
+      createdAt: tenDaysAgo,
+      updatedAt: tenDaysAgo,
+    }));
+
+    const fresh = await recordKioskOrder({ ...submission, idempotencyKey: "after-flood" });
+
+    expect(fresh.id).not.toBe(template.id);
+    expect(currentDatabase().orders).toHaveLength(500);
+    expect(currentDatabase().orders.some((order) => order.id === "stale-0")).toBe(false);
+  });
+
+  it("assigns its own order number and ignores the kiosk's suggestion (AUD-37)", async () => {
+    const order = await recordKioskOrder({
+      ...submission,
+      orderNumber: "GFT-20000101-0001",
+    });
+
+    expect(order.orderNumber).toMatch(/^GFT-\d{8}-\d{4,6}$/);
+    expect(order.orderNumber).not.toBe("GFT-20000101-0001");
+    expect(order.whatsappMessage).toContain(`Order: ${order.orderNumber}`);
+  });
+
+  it("treats a retry with a new timestamp and number as the same order (AUD-37)", async () => {
+    const first = await recordKioskOrder(submission);
+    const retry = await recordKioskOrder({
+      ...submission,
+      orderNumber: "GFT-20260918-9999",
+      createdAt: "2026-09-18T08:05:00.000Z",
+    });
+
+    expect(retry).toEqual(first);
+    expect(currentDatabase().orders).toHaveLength(1);
+  });
+
+  it("never reuses an order number already taken that day (AUD-37)", async () => {
+    const first = await recordKioskOrder(submission);
+    const second = await recordKioskOrder({
+      ...submission,
+      idempotencyKey: "service-test-order-2",
+    });
+
+    expect(second.orderNumber).not.toBe(first.orderNumber);
+    expect(new Set(currentDatabase().orders.map((order) => order.orderNumber)).size).toBe(2);
   });
 
   it("keeps products, idempotency keys, and order numbers isolated per vendor", async () => {
@@ -474,12 +554,10 @@ describe("vendor service persistence rules", () => {
     expect(first.totalPaise).toBe(20_000);
     expect(second.totalPaise).toBe(40_000);
     expect(currentDatabase().orders).toHaveLength(2);
-    expect(
-      new Set(currentDatabase().orders.map((order) => order.vendorId)),
-    ).toEqual(new Set([vendor.activeVendor.id, otherId]));
-    expect(secondBootstrap.products.map((item) => item.name)).toEqual([
-      "Second Shop Keepsake",
-    ]);
+    expect(new Set(currentDatabase().orders.map((order) => order.vendorId))).toEqual(
+      new Set([vendor.activeVendor.id, otherId]),
+    );
+    expect(secondBootstrap.products.map((item) => item.name)).toEqual(["Second Shop Keepsake"]);
     expect(secondBootstrap.orders).toHaveLength(1);
   });
 

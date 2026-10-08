@@ -12,16 +12,18 @@ const FOCUSABLE_SELECTOR = [
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
 
+// Open modals, innermost last. Only the top modal handles Escape and Tab, so
+// a confirmation stacked over the product editor closes on its own.
+const modalStack: symbol[] = [];
+
 function getFocusableElements(container: HTMLElement) {
   return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-    (element) => element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0,
+    (element) =>
+      element.getAttribute("aria-hidden") !== "true" && element.getClientRects().length > 0,
   );
 }
 
-export function useModalFocus<
-  TContainer extends HTMLElement,
-  TInitial extends HTMLElement,
->(
+export function useModalFocus<TContainer extends HTMLElement, TInitial extends HTMLElement>(
   containerRef: RefObject<TContainer | null>,
   initialFocusRef: RefObject<TInitial | null>,
   onClose: () => void,
@@ -36,6 +38,9 @@ export function useModalFocus<
     const container = containerRef.current;
     if (!container) return;
 
+    const token = Symbol("modal");
+    modalStack.push(token);
+
     const previousBodyOverflow = document.body.style.overflow;
     const previousBodyPaddingRight = document.body.style.paddingRight;
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -44,22 +49,23 @@ export function useModalFocus<
       document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
-    const previouslyFocused = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusFrame = window.requestAnimationFrame(() => {
       const preferredFocus = initialFocusRef.current;
       const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
       const preferredFocusOpensKeyboard = preferredFocus?.matches(
         "input, textarea, select, [contenteditable='true']",
       );
-      const initialFocus = coarsePointer && preferredFocusOpensKeyboard
-        ? container
-        : preferredFocus ?? getFocusableElements(container)[0] ?? container;
+      const initialFocus =
+        coarsePointer && preferredFocusOpensKeyboard
+          ? container
+          : (preferredFocus ?? getFocusableElements(container)[0] ?? container);
       initialFocus.focus();
     });
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (modalStack[modalStack.length - 1] !== token) return;
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
@@ -93,6 +99,8 @@ export function useModalFocus<
     document.addEventListener("keydown", handleKeyDown, true);
 
     return () => {
+      const index = modalStack.lastIndexOf(token);
+      if (index !== -1) modalStack.splice(index, 1);
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handleKeyDown, true);
       document.body.style.overflow = previousBodyOverflow;

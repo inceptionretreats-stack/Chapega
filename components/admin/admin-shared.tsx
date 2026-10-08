@@ -10,13 +10,7 @@ export function AdminVendorStatus({ status }: { status: AdminVendorStatus }) {
   );
 }
 
-export function VendorAvatar({
-  name,
-  compact = false,
-}: {
-  name: string;
-  compact?: boolean;
-}) {
+export function VendorAvatar({ name, compact = false }: { name: string; compact?: boolean }) {
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
@@ -25,10 +19,7 @@ export function VendorAvatar({
     .join("");
 
   return (
-    <span
-      className={`admin-vendor-avatar${compact ? " is-compact" : ""}`}
-      aria-hidden="true"
-    >
+    <span className={`admin-vendor-avatar${compact ? " is-compact" : ""}`} aria-hidden="true">
       {initials || <Store size={compact ? 17 : 21} />}
     </span>
   );
@@ -39,6 +30,34 @@ export function AdminAccountAvatar() {
     <span className="admin-account-avatar" aria-hidden="true">
       <UserRound size={19} />
     </span>
+  );
+}
+
+/**
+ * Move focus to the first field marked invalid inside `root`; when no field is
+ * invalid (a non-field failure) fall back to the error summary.
+ */
+export function focusFirstInvalid(root: ParentNode | null, fallback: HTMLElement | null): void {
+  const field = root?.querySelector<HTMLElement>('[aria-invalid="true"]:not(:disabled)');
+  (field ?? fallback)?.focus();
+}
+
+/** Skip link that also moves focus to its target (anchor jumps alone do not in every browser). */
+export function AdminSkipLink({ targetId }: { targetId: string }) {
+  return (
+    <a
+      className="admin-skip-link"
+      href={`#${targetId}`}
+      onClick={(event) => {
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        event.preventDefault();
+        target.focus();
+        target.scrollIntoView?.({ block: "start" });
+      }}
+    >
+      Skip to main content
+    </a>
   );
 }
 

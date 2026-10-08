@@ -63,11 +63,13 @@ async function main(): Promise<void> {
       `Migration drift detected. Local: ${localVersions.join(", ") || "none"}; remote: ${remoteVersions.join(", ") || "none"}.`,
     );
 
-    const tables = await admin<Array<{
-      table_name: string;
-      row_security: boolean;
-      force_row_security: boolean;
-    }>>`
+    const tables = await admin<
+      Array<{
+        table_name: string;
+        row_security: boolean;
+        force_row_security: boolean;
+      }>
+    >`
       select
         class.relname as table_name,
         class.relrowsecurity as row_security,
@@ -78,18 +80,14 @@ async function main(): Promise<void> {
       order by class.relname
     `;
     const tableNames = new Set(tables.map((table) => table.table_name));
-    const missingTables = EXPECTED_PRIVATE_TABLES.filter(
-      (table) => !tableNames.has(table),
-    );
+    const missingTables = EXPECTED_PRIVATE_TABLES.filter((table) => !tableNames.has(table));
     assert(missingTables.length === 0, `Missing private tables: ${missingTables.join(", ")}.`);
     assert(
       tables.every((table) => table.row_security && table.force_row_security),
       "Every private table must have enabled and forced row-level security.",
     );
 
-    const [{ public_grants: publicGrants }] = await admin<
-      Array<{ public_grants: number }>
-    >`
+    const [{ public_grants: publicGrants }] = await admin<Array<{ public_grants: number }>>`
       select count(*)::integer as public_grants
       from information_schema.role_table_grants
       where table_schema = 'private'
@@ -97,9 +95,7 @@ async function main(): Promise<void> {
     `;
     assert(publicGrants === 0, "Private tables expose public Data API grants.");
 
-    const [{ policy_count: policyCount }] = await admin<
-      Array<{ policy_count: number }>
-    >`
+    const [{ policy_count: policyCount }] = await admin<Array<{ policy_count: number }>>`
       select count(*)::integer as policy_count
       from pg_policies
       where schemaname = 'private' and roles @> array['chapega_app']::name[]
@@ -109,10 +105,12 @@ async function main(): Promise<void> {
       "The restricted runtime role is missing private-table policies.",
     );
 
-    const unsafePolicies = await admin<Array<{
-      tablename: string;
-      policyname: string;
-    }>>`
+    const unsafePolicies = await admin<
+      Array<{
+        tablename: string;
+        policyname: string;
+      }>
+    >`
       select tablename, policyname
       from pg_policies
       where schemaname = 'private'
@@ -127,15 +125,17 @@ async function main(): Promise<void> {
         .join(", ")}.`,
     );
 
-    const [role] = await admin<Array<{
-      rolcanlogin: boolean;
-      rolsuper: boolean;
-      rolinherit: boolean;
-      rolcreatedb: boolean;
-      rolcreaterole: boolean;
-      rolreplication: boolean;
-      rolbypassrls: boolean;
-    }>>`
+    const [role] = await admin<
+      Array<{
+        rolcanlogin: boolean;
+        rolsuper: boolean;
+        rolinherit: boolean;
+        rolcreatedb: boolean;
+        rolcreaterole: boolean;
+        rolreplication: boolean;
+        rolbypassrls: boolean;
+      }>
+    >`
       select rolcanlogin, rolsuper, rolinherit, rolcreatedb, rolcreaterole,
              rolreplication, rolbypassrls
       from pg_roles
@@ -152,11 +152,13 @@ async function main(): Promise<void> {
       "The chapega_app runtime role has elevated privileges.",
     );
 
-    const [bucket] = await admin<Array<{
-      public: boolean;
-      file_size_limit: number | null;
-      allowed_mime_types: string[] | null;
-    }>>`
+    const [bucket] = await admin<
+      Array<{
+        public: boolean;
+        file_size_limit: number | null;
+        allowed_mime_types: string[] | null;
+      }>
+    >`
       select public, file_size_limit, allowed_mime_types
       from storage.buckets
       where id = 'vendor-products'
@@ -172,14 +174,16 @@ async function main(): Promise<void> {
       "The vendor-products bucket MIME allow-list is incomplete.",
     );
 
-    const [defaultVendor] = await admin<Array<{
-      id: string;
-      slug: string;
-      products: number;
-      orders: number;
-      memberships: number;
-      super_admins: number;
-    }>>`
+    const [defaultVendor] = await admin<
+      Array<{
+        id: string;
+        slug: string;
+        products: number;
+        orders: number;
+        memberships: number;
+        super_admins: number;
+      }>
+    >`
       select
         vendors.id,
         vendors.slug,
@@ -200,10 +204,7 @@ async function main(): Promise<void> {
       defaultVendor.memberships > 0,
       "Legacy users were not backfilled into vendor memberships.",
     );
-    assert(
-      defaultVendor.super_admins > 0,
-      "No active platform super administrator exists.",
-    );
+    assert(defaultVendor.super_admins > 0, "No active platform super administrator exists.");
 
     const [unscoped] = await admin<Array<{ row_count: number }>>`
       select (
@@ -221,11 +222,13 @@ async function main(): Promise<void> {
 
     const runtimeState = await runtime.begin(async (transaction) => {
       await transaction`select set_config('app.vendor_id', ${DEFAULT_VENDOR_ID}, true)`;
-      const [state] = await transaction<Array<{
-        runtime_role: string;
-        products: number;
-        orders: number;
-      }>>`
+      const [state] = await transaction<
+        Array<{
+          runtime_role: string;
+          products: number;
+          orders: number;
+        }>
+      >`
         select
           current_user as runtime_role,
           (select count(*)::integer from private.products
@@ -266,9 +269,13 @@ async function main(): Promise<void> {
     );
 
     console.log("Supabase verification passed.");
-    console.log(`- Migrations: ${remoteVersions.length}/${localVersions.length} applied with no drift`);
+    console.log(
+      `- Migrations: ${remoteVersions.length}/${localVersions.length} applied with no drift`,
+    );
     console.log(`- Private schema: ${tables.length} tables with forced RLS and no public grants`);
-    console.log(`- Runtime role: chapega_app with restricted privileges and ${policyCount} policies`);
+    console.log(
+      `- Runtime role: chapega_app with restricted privileges and ${policyCount} policies`,
+    );
     console.log("- Storage: vendor-products is public with the expected size/type limits");
     console.log(
       `- Tenant backfill: chapega has ${runtimeState.products} products, ${runtimeState.orders} orders, and ${defaultVendor.memberships} memberships`,
@@ -281,7 +288,9 @@ async function main(): Promise<void> {
 
 main().catch((error: unknown) => {
   console.error(
-    error instanceof Error ? `Supabase verification failed: ${error.message}` : "Supabase verification failed.",
+    error instanceof Error
+      ? `Supabase verification failed: ${error.message}`
+      : "Supabase verification failed.",
   );
   process.exitCode = 1;
 });

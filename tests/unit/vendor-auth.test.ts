@@ -66,11 +66,7 @@ const memberships: VendorMembershipRecord[] = [
 
 describe("vendor access contexts", () => {
   it("derives capabilities from the active membership instead of platform role", () => {
-    const publicUser = vendorUserFromDatabase(
-      { vendors, memberships },
-      user,
-      vendors[0].id,
-    );
+    const publicUser = vendorUserFromDatabase({ vendors, memberships }, user, vendors[0].id);
 
     expect(publicUser).not.toBeNull();
     expect(publicUser?.role).toBe("manager");
@@ -81,18 +77,15 @@ describe("vendor access contexts", () => {
       manage_settings: false,
       manage_team: false,
     });
-    expect(
-      publicUser?.memberships.map((membership) => membership.vendor.slug),
-    ).toEqual(["chapega", "paused-shop"]);
-    expect(vendorAccessContextFromUser(publicUser!).vendor.id).toBe(
-      vendors[0].id,
-    );
+    expect(publicUser?.memberships.map((membership) => membership.vendor.slug)).toEqual([
+      "chapega",
+      "paused-shop",
+    ]);
+    expect(vendorAccessContextFromUser(publicUser!).vendor.id).toBe(vendors[0].id);
   });
 
   it("refuses suspended vendors even when the membership is active", () => {
-    expect(
-      vendorUserFromDatabase({ vendors, memberships }, user, vendors[1].id),
-    ).toBeNull();
+    expect(vendorUserFromDatabase({ vendors, memberships }, user, vendors[1].id)).toBeNull();
   });
 
   it("gives staff order operations without catalogue or settings access", () => {

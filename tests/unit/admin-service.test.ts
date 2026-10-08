@@ -236,29 +236,17 @@ describe("platform administrator service", () => {
     expect(result.metrics.totalVendors).toBe(2);
   });
 
-  it("suspends and reactivates a vendor with optimistic revisions", async () => {
-    const suspended = await updateAdminVendorStatus(
-      context,
-      vendorId,
-      "suspended",
-      1,
-    );
+  it("suspends and reactivates a vendor with status-specific concurrency checks", async () => {
+    const suspended = await updateAdminVendorStatus(context, vendorId, "suspended", "active");
     expect(suspended.vendor).toMatchObject({ status: "suspended", revision: 2 });
     expect(memory.updateAccess).toEqual({
       vendorId,
       platformSessionHash: platformHash,
     });
 
-    const reactivated = await updateAdminVendorStatus(
-      context,
-      vendorId,
-      "active",
-      2,
-    );
+    const reactivated = await updateAdminVendorStatus(context, vendorId, "active");
     expect(reactivated.vendor).toMatchObject({ status: "active", revision: 3 });
-    expect(
-      (memory.database as VendorDatabase).audit.map((record) => record.action),
-    ).toEqual([
+    expect((memory.database as VendorDatabase).audit.map((record) => record.action)).toEqual([
       "platform.vendor.suspended",
       "platform.vendor.reactivated",
     ]);

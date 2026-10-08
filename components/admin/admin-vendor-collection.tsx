@@ -1,19 +1,9 @@
 "use client";
 
-import {
-  ChevronRight,
-  PauseCircle,
-  PlayCircle,
-  Plus,
-  Search,
-} from "lucide-react";
+import { ChevronRight, PauseCircle, PlayCircle, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { AdminVendorStatus, AdminVendorSummary } from "@/types/admin";
-import {
-  AdminVendorStatus as VendorStatus,
-  relativeAdminTime,
-  VendorAvatar,
-} from "./admin-shared";
+import { AdminVendorStatus as VendorStatus, relativeAdminTime, VendorAvatar } from "./admin-shared";
 
 type AdminVendorCollectionProps = {
   vendors: readonly AdminVendorSummary[];
@@ -34,12 +24,7 @@ export function AdminVendorCollection({
     return vendors.filter((vendor) => {
       if (status !== "all" && vendor.status !== status) return false;
       if (!normalized) return true;
-      return [
-        vendor.displayName,
-        vendor.slug,
-        vendor.owner.name,
-        vendor.owner.email,
-      ]
+      return [vendor.displayName, vendor.slug, vendor.owner.name, vendor.owner.email]
         .join(" ")
         .toLocaleLowerCase("en-IN")
         .includes(normalized);
@@ -47,7 +32,12 @@ export function AdminVendorCollection({
   }, [query, status, vendors]);
 
   return (
-    <section className="admin-vendors" id="vendor-management" aria-labelledby="admin-vendors-title">
+    <section
+      className="admin-vendors"
+      id="vendor-management"
+      tabIndex={-1}
+      aria-labelledby="admin-vendors-title"
+    >
       <header className="admin-vendors__header">
         <div>
           <h2 id="admin-vendors-title">Vendors</h2>
@@ -87,19 +77,21 @@ export function AdminVendorCollection({
       </p>
 
       {filtered.length ? (
-        <>
+        <div id="vendor-accounts" tabIndex={-1} role="group" aria-label="Vendor owner accounts">
           <div className="admin-vendor-table-wrap">
             <table className="admin-vendor-table">
               <caption className="sr-only">Platform vendors</caption>
               <thead>
                 <tr>
                   <th scope="col">Vendor</th>
-                  <th scope="col" id="vendor-accounts">Owner</th>
+                  <th scope="col">Owner</th>
                   <th scope="col">Store status</th>
                   <th scope="col">Products</th>
                   <th scope="col">Orders</th>
                   <th scope="col">Last activity</th>
-                  <th scope="col"><span className="sr-only">Vendor action</span></th>
+                  <th scope="col">
+                    <span className="sr-only">Vendor action</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -108,14 +100,26 @@ export function AdminVendorCollection({
                     <th scope="row">
                       <span className="admin-vendor-identity">
                         <VendorAvatar name={vendor.displayName} compact />
-                        <span><strong>{vendor.displayName}</strong><small>/kiosk/{vendor.slug}</small></span>
+                        <span>
+                          <strong>{vendor.displayName}</strong>
+                          <small>/kiosk/{vendor.slug}</small>
+                        </span>
                       </span>
                     </th>
-                    <td><strong>{vendor.owner.name}</strong><small>{vendor.owner.email}</small></td>
-                    <td><VendorStatus status={vendor.status} /></td>
+                    <td>
+                      <strong>{vendor.owner.name}</strong>
+                      <small>{vendor.owner.email}</small>
+                    </td>
+                    <td>
+                      <VendorStatus status={vendor.status} />
+                    </td>
                     <td>{vendor.productCount}</td>
                     <td>{vendor.orderCount}</td>
-                    <td><time dateTime={vendor.lastActivityAt} suppressHydrationWarning>{relativeAdminTime(vendor.lastActivityAt)}</time></td>
+                    <td>
+                      <time dateTime={vendor.lastActivityAt} suppressHydrationWarning>
+                        {relativeAdminTime(vendor.lastActivityAt)}
+                      </time>
+                    </td>
                     <td>
                       <button
                         className="admin-row-action"
@@ -123,7 +127,11 @@ export function AdminVendorCollection({
                         onClick={() => onChangeStatus(vendor)}
                         aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
                       >
-                        {vendor.status === "active" ? <PauseCircle size={18} /> : <PlayCircle size={18} />}
+                        {vendor.status === "active" ? (
+                          <PauseCircle size={18} />
+                        ) : (
+                          <PlayCircle size={18} />
+                        )}
                       </button>
                     </td>
                   </tr>
@@ -140,7 +148,10 @@ export function AdminVendorCollection({
                   <strong>{vendor.displayName}</strong>
                   <span>{vendor.owner.name}</span>
                   <VendorStatus status={vendor.status} />
-                  <small>{vendor.productCount} products <i>•</i> {vendor.orderCount} {vendor.orderCount === 1 ? "order" : "orders"}</small>
+                  <small>
+                    {vendor.productCount} products <i>•</i> {vendor.orderCount}{" "}
+                    {vendor.orderCount === 1 ? "order" : "orders"}
+                  </small>
                 </div>
                 <button
                   className="admin-vendor-list__action"
@@ -153,7 +164,7 @@ export function AdminVendorCollection({
               </li>
             ))}
           </ul>
-        </>
+        </div>
       ) : (
         <div className="admin-empty-state">
           <Search size={25} aria-hidden="true" />

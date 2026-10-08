@@ -2,9 +2,7 @@
 
 import { create } from "zustand";
 
-import {
-  CATALOGUE_PRODUCTS,
-} from "@/data/catalogue";
+import { CATALOGUE_PRODUCTS } from "@/data/catalogue";
 import {
   addCartItem,
   getCartUnitCount,
@@ -15,15 +13,8 @@ import {
   type AddCartItemOptions,
 } from "@/domain/cart";
 import { calculateCartTotals } from "@/domain/money";
-import {
-  createOrder,
-  markOrderAsPresenterSent,
-  redactOrderForHistory,
-} from "@/domain/order";
-import {
-  normalizeWhatsAppNumber,
-  WhatsAppNumberError,
-} from "@/domain/whatsapp";
+import { createOrder, redactOrderForHistory } from "@/domain/order";
+import { normalizeWhatsAppNumber } from "@/domain/whatsapp";
 import {
   type CartError,
   type CartLine,
@@ -39,18 +30,19 @@ import {
   type OrderResult,
   type PresenterSettings,
   type Product,
-  type SettingsResult,
 } from "@/types/kiosk";
 
-export const PRESENTER_SETTINGS_STORAGE_KEY =
-  "gift-kiosk-presenter-settings";
+export const PRESENTER_SETTINGS_STORAGE_KEY = "gift-kiosk-presenter-settings";
 export const ORDERS_STORAGE_KEY = "gift-kiosk-orders";
 export const ACTIVE_SESSION_STORAGE_KEY = "gift-kiosk-active-session";
 export const CATALOGUE_REVISION_STORAGE_KEY = "gift-kiosk-catalogue-revision";
 export const CURRENT_CATALOGUE_REVISION = "supplied-catalogue-2026-08-10-v1";
 export const MAX_ORDER_HISTORY = 20;
+const MAX_ORDER_ID_LENGTH = 100;
 export const KIOSK_IDLE_TIMEOUT_MS = 2 * 60 * 1_000;
 export const KIOSK_IDLE_WARNING_MS = 30 * 1_000;
+/** Upper bound for the QR privacy countdown, even after "keep open". */
+export const QR_MAX_TOTAL_SECONDS = 5 * 60;
 
 const LEGACY_DEFAULT_SHOP_NAMES: readonly string[] = Object.freeze([
   "Gift House",
@@ -83,10 +75,8 @@ const KIOSK_SCREENS: readonly KioskScreen[] = [
   "product-details",
   "cart",
   "customer",
-  "checkout",
   "review",
   "qr",
-  "approval",
 ];
 
 type StorageKind = "local" | "session";
@@ -97,7 +87,10 @@ const memoryStorage: Record<StorageKind, Map<string, string>> = {
 };
 
 function normalizedTenantKey(value: string): string {
-  const normalized = value.trim().toLocaleLowerCase("en-IN").replace(/[^a-z0-9-]/g, "-");
+  const normalized = value
+    .trim()
+    .toLocaleLowerCase("en-IN")
+    .replace(/[^a-z0-9-]/g, "-");
   return normalized.replace(/-+/g, "-").replace(/^-|-$/g, "") || "chapega";
 }
 
@@ -193,11 +186,7 @@ function resetLegacyDataForCurrentCatalogue(tenantKey: string): boolean {
     removeStorage("local", ORDERS_STORAGE_KEY),
     removeStorage("local", PRESENTER_SETTINGS_STORAGE_KEY),
     removeStorage("session", ACTIVE_SESSION_STORAGE_KEY),
-    writeStorage(
-      "local",
-      revisionKey,
-      CURRENT_CATALOGUE_REVISION,
-    ),
+    writeStorage("local", revisionKey, CURRENT_CATALOGUE_REVISION),
   ];
 
   return revisionRead.available && results.every(Boolean);
@@ -237,9 +226,7 @@ function boundedInteger(
   minimum: number,
   maximum: number,
 ): number {
-  return Number.isSafeInteger(value) &&
-    Number(value) >= minimum &&
-    Number(value) <= maximum
+  return Number.isSafeInteger(value) && Number(value) >= minimum && Number(value) <= maximum
     ? Number(value)
     : fallback;
 }
@@ -263,10 +250,7 @@ function parseSettings(value: unknown): PresenterSettings {
   let ownerWhatsAppNumber = "";
   if (rawOwnerNumber) {
     try {
-      ownerWhatsAppNumber = normalizeWhatsAppNumber(
-        rawOwnerNumber,
-        safeCountryCode,
-      );
+      ownerWhatsAppNumber = normalizeWhatsAppNumber(rawOwnerNumber, safeCountryCode);
     } catch {
       ownerWhatsAppNumber = "";
     }
@@ -275,15 +259,13 @@ function parseSettings(value: unknown): PresenterSettings {
   const storedShopName = stringValue(value.shopName).trim().slice(0, 80);
 
   return Object.freeze({
-    shopName:
-      LEGACY_DEFAULT_SHOP_NAMES.includes(storedShopName)
-        ? DEFAULT_PRESENTER_SETTINGS.shopName
-        : storedShopName || DEFAULT_PRESENTER_SETTINGS.shopName,
+    shopName: LEGACY_DEFAULT_SHOP_NAMES.includes(storedShopName)
+      ? DEFAULT_PRESENTER_SETTINGS.shopName
+      : storedShopName || DEFAULT_PRESENTER_SETTINGS.shopName,
     ownerWhatsAppNumber,
     defaultCountryCode: safeCountryCode,
     kioskName:
-      stringValue(value.kioskName).trim().slice(0, 80) ||
-      DEFAULT_PRESENTER_SETTINGS.kioskName,
+      stringValue(value.kioskName).trim().slice(0, 80) || DEFAULT_PRESENTER_SETTINGS.kioskName,
     maxCartQuantity: boundedInteger(
       value.maxCartQuantity,
       DEFAULT_PRESENTER_SETTINGS.maxCartQuantity,
@@ -322,8 +304,7 @@ function parseHistoryItem(value: unknown): OrderHistoryItem | undefined {
     typeof value.kioskName !== "string" ||
     !isPositiveInteger(value.itemCount) ||
     !isNonNegativeInteger(value.totalPaise) ||
-    (status !== "prepared_for_whatsapp" &&
-      status !== "presenter_marked_sent")
+    (status !== "prepared_for_whatsapp" && status !== "presenter_marked_sent")
   ) {
     return undefined;
   }
@@ -351,10 +332,7 @@ function parseHistory(value: unknown): readonly OrderHistoryItem[] {
   );
 }
 
-function isMatchingWhatsAppSnapshotUrl(
-  rawUrl: string,
-  message: string,
-): boolean {
+function isMatchingWhatsAppSnapshotUrl(rawUrl: string, message: string): boolean {
   try {
     const url = new URL(rawUrl);
     const queryEntries = [...url.searchParams.entries()];
@@ -383,9 +361,10 @@ function parseOrder(value: unknown): Order | null {
   const status = value.status;
   if (
     typeof value.id !== "string" ||
+    value.id.length < 1 ||
+    value.id.length > MAX_ORDER_ID_LENGTH ||
     typeof value.orderNumber !== "string" ||
-    value.id !== value.orderNumber ||
-    !/^GFT(?:-DEMO)?-\d{8}-\d{4}$/.test(value.orderNumber) ||
+    !/^GFT(?:-DEMO)?-\d{8}-\d{4,6}$/.test(value.orderNumber) ||
     typeof value.createdAt !== "string" ||
     Number.isNaN(Date.parse(value.createdAt)) ||
     typeof value.kioskName !== "string" ||
@@ -397,15 +376,9 @@ function parseOrder(value: unknown): Order | null {
     typeof value.whatsappMessage !== "string" ||
     !value.whatsappMessage.trim() ||
     typeof value.whatsappUrl !== "string" ||
-    !isMatchingWhatsAppSnapshotUrl(
-      value.whatsappUrl,
-      value.whatsappMessage,
-    ) ||
-    !value.whatsappMessage
-      .split("\n")
-      .some((line) => line === `Order: ${value.orderNumber}`) ||
-    (status !== "prepared_for_whatsapp" &&
-      status !== "presenter_marked_sent")
+    !isMatchingWhatsAppSnapshotUrl(value.whatsappUrl, value.whatsappMessage) ||
+    !value.whatsappMessage.split("\n").some((line) => line === `Order: ${value.orderNumber}`) ||
+    (status !== "prepared_for_whatsapp" && status !== "presenter_marked_sent")
   ) {
     return null;
   }
@@ -436,16 +409,13 @@ function parseOrder(value: unknown): Order | null {
         lineTotalPaise: item.lineTotalPaise,
       });
     })
-    .filter(
-      (item): item is Order["items"][number] => item !== undefined,
-    );
+    .filter((item): item is Order["items"][number] => item !== undefined);
 
   if (
     items.length !== value.items.length ||
     items.length === 0 ||
     items.reduce((total, item) => total + item.quantity, 0) > 5 ||
-    items.reduce((total, item) => total + item.lineTotalPaise, 0) !==
-      value.subtotalPaise
+    items.reduce((total, item) => total + item.lineTotalPaise, 0) !== value.subtotalPaise
   ) {
     return null;
   }
@@ -465,14 +435,10 @@ function parseOrder(value: unknown): Order | null {
     id: value.id,
     orderNumber: value.orderNumber,
     createdAt: value.createdAt,
-    customerName:
-      typeof value.customerName === "string" ? value.customerName : undefined,
-    customerPhone:
-      typeof value.customerPhone === "string" ? value.customerPhone : undefined,
-    giftNote:
-      typeof value.giftNote === "string" ? value.giftNote : undefined,
-    orderNote:
-      typeof value.orderNote === "string" ? value.orderNote : undefined,
+    customerName: typeof value.customerName === "string" ? value.customerName : undefined,
+    customerPhone: typeof value.customerPhone === "string" ? value.customerPhone : undefined,
+    giftNote: typeof value.giftNote === "string" ? value.giftNote : undefined,
+    orderNote: typeof value.orderNote === "string" ? value.orderNote : undefined,
     kioskName: value.kioskName,
     paymentMethod: "pay_later",
     items: Object.freeze(items),
@@ -485,7 +451,32 @@ function parseOrder(value: unknown): Order | null {
   });
 }
 
+/**
+ * RFC 4122 v4 UUID. `crypto.randomUUID` only exists in secure contexts, and a
+ * kiosk may be served over plain HTTP on a LAN, so fall back to
+ * `getRandomValues`, which is available everywhere.
+ */
+function createIdempotencyKey(): string {
+  const webCrypto = globalThis.crypto;
+  if (typeof webCrypto?.randomUUID === "function") {
+    return webCrypto.randomUUID();
+  }
+  const bytes = webCrypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+  return [
+    hex.slice(0, 4).join(""),
+    hex.slice(4, 6).join(""),
+    hex.slice(6, 8).join(""),
+    hex.slice(8, 10).join(""),
+    hex.slice(10).join(""),
+  ].join("-");
+}
+
 type PendingOrderSubmission = Readonly<{
+  /** Sent as the idempotency key on every retry of this exact submission. */
+  idempotencyKey: string;
   order: Order;
   customer: CustomerDetails;
   items: readonly Readonly<{
@@ -496,9 +487,7 @@ type PendingOrderSubmission = Readonly<{
   }>[];
 }>;
 
-function parsePendingOrderSubmission(
-  value: unknown,
-): PendingOrderSubmission | null {
+function parsePendingOrderSubmission(value: unknown): PendingOrderSubmission | null {
   if (!isRecord(value) || !Array.isArray(value.items)) return null;
   const order = parseOrder(value.order);
   if (!order || value.items.length < 1 || value.items.length > 5) return null;
@@ -521,9 +510,7 @@ function parsePendingOrderSubmission(
     items.push(
       Object.freeze({
         productId: item.productId,
-        ...(typeof item.variantId === "string"
-          ? { variantId: item.variantId }
-          : {}),
+        ...(typeof item.variantId === "string" ? { variantId: item.variantId } : {}),
         quantity: item.quantity,
         giftWrapped: item.giftWrapped,
       }),
@@ -531,7 +518,17 @@ function parsePendingOrderSubmission(
   }
   if (unitCount > 5) return null;
 
+  const storedKey = value.idempotencyKey;
+  const idempotencyKey =
+    typeof storedKey === "string" &&
+    storedKey.trim().length > 0 &&
+    storedKey.length <= MAX_ORDER_ID_LENGTH
+      ? storedKey
+      : // Sessions saved before the random key existed used the order id.
+        order.id;
+
   return Object.freeze({
+    idempotencyKey,
     order,
     customer: parseCustomer(value.customer),
     items: Object.freeze(items),
@@ -552,8 +549,7 @@ function restoreCart(
     if (
       !isRecord(candidate) ||
       typeof candidate.productId !== "string" ||
-      (candidate.variantId !== undefined &&
-        typeof candidate.variantId !== "string") ||
+      (candidate.variantId !== undefined && typeof candidate.variantId !== "string") ||
       !isPositiveInteger(candidate.quantity) ||
       typeof candidate.giftWrapped !== "boolean"
     ) {
@@ -583,20 +579,15 @@ function restoreCart(
   return Object.freeze([...restored]);
 }
 
-function parseCategory(
-  value: unknown,
-  products: readonly Product[],
-): CategoryFilter {
+function parseCategory(value: unknown, products: readonly Product[]): CategoryFilter {
   return value === "all" ||
-    (typeof value === "string" &&
-      products.some((product) => product.category === value))
+    (typeof value === "string" && products.some((product) => product.category === value))
     ? (value as CategoryFilter)
     : "all";
 }
 
 function parseScreen(value: unknown): KioskScreen {
-  return typeof value === "string" &&
-    KIOSK_SCREENS.some((screen) => screen === value)
+  return typeof value === "string" && KIOSK_SCREENS.some((screen) => screen === value)
     ? (value as KioskScreen)
     : "welcome";
 }
@@ -627,6 +618,7 @@ type PersistedSession = Readonly<{
   pendingSubmission: PendingOrderSubmission | null;
   currentOrder: Order | null;
   countdownSeconds: number;
+  qrExtended: boolean;
 }>;
 
 export interface KioskStoreState {
@@ -646,7 +638,7 @@ export interface KioskStoreState {
   pendingSubmission: PendingOrderSubmission | null;
   currentOrder: Order | null;
   countdownSeconds: number;
-  isCountdownPaused: boolean;
+  qrExtended: boolean;
   isCreatingOrder: boolean;
   lastCartError: CartError | null;
   lastOrderError: OrderError | null;
@@ -663,30 +655,19 @@ export interface KioskStoreState {
   updateCartQuantity: (lineKey: string, quantity: number) => CartResult;
   setCartGiftWrapped: (lineKey: string, giftWrapped: boolean) => CartResult;
   removeFromCart: (lineKey: string) => CartResult;
-  clearCart: () => void;
   clearCartError: () => void;
   updateCustomer: (details: Partial<CustomerDetails>) => void;
-  updateSettings: (settings: Partial<PresenterSettings>) => SettingsResult;
   createOrder: () => OrderResult;
   completeOrderCreation: (order: Order) => void;
   failOrderCreation: (error: OrderError) => void;
-  markCurrentOrderAsSent: () => void;
-  clearOrderHistory: () => void;
-  clearOrderError: () => void;
   tickCountdown: () => void;
-  pauseCountdown: () => void;
-  resumeCountdown: () => void;
-  resetCountdown: () => void;
   keepQrOpen: () => void;
   touchSession: () => void;
   resetSession: () => void;
-  resetAllLocalData: () => void;
 }
 
 type StoreSet = (
-  partial:
-    | Partial<KioskStoreState>
-    | ((state: KioskStoreState) => Partial<KioskStoreState>),
+  partial: Partial<KioskStoreState> | ((state: KioskStoreState) => Partial<KioskStoreState>),
 ) => void;
 type StoreGet = () => KioskStoreState;
 
@@ -704,6 +685,7 @@ function persistedSession(state: KioskStoreState): PersistedSession {
     pendingSubmission: state.pendingSubmission,
     currentOrder: state.currentOrder,
     countdownSeconds: state.countdownSeconds,
+    qrExtended: state.qrExtended,
   };
 }
 
@@ -719,17 +701,6 @@ function persistSession(state: KioskStoreState, set: StoreSet): void {
       "session",
       kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, state.tenantKey),
       JSON.stringify(persistedSession(state)),
-    ),
-    set,
-  );
-}
-
-function persistSettings(state: KioskStoreState, set: StoreSet): void {
-  noteStorageResult(
-    writeStorage(
-      "local",
-      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, state.tenantKey),
-      JSON.stringify(state.settings),
     ),
     set,
   );
@@ -766,11 +737,7 @@ function lineNotFoundResult(): CartResult {
   };
 }
 
-function commitCartResult(
-  result: CartResult,
-  set: StoreSet,
-  get: StoreGet,
-): CartResult {
+function commitCartResult(result: CartResult, set: StoreSet, get: StoreGet): CartResult {
   if (!result.ok) {
     set({ lastCartError: result.error });
     return result;
@@ -804,7 +771,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   pendingSubmission: null,
   currentOrder: null,
   countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-  isCountdownPaused: false,
+  qrExtended: false,
   isCreatingOrder: false,
   lastCartError: null,
   lastOrderError: null,
@@ -829,7 +796,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
@@ -853,17 +820,12 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       "local",
       kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, tenantKey),
     );
-    const historyRead = readStorage(
-      "local",
-      kioskStorageKey(ORDERS_STORAGE_KEY, tenantKey),
-    );
+    const historyRead = readStorage("local", kioskStorageKey(ORDERS_STORAGE_KEY, tenantKey));
     const sessionRead = readStorage(
       "session",
       kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey),
     );
-    const products = bootstrap
-      ? Object.freeze([...bootstrap.products])
-      : CATALOGUE_PRODUCTS;
+    const products = bootstrap ? Object.freeze([...bootstrap.products]) : CATALOGUE_PRODUCTS;
     const settings = bootstrap
       ? parseSettings(bootstrap.settings)
       : parseSettings(parseJson(settingsRead.value));
@@ -879,12 +841,14 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     let pendingSubmission: PendingOrderSubmission | null = null;
     let currentOrder: Order | null = null;
     let countdownSeconds = settings.qrResetSeconds;
-    let isCountdownPaused = false;
+    let qrExtended = false;
 
-    const sessionAge = isRecord(rawSession) && typeof rawSession.lastActivityAt === "number"
-      ? Date.now() - rawSession.lastActivityAt
-      : Number.POSITIVE_INFINITY;
-    const sessionIsFresh = isRecord(rawSession) &&
+    const sessionAge =
+      isRecord(rawSession) && typeof rawSession.lastActivityAt === "number"
+        ? Date.now() - rawSession.lastActivityAt
+        : Number.POSITIVE_INFINITY;
+    const sessionIsFresh =
+      isRecord(rawSession) &&
       rawSession.version === 4 &&
       rawSession.tenantKey === tenantKey &&
       sessionAge >= 0 &&
@@ -910,20 +874,19 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       ) {
         currentOrder = null;
       }
+      // The one-time extension is restored with the countdown it produced, so
+      // a reload can neither shorten it nor grant a second extension.
+      qrExtended = rawSession.qrExtended === true;
       countdownSeconds = boundedInteger(
         rawSession.countdownSeconds,
         settings.qrResetSeconds,
         0,
-        settings.qrResetSeconds,
+        qrExtended
+          ? Math.max(settings.qrResetSeconds, QR_MAX_TOTAL_SECONDS)
+          : settings.qrResetSeconds,
       );
-      // A pause is intentionally not restored. Reloading resumes the privacy
-      // countdown so customer details cannot remain on a public kiosk forever.
-      isCountdownPaused = false;
     } else if (isRecord(rawSession)) {
-      removeStorage(
-        "session",
-        kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey),
-      );
+      removeStorage("session", kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey));
     }
 
     if (screen === "product-details" && !selectedProductId) {
@@ -931,9 +894,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     }
     if (screen === "qr" && !currentOrder) {
       screen = cartItems.length > 0 ? "review" : "welcome";
-    }
-    if (screen === "approval") {
-      screen = currentOrder ? "qr" : cartItems.length > 0 ? "review" : "welcome";
     }
 
     set({
@@ -956,7 +916,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission,
       currentOrder,
       countdownSeconds,
-      isCountdownPaused,
+      qrExtended,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
@@ -973,27 +933,16 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     const state = get();
     const selectedCategory = parseCategory(state.selectedCategory, products);
     const selectedProductId =
-      state.selectedProductId &&
-      products.some((product) => product.id === state.selectedProductId)
+      state.selectedProductId && products.some((product) => product.id === state.selectedProductId)
         ? state.selectedProductId
         : null;
     const screen =
-      state.screen === "product-details" && !selectedProductId
-        ? "catalogue"
-        : state.screen;
+      state.screen === "product-details" && !selectedProductId ? "catalogue" : state.screen;
     const cartItems = restoreCart(state.cartItems, settings, products);
-    const cartChanged =
-      JSON.stringify(cartItems) !== JSON.stringify(state.cartItems);
-    const activeCheckoutScreens: readonly KioskScreen[] = [
-      "cart",
-      "customer",
-      "checkout",
-      "review",
-    ];
+    const cartChanged = JSON.stringify(cartItems) !== JSON.stringify(state.cartItems);
+    const activeCheckoutScreens: readonly KioskScreen[] = ["cart", "customer", "review"];
     const reconciledScreen =
-      cartChanged &&
-      cartItems.length === 0 &&
-      activeCheckoutScreens.includes(screen)
+      cartChanged && cartItems.length === 0 && activeCheckoutScreens.includes(screen)
         ? "catalogue"
         : screen;
     set({
@@ -1008,14 +957,18 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         ? {
             lastCartError: Object.freeze({
               code: "PRODUCT_UNAVAILABLE" as const,
-              message:
-                "Your cart was updated to match the latest prices and availability.",
+              message: "Your cart was updated to match the latest prices and availability.",
             }),
           }
         : {}),
       countdownSeconds:
         state.screen === "qr"
-          ? Math.min(state.countdownSeconds, settings.qrResetSeconds)
+          ? Math.min(
+              state.countdownSeconds,
+              state.qrExtended
+                ? Math.max(settings.qrResetSeconds, QR_MAX_TOTAL_SECONDS)
+                : settings.qrResetSeconds,
+            )
           : settings.qrResetSeconds,
     });
     persistSession(get(), set);
@@ -1065,12 +1018,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         ? { ...options, variantId: product.variants[0].id }
         : options;
     return commitCartResult(
-      addCartItem(
-        get().cartItems,
-        product,
-        resolvedOptions,
-        get().settings.maxCartQuantity,
-      ),
+      addCartItem(get().cartItems, product, resolvedOptions, get().settings.maxCartQuantity),
       set,
       get,
     );
@@ -1078,12 +1026,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 
   updateCartQuantity: (lineKey, quantity) =>
     commitCartResult(
-      setCartLineQuantity(
-        get().cartItems,
-        lineKey,
-        quantity,
-        get().settings.maxCartQuantity,
-      ),
+      setCartLineQuantity(get().cartItems, lineKey, quantity, get().settings.maxCartQuantity),
       set,
       get,
     ),
@@ -1114,38 +1057,18 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 
   removeFromCart: (lineKey) =>
     commitCartResult(
-      removeCartLine(
-        get().cartItems,
-        lineKey,
-        get().settings.maxCartQuantity,
-      ),
+      removeCartLine(get().cartItems, lineKey, get().settings.maxCartQuantity),
       set,
       get,
     ),
-
-  clearCart: () => {
-    set({
-      cartItems: Object.freeze([]),
-      pendingSubmission: null,
-      currentOrder: null,
-      lastCartError: null,
-      lastOrderError: null,
-    });
-    persistSession(get(), set);
-  },
 
   clearCartError: () => set({ lastCartError: null }),
 
   updateCustomer: (details) => {
     set((state) => ({
       customer: Object.freeze({
-        customerName: (details.customerName ?? state.customer.customerName).slice(
-          0,
-          80,
-        ),
-        customerPhone: (
-          details.customerPhone ?? state.customer.customerPhone
-        ).slice(0, 30),
+        customerName: (details.customerName ?? state.customer.customerName).slice(0, 80),
+        customerPhone: (details.customerPhone ?? state.customer.customerPhone).slice(0, 30),
         giftNote: (details.giftNote ?? state.customer.giftNote).slice(0, 240),
         orderNote: (details.orderNote ?? state.customer.orderNote).slice(0, 240),
       }),
@@ -1154,102 +1077,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       lastOrderError: null,
     }));
     persistSession(get(), set);
-  },
-
-  updateSettings: (patch) => {
-    const current = get();
-    const merged = { ...current.settings, ...patch };
-    const countryCode = merged.defaultCountryCode
-      .replace(/\D/g, "")
-      .replace(/^0+/, "");
-    if (countryCode.length < 1 || countryCode.length > 3) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Enter a valid one-to-three digit country code.",
-        }),
-      };
-    }
-
-    if (!merged.shopName.trim() || !merged.kioskName.trim()) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Shop name and kiosk name are required.",
-        }),
-      };
-    }
-
-    if (
-      !Number.isSafeInteger(merged.maxCartQuantity) ||
-      merged.maxCartQuantity < 1 ||
-      merged.maxCartQuantity > 5 ||
-      merged.maxCartQuantity < getCartUnitCount(current.cartItems)
-    ) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message:
-            "The maximum cart quantity must be between 1 and 5 and cannot be below the current cart count.",
-        }),
-      };
-    }
-
-    if (
-      !Number.isSafeInteger(merged.giftWrapFeePaise) ||
-      merged.giftWrapFeePaise < 0 ||
-      merged.giftWrapFeePaise > 100_000 ||
-      !Number.isSafeInteger(merged.qrResetSeconds) ||
-      merged.qrResetSeconds < 15 ||
-      merged.qrResetSeconds > 3_600
-    ) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Enter valid gift-wrap and QR timeout values.",
-        }),
-      };
-    }
-
-    let ownerWhatsAppNumber = "";
-    if (merged.ownerWhatsAppNumber.trim()) {
-      try {
-        ownerWhatsAppNumber = normalizeWhatsAppNumber(
-          merged.ownerWhatsAppNumber,
-          countryCode,
-        );
-      } catch (caught) {
-        return {
-          ok: false,
-          error: Object.freeze({
-            code: "INVALID_OWNER_NUMBER",
-            message:
-              caught instanceof WhatsAppNumberError
-                ? caught.message
-                : "Enter a valid owner WhatsApp number.",
-          }),
-        };
-      }
-    }
-
-    const settings: PresenterSettings = Object.freeze({
-      shopName: merged.shopName.trim().slice(0, 80),
-      ownerWhatsAppNumber,
-      defaultCountryCode: countryCode,
-      kioskName: merged.kioskName.trim().slice(0, 80),
-      maxCartQuantity: merged.maxCartQuantity,
-      giftWrapFeePaise: merged.giftWrapFeePaise,
-      qrResetSeconds: merged.qrResetSeconds,
-      showPreviewLabel: merged.showPreviewLabel,
-    });
-    set({ settings, pendingSubmission: null });
-    persistSettings(get(), set);
-    persistSession(get(), set);
-    return { ok: true, value: settings };
   },
 
   createOrder: () => {
@@ -1283,6 +1110,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 
     set({
       pendingSubmission: Object.freeze({
+        idempotencyKey: createIdempotencyKey(),
         order: result.value,
         customer: state.customer,
         items: Object.freeze(
@@ -1304,19 +1132,19 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   completeOrderCreation: (order) => {
     const state = get();
     const historyItem = redactOrderForHistory(order);
-    const orderHistory = Object.freeze([
-      historyItem,
-      ...state.orderHistory.filter(
-        (item) => item.orderNumber !== historyItem.orderNumber,
-      ),
-    ].slice(0, MAX_ORDER_HISTORY));
+    const orderHistory = Object.freeze(
+      [
+        historyItem,
+        ...state.orderHistory.filter((item) => item.orderNumber !== historyItem.orderNumber),
+      ].slice(0, MAX_ORDER_HISTORY),
+    );
     set({
       pendingSubmission: null,
       currentOrder: order,
       orderHistory,
       screen: "qr",
       countdownSeconds: state.settings.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastOrderError: null,
     });
@@ -1332,45 +1160,9 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     persistSession(get(), set);
   },
 
-  markCurrentOrderAsSent: () => {
-    const currentOrder = get().currentOrder;
-    if (!currentOrder) {
-      return;
-    }
-
-    const markedOrder = markOrderAsPresenterSent(currentOrder);
-    const orderHistory = Object.freeze(
-      get().orderHistory.map((item) =>
-        item.orderNumber === markedOrder.orderNumber
-          ? Object.freeze({ ...item, status: markedOrder.status })
-          : item,
-      ),
-    );
-    set({ currentOrder: markedOrder, orderHistory });
-    persistHistory(get(), set);
-    persistSession(get(), set);
-  },
-
-  clearOrderHistory: () => {
-    set({ orderHistory: Object.freeze([]) });
-    noteStorageResult(
-      removeStorage(
-        "local",
-        kioskStorageKey(ORDERS_STORAGE_KEY, get().tenantKey),
-      ),
-      set,
-    );
-  },
-
-  clearOrderError: () => set({ lastOrderError: null }),
-
   tickCountdown: () => {
     const state = get();
-    if (
-      state.screen !== "qr" ||
-      !state.currentOrder ||
-      state.isCountdownPaused
-    ) {
+    if (state.screen !== "qr" || !state.currentOrder) {
       return;
     }
 
@@ -1383,23 +1175,22 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     persistSession(get(), set);
   },
 
-  pauseCountdown: () => {
-    set({ isCountdownPaused: true });
-    persistSession(get(), set);
-  },
-
-  resumeCountdown: () => {
-    set({ isCountdownPaused: false });
-    persistSession(get(), set);
-  },
-
-  resetCountdown: () => {
-    set({ countdownSeconds: get().settings.qrResetSeconds });
-    persistSession(get(), set);
-  },
-
+  // "Keep this screen open" adds one extra reset period, once, capped so the
+  // customer's details are never on screen for more than ~5 minutes in total.
+  // The countdown keeps running and ends the session as usual.
   keepQrOpen: () => {
-    set({ isCountdownPaused: true });
+    const state = get();
+    if (state.screen !== "qr" || !state.currentOrder || state.qrExtended) {
+      return;
+    }
+    const extended = Math.min(
+      state.countdownSeconds + state.settings.qrResetSeconds,
+      QR_MAX_TOTAL_SECONDS,
+    );
+    set({
+      qrExtended: true,
+      countdownSeconds: Math.max(state.countdownSeconds, extended),
+    });
     persistSession(get(), set);
   },
 
@@ -1418,53 +1209,13 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: get().settings.qrResetSeconds,
-      isCountdownPaused: false,
+      qrExtended: false,
       isCreatingOrder: false,
       lastCartError: null,
       lastOrderError: null,
     });
     noteStorageResult(
-      removeStorage(
-        "session",
-        kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey),
-      ),
-      set,
-    );
-  },
-
-  resetAllLocalData: () => {
-    set({
-      screen: "welcome",
-      searchQuery: "",
-      selectedCategory: "all",
-      selectedProductId: null,
-      cartItems: Object.freeze([]),
-      customer: EMPTY_CUSTOMER_DETAILS,
-      settings: DEFAULT_PRESENTER_SETTINGS,
-      storeOpen: true,
-      orderHistory: Object.freeze([]),
-      pendingSubmission: null,
-      currentOrder: null,
-      countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-      isCountdownPaused: false,
-      isCreatingOrder: false,
-      lastCartError: null,
-      lastOrderError: null,
-    });
-    const settingsRemoved = removeStorage(
-      "local",
-      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, get().tenantKey),
-    );
-    const historyRemoved = removeStorage(
-      "local",
-      kioskStorageKey(ORDERS_STORAGE_KEY, get().tenantKey),
-    );
-    const sessionRemoved = removeStorage(
-      "session",
-      kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey),
-    );
-    noteStorageResult(
-      settingsRemoved && historyRemoved && sessionRemoved,
+      removeStorage("session", kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey)),
       set,
     );
   },
@@ -1473,31 +1224,22 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
 export const selectCartUnitCount = (state: KioskStoreState): number =>
   getCartUnitCount(state.cartItems);
 
-export const selectRemainingCartCapacity = (
-  state: KioskStoreState,
-): number =>
+export const selectRemainingCartCapacity = (state: KioskStoreState): number =>
   getRemainingCartCapacity(state.cartItems, state.settings.maxCartQuantity);
 
 export const selectCartTotals = (state: KioskStoreState): CartTotals =>
   calculateCartTotals(state.cartItems, state.settings.giftWrapFeePaise);
 
-export const selectSelectedProduct = (
-  state: KioskStoreState,
-): Product | undefined =>
+export const selectSelectedProduct = (state: KioskStoreState): Product | undefined =>
   state.selectedProductId
     ? state.products.find((product) => product.id === state.selectedProductId)
     : undefined;
 
-export const selectVisibleProducts = (
-  state: KioskStoreState,
-): readonly Product[] => {
+export const selectVisibleProducts = (state: KioskStoreState): readonly Product[] => {
   const query = state.searchQuery.trim().toLocaleLowerCase("en-IN");
 
   return state.products.filter((product) => {
-    if (
-      state.selectedCategory !== "all" &&
-      product.category !== state.selectedCategory
-    ) {
+    if (state.selectedCategory !== "all" && product.category !== state.selectedCategory) {
       return false;
     }
 
@@ -1518,7 +1260,3 @@ export const selectVisibleProducts = (
       .includes(query);
   });
 };
-
-export const selectOwnerNumberIsConfigured = (
-  state: KioskStoreState,
-): boolean => Boolean(state.settings.ownerWhatsAppNumber);

@@ -70,7 +70,9 @@ test.describe("1366 × 768 landscape kiosk", () => {
     await expectInViewport(page, ".checkout-form-actions .primary-button");
     await page.getByRole("button", { name: "Review Order" }).click();
 
-    await expect(page.getByRole("heading", { name: "Review before creating the QR" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Review before creating the QR" }),
+    ).toBeVisible();
     await expectInViewport(page, ".review-page .transaction-summary__actions .primary-button");
     await page.getByRole("button", { name: "Prepare WhatsApp QR" }).click();
 
@@ -90,17 +92,17 @@ test.describe("1080 × 1920 portrait kiosk", () => {
     await expectNoPageOverflow(page);
     await expectInViewport(page, ".welcome-footer");
     expect(
-      await page.locator(".welcome-hero").evaluate((element) =>
-        getComputedStyle(element).gridTemplateColumns.split(" ").length,
-      ),
+      await page
+        .locator(".welcome-hero")
+        .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length),
     ).toBe(1);
 
     await page.getByRole("button", { name: /Start Shopping/i }).click();
     await expect(page.getByRole("heading", { name: /Our products/i })).toBeVisible();
     expect(
-      await page.locator(".product-grid").evaluate((element) =>
-        getComputedStyle(element).gridTemplateColumns.split(" ").length,
-      ),
+      await page
+        .locator(".product-grid")
+        .evaluate((element) => getComputedStyle(element).gridTemplateColumns.split(" ").length),
     ).toBe(3);
 
     await addFirstGift(page);
@@ -133,4 +135,42 @@ test.describe("800 × 1280 portrait kiosk", () => {
     await expectInViewport(page, ".qr-actions .whatsapp-button");
     await expectNoPageOverflow(page);
   });
+});
+
+test("hydration keeps the server-rendered welcome screen and its hero image (AUD-24)", async ({
+  page,
+}) => {
+  await seedKiosk(page);
+  await page.addInitScript(() => {
+    document.addEventListener("DOMContentLoaded", () => {
+      (window as unknown as { serverHero?: Element | null }).serverHero =
+        document.querySelector(".welcome-visual img");
+    });
+  });
+  await page.goto("/");
+  // Enabled only once the kiosk store has hydrated and the live screen is up.
+  await expect(page.getByRole("button", { name: /Start Shopping/ })).toBeEnabled();
+
+  // A replaced <img> is a new LCP candidate that paints only after hydration.
+  const kept = await page.evaluate(() => {
+    const hero = (window as unknown as { serverHero?: Element | null }).serverHero;
+    return Boolean(hero) && document.contains(hero ?? null);
+  });
+  expect(kept).toBe(true);
+});
+
+test("first load does not refetch the catalogue or prefetch staff pages (AUD-24)", async ({
+  page,
+}) => {
+  await seedKiosk(page);
+  const early: string[] = [];
+  page.on("request", (request) => {
+    const url = request.url();
+    if (url.includes("/api/kiosk/") || url.includes("/vendor/login")) early.push(url);
+  });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: /Start Shopping/ })).toBeEnabled();
+  // Long enough for idle-time prefetching to kick in, well short of the 30 s refresh.
+  await page.waitForTimeout(2_500);
+  expect(early).toEqual([]);
 });

@@ -1,10 +1,4 @@
-import {
-  Boxes,
-  Package,
-  Store,
-  StoreIcon,
-  UserRoundPlus,
-} from "lucide-react";
+import { Boxes, Package, Store, CirclePlus, UserRoundPlus } from "lucide-react";
 import type { AdminActivityItem } from "@/types/admin";
 import { relativeAdminTime } from "./admin-shared";
 
@@ -17,16 +11,12 @@ function ActivityIcon({ kind }: { kind: AdminActivityItem["kind"] }) {
         : kind === "account"
           ? UserRoundPlus
           : kind === "vendor_created"
-            ? StoreIcon
+            ? CirclePlus
             : Store;
   return <Icon size={19} strokeWidth={1.8} />;
 }
 
-export function AdminActivityRail({
-  items,
-}: {
-  items: readonly AdminActivityItem[];
-}) {
+export function AdminActivityRail({ items }: { items: readonly AdminActivityItem[] }) {
   return (
     <aside className="admin-activity" aria-labelledby="admin-activity-title">
       <h2 id="admin-activity-title">Recent platform activity</h2>

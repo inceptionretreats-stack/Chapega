@@ -2,6 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { isBackgroundRefresh } from "@/domain/session-activity";
 import { usesSupabaseBackend } from "@/server/supabase/config";
 import {
   newAuditRecord,
@@ -14,11 +15,24 @@ import {
 } from "@/server/vendor/database";
 import {
   getVendorCredentialConfiguration,
-  isKnownPreviewCredentialPair,
-  vendorPreviewAccessAllowed,
+  isRejectedLoginCredential,
 } from "@/server/vendor/config";
-import { randomToken, sha256, verifyPassword } from "@/server/vendor/crypto";
+import {
+  derivePasswordHash,
+  DUMMY_PASSWORD_HASH,
+  DUMMY_PASSWORD_SALT,
+  passwordHashNeedsRehash,
+  randomToken,
+  sha256,
+  verifyPassword,
+} from "@/server/vendor/crypto";
 import { VendorServiceError } from "@/server/vendor/errors";
+import {
+  initialSessionExpiry,
+  refreshedSessionExpiry,
+  sessionIsLive,
+  vendorSessionPolicy,
+} from "@/server/security/session-policy";
 import type {
   VendorAccessContext,
   VendorCapabilities,
@@ -29,20 +43,12 @@ import type {
 
 export const VENDOR_SESSION_COOKIE = "chapega_vendor_session";
 
-const DUMMY_SALT = "v9r5N8vpY2h1bGt0c2FsdA==";
-const DUMMY_HASH =
-  "BNH0RAvPGCKOsKbr6HzrvcwgPGvpAl91FN7vNxwsg6qQX5VYYVE3L89Bg4FPmIz2zxaiZMT7WhHf93PSvtiNGQ==";
+// Unknown accounts verify against a dummy hash with the current parameters,
+// so they cost exactly as much as a real account.
+const DUMMY_SALT = DUMMY_PASSWORD_SALT;
+const DUMMY_HASH = DUMMY_PASSWORD_HASH;
 
-function sessionHours(): number {
-  const candidate = Number(process.env.VENDOR_SESSION_HOURS ?? 12);
-  return Number.isFinite(candidate) && candidate >= 1 && candidate <= 168
-    ? candidate
-    : 12;
-}
-
-export function capabilitiesForVendorRole(
-  role: VendorRole,
-): VendorCapabilities {
+export function capabilitiesForVendorRole(role: VendorRole): VendorCapabilities {
   return Object.freeze({
     view_dashboard: true,
     manage_orders: true,
@@ -64,12 +70,8 @@ function vendorIdentity(vendor: VendorRecord): VendorIdentity {
 function membershipPairs(
   database: Pick<VendorDatabase, "memberships" | "vendors">,
   userId: string,
-): Array<
-  Readonly<{ membership: VendorMembershipRecord; vendor: VendorRecord }>
-> {
-  const vendors = new Map(
-    database.vendors.map((vendor) => [vendor.id, vendor]),
-  );
+): Array<Readonly<{ membership: VendorMembershipRecord; vendor: VendorRecord }>> {
+  const vendors = new Map(database.vendors.map((vendor) => [vendor.id, vendor]));
   return database.memberships.flatMap((membership) => {
     if (membership.userId !== userId) return [];
     const vendor = vendors.get(membership.vendorId);
@@ -87,9 +89,7 @@ export function vendorUserFromDatabase(
   const pairs = membershipPairs(database, user.id);
   const active = pairs.find(
     ({ membership, vendor }) =>
-      membership.vendorId === activeVendorId &&
-      membership.active &&
-      vendor.status === "active",
+      membership.vendorId === activeVendorId && membership.active && vendor.status === "active",
   );
   if (!active) return null;
   const capabilities = capabilitiesForVendorRole(active.membership.role);
@@ -115,9 +115,7 @@ export function vendorUserFromDatabase(
   };
 }
 
-export function vendorAccessContextFromUser(
-  user: VendorUser,
-): VendorAccessContext {
+export function vendorAccessContextFromUser(user: VendorUser): VendorAccessContext {
   if (user.activeVendor.status !== "active") {
     throw new VendorServiceError(
       403,
@@ -143,9 +141,7 @@ function selectActiveVendorId(
   userId: string,
   requestedSlug?: string,
 ): string | null {
-  const pairs = membershipPairs(database, userId).filter(
-    ({ membership }) => membership.active,
-  );
+  const pairs = membershipPairs(database, userId).filter(({ membership }) => membership.active);
   if (requestedSlug) {
     const normalized = requestedSlug.trim().toLowerCase();
     const selected = pairs.find(({ vendor }) => vendor.slug === normalized);
@@ -154,9 +150,7 @@ function selectActiveVendorId(
   }
   const active = pairs.filter(({ vendor }) => vendor.status === "active");
   return (
-    active.find(({ membership }) => membership.isDefault)?.vendor.id ??
-    active[0]?.vendor.id ??
-    null
+    active.find(({ membership }) => membership.isDefault)?.vendor.id ?? active[0]?.vendor.id ?? null
   );
 }
 
@@ -177,21 +171,17 @@ export async function authenticateVendorLogin(
       "Vendor sign-in is not configured. Add private vendor credentials on the server.",
     );
   }
-  if (
-    !vendorPreviewAccessAllowed() &&
-    isKnownPreviewCredentialPair(email, password)
-  ) {
-    return null;
-  }
+  if (isRejectedLoginCredential(email, password)) return null;
   const normalizedEmail = email.trim().toLowerCase();
   const normalizedSlug = vendorSlug?.trim().toLowerCase() || undefined;
   const token = randomToken(32);
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + sessionHours() * 60 * 60 * 1_000);
+  // The stored expiry is the idle deadline; it slides with activity up to the
+  // absolute lifetime (server/security/session-policy.ts).
+  const expiresAt = new Date(initialSessionExpiry(now.getTime(), vendorSessionPolicy()));
 
   if (usesSupabaseBackend()) {
-    const { authenticateSupabaseVendorLogin } =
-      await import("@/server/vendor/supabase-auth");
+    const { authenticateSupabaseVendorLogin } = await import("@/server/vendor/supabase-auth");
     const user = await authenticateSupabaseVendorLogin({
       email: normalizedEmail,
       password,
@@ -205,21 +195,39 @@ export async function authenticateVendorLogin(
     return user ? { user, token, expiresAt } : null;
   }
 
+  // Verify outside the serialized write queue: the hash is deliberately slow
+  // and must not stall every other write while it runs.
+  const snapshot = await readVendorDatabase();
+  const verified = snapshot.users.find((record) => record.email === normalizedEmail);
+  const valid = await verifyPassword(
+    password,
+    verified?.passwordSalt ?? DUMMY_SALT,
+    verified?.passwordHash ?? DUMMY_HASH,
+  );
+  if (!verified || !verified.active || !valid) return null;
+  // Upgrade hashes stored with older scrypt parameters (also outside the queue).
+  const rehashed = passwordHashNeedsRehash(verified.passwordHash)
+    ? await derivePasswordHash(password)
+    : null;
+
   const user = await updateVendorDatabase(async (database) => {
-    const candidate = database.users.find(
-      (record) => record.email === normalizedEmail,
-    );
-    const valid = await verifyPassword(
-      password,
-      candidate?.passwordSalt ?? DUMMY_SALT,
-      candidate?.passwordHash ?? DUMMY_HASH,
-    );
-    if (!candidate || !candidate.active || !valid) return null;
-    const activeVendorId = selectActiveVendorId(
-      database,
-      candidate.id,
-      normalizedSlug,
-    );
+    // Re-check under the write lock: a rotation or deactivation that landed
+    // while the hash was computed must win.
+    const index = database.users.findIndex((record) => record.id === verified.id);
+    const current = database.users[index];
+    if (
+      !current ||
+      !current.active ||
+      current.passwordHash !== verified.passwordHash ||
+      current.passwordSalt !== verified.passwordSalt
+    ) {
+      return null;
+    }
+    const candidate = rehashed
+      ? { ...current, passwordSalt: rehashed.salt, passwordHash: rehashed.hash }
+      : current;
+    database.users[index] = candidate;
+    const activeVendorId = selectActiveVendorId(database, candidate.id, normalizedSlug);
     if (!activeVendorId) {
       throw new VendorServiceError(
         403,
@@ -229,14 +237,10 @@ export async function authenticateVendorLogin(
     }
 
     const otherSessions = database.sessions.filter(
-      (session) =>
-        session.userId !== candidate.id || session.scope !== "vendor",
+      (session) => session.userId !== candidate.id || session.scope !== "vendor",
     );
     const recentVendorSessions = database.sessions
-      .filter(
-        (session) =>
-          session.userId === candidate.id && session.scope === "vendor",
-      )
+      .filter((session) => session.userId === candidate.id && session.scope === "vendor")
       .slice(-4);
     database.sessions = [...otherSessions, ...recentVendorSessions];
     database.sessions.push({
@@ -248,13 +252,7 @@ export async function authenticateVendorLogin(
       expiresAt: expiresAt.toISOString(),
     });
     database.audit.push(
-      newAuditRecord(
-        candidate.id,
-        "vendor.login",
-        "auth",
-        candidate.id,
-        activeVendorId,
-      ),
+      newAuditRecord(candidate.id, "vendor.login", "auth", candidate.id, activeVendorId),
     );
     return vendorUserFromDatabase(database, candidate, activeVendorId);
   });
@@ -265,19 +263,16 @@ export async function destroyVendorSession(token: string): Promise<void> {
   if (!token) return;
   const tokenHash = sha256(token);
   if (usesSupabaseBackend()) {
-    const { destroySupabaseVendorSession } =
-      await import("@/server/vendor/supabase-auth");
+    const { destroySupabaseVendorSession } = await import("@/server/vendor/supabase-auth");
     await destroySupabaseVendorSession(tokenHash);
     return;
   }
   await updateVendorDatabase((database) => {
     const session = database.sessions.find(
-      (candidate) =>
-        candidate.idHash === tokenHash && candidate.scope === "vendor",
+      (candidate) => candidate.idHash === tokenHash && candidate.scope === "vendor",
     );
     database.sessions = database.sessions.filter(
-      (candidate) =>
-        candidate.idHash !== tokenHash || candidate.scope !== "vendor",
+      (candidate) => candidate.idHash !== tokenHash || candidate.scope !== "vendor",
     );
     if (session) {
       database.audit.push(
@@ -293,25 +288,31 @@ export async function destroyVendorSession(token: string): Promise<void> {
   });
 }
 
+/**
+ * `countsAsActivity: false` authenticates without sliding the idle deadline;
+ * timer-driven refreshes use it so an unattended tab still times out.
+ */
 export async function getVendorUserByToken(
   token: string | undefined,
   vendorSlug?: string,
+  { countsAsActivity = true }: { countsAsActivity?: boolean } = {},
 ): Promise<VendorUser | null> {
   if (!token || !getVendorCredentialConfiguration().available) return null;
   const tokenHash = sha256(token);
+  const rules = vendorSessionPolicy();
   if (usesSupabaseBackend()) {
-    const { getSupabaseVendorUserByToken } =
-      await import("@/server/vendor/supabase-auth");
-    return getSupabaseVendorUserByToken(tokenHash, vendorSlug);
+    const { getSupabaseVendorUserByToken } = await import("@/server/vendor/supabase-auth");
+    return getSupabaseVendorUserByToken(tokenHash, vendorSlug, rules, countsAsActivity);
   }
   const database = await readVendorDatabase();
+  const now = Date.now();
   const session = database.sessions.find(
-    (candidate) =>
-      candidate.idHash === tokenHash &&
-      candidate.scope === "vendor" &&
-      Date.parse(candidate.expiresAt) > Date.now(),
+    (candidate) => candidate.idHash === tokenHash && candidate.scope === "vendor",
   );
-  if (!session) return null;
+  const times = session
+    ? { createdAt: Date.parse(session.createdAt), expiresAt: Date.parse(session.expiresAt) }
+    : null;
+  if (!session || !times || !sessionIsLive(times, now, rules)) return null;
   const user = database.users.find(
     (candidate) => candidate.id === session.userId && candidate.active,
   );
@@ -319,19 +320,32 @@ export async function getVendorUserByToken(
   const activeVendorId = vendorSlug
     ? selectActiveVendorId(database, user.id, vendorSlug)
     : session.activeVendorId;
-  return activeVendorId
-    ? vendorUserFromDatabase(database, user, activeVendorId)
-    : null;
+  const vendorUser = activeVendorId ? vendorUserFromDatabase(database, user, activeVendorId) : null;
+  if (!vendorUser) return null;
+
+  // Slide the idle deadline (at most about once a minute per session).
+  const refreshed = countsAsActivity ? refreshedSessionExpiry(times, now, rules) : null;
+  if (refreshed !== null) {
+    await updateVendorDatabase((draft) => {
+      const index = draft.sessions.findIndex(
+        (candidate) => candidate.idHash === tokenHash && candidate.scope === "vendor",
+      );
+      const current = draft.sessions[index];
+      if (current) {
+        draft.sessions[index] = { ...current, expiresAt: new Date(refreshed).toISOString() };
+      }
+    });
+  }
+  return vendorUser;
 }
 
 export async function getRequestVendorUser(
   request: NextRequest,
   vendorSlug?: string,
 ): Promise<VendorUser | null> {
-  return getVendorUserByToken(
-    request.cookies.get(VENDOR_SESSION_COOKIE)?.value,
-    vendorSlug,
-  );
+  return getVendorUserByToken(request.cookies.get(VENDOR_SESSION_COOKIE)?.value, vendorSlug, {
+    countsAsActivity: !isBackgroundRefresh(request.headers),
+  });
 }
 
 export async function getRequestVendorContext(
@@ -342,14 +356,9 @@ export async function getRequestVendorContext(
   return user ? vendorAccessContextFromUser(user) : null;
 }
 
-export async function getCurrentVendorUser(
-  vendorSlug?: string,
-): Promise<VendorUser | null> {
+export async function getCurrentVendorUser(vendorSlug?: string): Promise<VendorUser | null> {
   const cookieStore = await cookies();
-  return getVendorUserByToken(
-    cookieStore.get(VENDOR_SESSION_COOKIE)?.value,
-    vendorSlug,
-  );
+  return getVendorUserByToken(cookieStore.get(VENDOR_SESSION_COOKIE)?.value, vendorSlug);
 }
 
 export async function getCurrentVendorContext(

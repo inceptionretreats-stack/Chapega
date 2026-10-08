@@ -13,28 +13,30 @@ import {
   ShoppingBag,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { formatInr } from "@/domain/money";
-import {
-  getNextVendorOrderStatus,
-  VENDOR_ORDER_LABELS,
-} from "@/domain/vendor";
+import { getNextVendorOrderStatus, VENDOR_ORDER_LABELS } from "@/domain/vendor";
 import type { VendorOrder, VendorOrderStatus } from "@/types/vendor";
+import { ConfirmDialog } from "../confirm-dialog";
 import { vendorRequest } from "./vendor-client";
-import {
-  formatVendorDate,
-  relativeVendorTime,
-  VendorOrderStatusBadge,
-} from "./vendor-shared";
+import { formatVendorDate, relativeVendorTime, VendorOrderStatusBadge } from "./vendor-shared";
 
 type OrdersProps = {
   apiBase?: string;
   orders: readonly VendorOrder[];
   focusOrderId: string | null;
+  /** Called once the requested order has been selected so the request is not replayed. */
+  onFocusOrderHandled?: () => void;
   onOrderSaved: (order: VendorOrder, message: string) => void;
 };
 
-export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, onOrderSaved }: OrdersProps) {
+export function VendorOrders({
+  apiBase = "/api/vendor",
+  orders,
+  focusOrderId,
+  onFocusOrderHandled,
+  onOrderSaved,
+}: OrdersProps) {
   const [scope, setScope] = useState<"active" | "all">("active");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | VendorOrderStatus>("all");
@@ -42,6 +44,11 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
   const [pending, setPending] = useState(false);
   const [confirmCancelOrderId, setConfirmCancelOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [focusAfterSave, setFocusAfterSave] = useState(false);
+  const detailHeadingRef = useRef<HTMLHeadingElement>(null);
+  const listHeadingRef = useRef<HTMLHeadingElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  const ordersAtSaveRef = useRef<readonly VendorOrder[] | null>(null);
 
   const filtered = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -65,28 +72,50 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
     });
   }, [orders, query, scope, statusFilter]);
 
-  const selected =
-    filtered.find((order) => order.id === selectedId) ?? filtered[0] ?? null;
+  const selected = filtered.find((order) => order.id === selectedId) ?? filtered[0] ?? null;
   const nextStatus = selected ? getNextVendorOrderStatus(selected.status) : null;
-  const confirmingSelectedCancellation = Boolean(
-    selected && confirmCancelOrderId === selected.id,
-  );
+  const confirmingSelectedCancellation = Boolean(selected && confirmCancelOrderId === selected.id);
+
+  // The requested order is consumed by the initial selection above.
+  useEffect(() => {
+    if (focusOrderId) onFocusOrderHandled?.();
+  }, [focusOrderId, onFocusOrderHandled]);
+
+  // The action button that was clicked is disabled (or removed) while saving,
+  // which drops focus to <body>. Land on the order detail once the saved order
+  // arrives, or on the list heading if no detail remains.
+  useEffect(() => {
+    if (!focusAfterSave) return;
+    (detailHeadingRef.current ?? listHeadingRef.current)?.focus();
+    if (ordersAtSaveRef.current !== orders) setFocusAfterSave(false);
+  }, [focusAfterSave, orders]);
+
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   const transition = async (status: VendorOrderStatus) => {
     if (!selected || pending) return;
     setPending(true);
     setError(null);
     try {
-      const result = await vendorRequest<{ order: VendorOrder }>(`${apiBase}/orders/${encodeURIComponent(selected.id)}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status, version: selected.version }),
-      });
+      const result = await vendorRequest<{ order: VendorOrder }>(
+        `${apiBase}/orders/${encodeURIComponent(selected.id)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status, version: selected.version }),
+        },
+      );
+      ordersAtSaveRef.current = orders;
       onOrderSaved(
         result.order,
         `Order ${selected.orderNumber} is now ${VENDOR_ORDER_LABELS[status].toLowerCase()}.`,
       );
       setConfirmCancelOrderId(null);
+      setFocusAfterSave(true);
     } catch (caught) {
+      // Close any confirmation so the announced error can take focus.
+      setConfirmCancelOrderId(null);
       setError(caught instanceof Error ? caught.message : "The order could not be updated.");
     } finally {
       setPending(false);
@@ -97,25 +126,112 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
     <div className="vendor-workspace vendor-orders-view">
       <section className="vendor-order-controls" aria-label="Order filters">
         <div className="vendor-segmented" role="group" aria-label="Order scope">
-          <button type="button" className={scope === "active" ? "is-selected" : ""} onClick={() => { setScope("active"); setConfirmCancelOrderId(null); }} aria-pressed={scope === "active"}>Active <span>{orders.filter((order) => order.status !== "completed" && order.status !== "cancelled").length}</span></button>
-          <button type="button" className={scope === "all" ? "is-selected" : ""} onClick={() => { setScope("all"); setConfirmCancelOrderId(null); }} aria-pressed={scope === "all"}>All orders <span>{orders.length}</span></button>
+          <button
+            type="button"
+            className={scope === "active" ? "is-selected" : ""}
+            onClick={() => {
+              setScope("active");
+              setConfirmCancelOrderId(null);
+            }}
+            aria-pressed={scope === "active"}
+          >
+            Active{" "}
+            <span>
+              {
+                orders.filter(
+                  (order) => order.status !== "completed" && order.status !== "cancelled",
+                ).length
+              }
+            </span>
+          </button>
+          <button
+            type="button"
+            className={scope === "all" ? "is-selected" : ""}
+            onClick={() => {
+              setScope("all");
+              setConfirmCancelOrderId(null);
+            }}
+            aria-pressed={scope === "all"}
+          >
+            All orders <span>{orders.length}</span>
+          </button>
         </div>
-        <label className="vendor-search-field"><Search size={18} /><span className="sr-only">Search orders</span><input value={query} onChange={(event) => { setQuery(event.target.value); setConfirmCancelOrderId(null); }} placeholder="Search number, customer, or gift" /></label>
-        <label className="vendor-select-field"><span className="sr-only">Filter by status</span><select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value as "all" | VendorOrderStatus); setConfirmCancelOrderId(null); }}><option value="all">All statuses</option>{Object.entries(VENDOR_ORDER_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><ChevronDown size={17} /></label>
+        <label className="vendor-search-field">
+          <Search size={18} />
+          <span className="sr-only">Search orders</span>
+          <input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setConfirmCancelOrderId(null);
+            }}
+            placeholder="Search number, customer, or gift"
+          />
+        </label>
+        <label className="vendor-select-field">
+          <span className="sr-only">Filter by status</span>
+          <select
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as "all" | VendorOrderStatus);
+              setConfirmCancelOrderId(null);
+            }}
+          >
+            <option value="all">All statuses</option>
+            {Object.entries(VENDOR_ORDER_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={17} />
+        </label>
       </section>
 
-      {error ? <div className="vendor-inline-error" role="alert">{error}</div> : null}
+      {error ? (
+        <div ref={errorRef} tabIndex={-1} className="vendor-inline-error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       <div className={`vendor-orders-grid${selected ? " has-selection" : ""}`}>
         <section className="vendor-panel vendor-order-list" aria-labelledby="order-list-title">
-          <header className="vendor-panel-header"><div><h2 id="order-list-title">{scope === "active" ? "Active queue" : "Order history"}</h2><p>{filtered.length} {filtered.length === 1 ? "order" : "orders"} in this view</p></div></header>
+          <header className="vendor-panel-header">
+            <div>
+              <h2 id="order-list-title" ref={listHeadingRef} tabIndex={-1}>
+                {scope === "active" ? "Active queue" : "Order history"}
+              </h2>
+              <p>
+                {filtered.length} {filtered.length === 1 ? "order" : "orders"} in this view
+              </p>
+            </div>
+          </header>
           {filtered.length ? (
             <ul>
               {filtered.map((order) => (
                 <li key={order.id}>
-                  <button type="button" className={selected?.id === order.id ? "is-selected" : ""} onClick={() => { setSelectedId(order.id); setConfirmCancelOrderId(null); }} aria-pressed={selected?.id === order.id}>
-                    <span className="vendor-order-list-main"><strong>{order.orderNumber}</strong><small suppressHydrationWarning>{relativeVendorTime(order.createdAt)} · {order.kioskName}</small></span>
-                    <span className="vendor-order-list-customer"><strong>{order.customer.customerName || "Walk-in customer"}</strong><small>{order.items.reduce((total, item) => total + item.quantity, 0)} items · {formatInr(order.totalPaise)}</small></span>
+                  <button
+                    type="button"
+                    className={selected?.id === order.id ? "is-selected" : ""}
+                    onClick={() => {
+                      setSelectedId(order.id);
+                      setConfirmCancelOrderId(null);
+                    }}
+                    aria-pressed={selected?.id === order.id}
+                  >
+                    <span className="vendor-order-list-main">
+                      <strong>{order.orderNumber}</strong>
+                      <small suppressHydrationWarning>
+                        {relativeVendorTime(order.createdAt)} · {order.kioskName}
+                      </small>
+                    </span>
+                    <span className="vendor-order-list-customer">
+                      <strong>{order.customer.customerName || "Walk-in customer"}</strong>
+                      <small>
+                        {order.items.reduce((total, item) => total + item.quantity, 0)} items ·{" "}
+                        {formatInr(order.totalPaise)}
+                      </small>
+                    </span>
                     <VendorOrderStatusBadge status={order.status} />
                     <ArrowRight size={17} aria-hidden="true" />
                   </button>
@@ -123,24 +239,63 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
               ))}
             </ul>
           ) : (
-            <div className="vendor-panel-empty"><span><ShoppingBag size={26} /></span><div><strong>No orders here yet</strong><p>Adjust the filters, or prepare a test order on the kiosk.</p></div></div>
+            <div className="vendor-panel-empty">
+              <span>
+                <ShoppingBag size={26} />
+              </span>
+              <div>
+                <strong>No orders here yet</strong>
+                <p>Adjust the filters, or prepare a test order on the kiosk.</p>
+              </div>
+            </div>
           )}
         </section>
 
         {selected ? (
           <aside className="vendor-panel vendor-order-detail" aria-labelledby="order-detail-title">
             <header className="vendor-order-detail-header">
-              <div><p>Order detail</p><h2 id="order-detail-title">{selected.orderNumber}</h2><span>{formatVendorDate(selected.createdAt)} · {selected.kioskName}</span></div>
+              <div>
+                <p>Order detail</p>
+                <h2 id="order-detail-title" ref={detailHeadingRef} tabIndex={-1}>
+                  {selected.orderNumber}
+                </h2>
+                <span>
+                  {formatVendorDate(selected.createdAt)} · {selected.kioskName}
+                </span>
+              </div>
               <VendorOrderStatusBadge status={selected.status} />
             </header>
 
             {selected.status === "prepared" ? (
-              <div className="vendor-order-caution"><CircleAlert size={19} /><p><strong>Prepared does not mean sent.</strong> Confirm only after the customer’s WhatsApp message reaches the shop.</p></div>
+              <div className="vendor-order-caution">
+                <CircleAlert size={19} />
+                <p>
+                  <strong>Prepared does not mean sent.</strong> Confirm only after the customer’s
+                  WhatsApp message reaches the shop.
+                </p>
+              </div>
             ) : null}
 
             <section className="vendor-order-customer" aria-labelledby="customer-title">
-              <div><p id="customer-title">Customer</p><strong>{selected.customer.customerName || "Walk-in customer"}</strong>{selected.customer.customerPhone ? <span>{selected.customer.customerPhone}</span> : <span>No phone supplied</span>}</div>
-              <a className="vendor-secondary vendor-icon-action" href={selected.whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label="Open prepared WhatsApp conversation"><MessageCircle size={18} /><ExternalLink size={15} /></a>
+              <div>
+                <p id="customer-title">Customer</p>
+                <strong>{selected.customer.customerName || "Walk-in customer"}</strong>
+                {selected.customer.customerPhone ? (
+                  <span>{selected.customer.customerPhone}</span>
+                ) : (
+                  <span>No phone supplied</span>
+                )}
+              </div>
+              <a
+                className="vendor-secondary vendor-icon-action"
+                href={selected.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open prepared WhatsApp conversation"
+              >
+                <MessageCircle size={18} />
+                <ExternalLink size={15} />
+              </a>
             </section>
 
             <section className="vendor-order-items" aria-labelledby="order-items-title">
@@ -149,22 +304,47 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
                 {selected.items.map((item, index) => (
                   <li key={`${item.productId}-${item.variantId ?? "default"}-${index}`}>
                     <Image src={item.image} alt="" width={58} height={58} sizes="58px" />
-                    <div><strong>{item.name}</strong><span>{item.variant ? `${item.variant} · ` : ""}Qty {item.quantity}{item.giftWrapped ? " · Gift wrapped" : ""}</span></div>
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>
+                        {item.variant ? `${item.variant} · ` : ""}Qty {item.quantity}
+                        {item.giftWrapped ? " · Gift wrapped" : ""}
+                      </span>
+                    </div>
                     <strong>{formatInr(item.lineTotalPaise)}</strong>
                   </li>
                 ))}
               </ul>
               <dl className="vendor-order-totals">
-                <div><dt>Subtotal</dt><dd>{formatInr(selected.subtotalPaise)}</dd></div>
-                <div><dt>Gift wrapping</dt><dd>{formatInr(selected.giftWrapPaise)}</dd></div>
-                <div><dt>Total</dt><dd>{formatInr(selected.totalPaise)}</dd></div>
+                <div>
+                  <dt>Subtotal</dt>
+                  <dd>{formatInr(selected.subtotalPaise)}</dd>
+                </div>
+                <div>
+                  <dt>Gift wrapping</dt>
+                  <dd>{formatInr(selected.giftWrapPaise)}</dd>
+                </div>
+                <div>
+                  <dt>Total</dt>
+                  <dd>{formatInr(selected.totalPaise)}</dd>
+                </div>
               </dl>
             </section>
 
             {selected.customer.giftNote || selected.customer.orderNote ? (
               <section className="vendor-order-notes" aria-label="Customer notes">
-                {selected.customer.giftNote ? <div><p>Gift note</p><blockquote>{selected.customer.giftNote}</blockquote></div> : null}
-                {selected.customer.orderNote ? <div><p>Order note</p><blockquote>{selected.customer.orderNote}</blockquote></div> : null}
+                {selected.customer.giftNote ? (
+                  <div>
+                    <p>Gift note</p>
+                    <blockquote>{selected.customer.giftNote}</blockquote>
+                  </div>
+                ) : null}
+                {selected.customer.orderNote ? (
+                  <div>
+                    <p>Order note</p>
+                    <blockquote>{selected.customer.orderNote}</blockquote>
+                  </div>
+                ) : null}
               </section>
             ) : null}
 
@@ -172,7 +352,16 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
               <p id="order-timeline-title">Timeline</p>
               <ol>
                 {[...selected.events].reverse().map((event) => (
-                  <li key={event.id}><i aria-hidden="true" /><div><strong>{VENDOR_ORDER_LABELS[event.to]}</strong><span>{event.actorName} · {formatVendorDate(event.createdAt)}</span>{event.note ? <small>{event.note}</small> : null}</div></li>
+                  <li key={event.id}>
+                    <i aria-hidden="true" />
+                    <div>
+                      <strong>{VENDOR_ORDER_LABELS[event.to]}</strong>
+                      <span>
+                        {event.actorName} · {formatVendorDate(event.createdAt)}
+                      </span>
+                      {event.note ? <small>{event.note}</small> : null}
+                    </div>
+                  </li>
                 ))}
               </ol>
             </section>
@@ -180,19 +369,55 @@ export function VendorOrders({ apiBase = "/api/vendor", orders, focusOrderId, on
             {nextStatus || (selected.status !== "completed" && selected.status !== "cancelled") ? (
               <footer className="vendor-order-actions">
                 {nextStatus ? (
-                  <button className="vendor-primary" type="button" onClick={() => transition(nextStatus)} disabled={pending}>
-                    {pending ? <LoaderCircle className="vendor-spin" size={18} /> : <Check size={18} />}
-                    {pending ? "Updating…" : nextStatus === "confirmed" ? "Confirm order" : `Mark as ${VENDOR_ORDER_LABELS[nextStatus].toLowerCase()}`}
+                  <button
+                    className="vendor-primary"
+                    type="button"
+                    onClick={() => transition(nextStatus)}
+                    disabled={pending}
+                  >
+                    {pending ? (
+                      <LoaderCircle className="vendor-spin" size={18} />
+                    ) : (
+                      <Check size={18} />
+                    )}
+                    {pending
+                      ? "Updating…"
+                      : nextStatus === "confirmed"
+                        ? "Confirm order"
+                        : `Mark as ${VENDOR_ORDER_LABELS[nextStatus].toLowerCase()}`}
                   </button>
                 ) : null}
-                <button className={confirmingSelectedCancellation ? "vendor-danger" : "vendor-quiet"} type="button" onClick={() => confirmingSelectedCancellation ? transition("cancelled") : setConfirmCancelOrderId(selected.id)} disabled={pending}>
-                  <X size={17} /> {confirmingSelectedCancellation ? "Confirm cancellation" : "Cancel order"}
+                <button
+                  className="vendor-quiet"
+                  type="button"
+                  onClick={() => setConfirmCancelOrderId(selected.id)}
+                  disabled={pending}
+                  aria-haspopup="dialog"
+                >
+                  <X size={17} /> Cancel order
                 </button>
               </footer>
             ) : null}
           </aside>
         ) : null}
       </div>
+
+      {confirmingSelectedCancellation && selected ? (
+        <ConfirmDialog
+          title={`Cancel order ${selected.orderNumber}?`}
+          description={
+            selected.inventoryCommitted
+              ? "Cancelling restores this order’s stock to the catalogue and cannot be undone. The customer is not notified automatically."
+              : "No stock was reserved for this order. Cancelling cannot be undone. The customer is not notified automatically."
+          }
+          confirmLabel="Cancel order"
+          pendingLabel="Cancelling…"
+          cancelLabel="Keep order"
+          pending={pending}
+          onConfirm={() => void transition("cancelled")}
+          onCancel={() => setConfirmCancelOrderId(null)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -8,10 +8,7 @@ import {
   type WhatsAppNumberErrorCode,
 } from "@/domain/whatsapp";
 
-function expectNumberError(
-  action: () => unknown,
-  code: WhatsAppNumberErrorCode,
-): void {
+function expectNumberError(action: () => unknown, code: WhatsAppNumberErrorCode): void {
   try {
     action();
     throw new Error("Expected WhatsApp number validation to fail");
@@ -33,15 +30,9 @@ describe("Indian WhatsApp number normalization", () => {
 
   it("reports empty, invalid country-code, short, and overlong values", () => {
     expectNumberError(() => normalizeWhatsAppNumber(" -- "), "NUMBER_REQUIRED");
-    expectNumberError(
-      () => normalizeWhatsAppNumber("9876543210", "0000"),
-      "INVALID_COUNTRY_CODE",
-    );
+    expectNumberError(() => normalizeWhatsAppNumber("9876543210", "0000"), "INVALID_COUNTRY_CODE");
     expectNumberError(() => normalizeWhatsAppNumber("123"), "INVALID_LENGTH");
-    expectNumberError(
-      () => normalizeWhatsAppNumber("+91 12345678901234"),
-      "INVALID_LENGTH",
-    );
+    expectNumberError(() => normalizeWhatsAppNumber("+91 12345678901234"), "INVALID_LENGTH");
   });
 });
 
@@ -98,5 +89,56 @@ describe("WhatsApp handoff content", () => {
     expect(handoff).toContain("%26");
     expect(handoff).toContain("%23");
     expect(handoff).not.toContain(" ");
+  });
+});
+
+describe("WhatsApp text sanitising (AUD-36)", () => {
+  const baseInput = {
+    shopName: "Chapega.com",
+    orderNumber: "GFT-20260810-1234",
+    kioskName: "Main Entrance",
+    items: [{ name: "Hamper", quantity: 1, lineTotalPaise: 10_000 }],
+    giftWrapPaise: 0,
+    totalPaise: 10_000,
+  };
+
+  it("strips bidi override and isolate controls from customer text", () => {
+    const message = buildWhatsAppMessage({
+      ...baseInput,
+      customerName: "Asha‮evil",
+      giftNote: "‪‫‬‭⁦⁧⁨⁩Happy birthday",
+      orderNote: "Pickup‮ at 6",
+    });
+    expect(message).not.toMatch(/[‪-‮⁦-⁩]/);
+    expect(message).toContain("Customer: Ashaevil");
+    expect(message).toContain("Gift note: Happy birthday");
+    expect(message).toContain("Note: Pickup at 6");
+  });
+
+  it("removes NEL and other C0/C1 control characters", () => {
+    const message = buildWhatsAppMessage({
+      ...baseInput,
+      customerName: "Line\u0085Break\u0000Nul\u0007Bell\u009FC1\u007F",
+    });
+    expect(message).not.toMatch(/[\u0000-\u0009\u000B-\u001F\u007F-\u009F]/);
+    expect(message).toContain("Customer: Line Break Nul Bell C1");
+  });
+
+  it("replaces lone surrogates so URL encoding never throws", () => {
+    const message = buildWhatsAppMessage({
+      ...baseInput,
+      orderNote: "bad \uD800 high and \uDC00 low, fine \u{1F381}",
+    });
+    expect(message).toContain("bad � high and � low, fine \u{1F381}");
+    const url = buildWhatsAppUrl({ rawNumber: "9876543210", message });
+    expect(new URL(url).searchParams.get("text")).toBe(message);
+  });
+
+  it("makes buildWhatsAppUrl safe for raw lone surrogates and bidi controls", () => {
+    const url = buildWhatsAppUrl({
+      rawNumber: "9876543210",
+      message: "Order‮: x\uD83D",
+    });
+    expect(new URL(url).searchParams.get("text")).toBe("Order: x�");
   });
 });

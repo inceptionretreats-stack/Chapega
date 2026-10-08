@@ -27,9 +27,7 @@ vi.mock("@/server/supabase/config", () => ({
   usesSupabaseBackend: () => state.backend === "supabase",
 }));
 vi.mock("@/server/vendor/database", () => ({
-  updateLocalVendorDatabase: async <T,>(
-    mutation: (database: VendorDatabase) => Promise<T> | T,
-  ) => {
+  updateLocalVendorDatabase: async <T>(mutation: (database: VendorDatabase) => Promise<T> | T) => {
     state.updateCalls += 1;
     return mutation(structuredClone(state.database));
   },
@@ -43,7 +41,7 @@ vi.mock("@/server/supabase/admin", () => ({
 }));
 vi.mock("@/server/supabase/postgres", () => ({
   getSupabasePostgres: () => ({
-    begin: async <T,>(operation: (transaction: unknown) => Promise<T>) => {
+    begin: async <T>(operation: (transaction: unknown) => Promise<T>) => {
       let query = 0;
       const transaction = () => {
         query += 1;
@@ -56,10 +54,7 @@ vi.mock("@/server/supabase/postgres", () => ({
   }),
 }));
 
-import {
-  assertProductImageExists,
-  deleteUnusedVendorImage,
-} from "@/server/vendor/image-lifecycle";
+import { assertProductImageExists, deleteUnusedVendorImage } from "@/server/vendor/image-lifecycle";
 
 const hash = "a".repeat(64);
 const imagePath = `/vendor-products/${hash}.png` as const;
@@ -99,17 +94,14 @@ describe("product image reference validation", () => {
   });
 
   it("rejects a missing bundled image and an unsafe image path", async () => {
-    state.stat.mockRejectedValueOnce(
-      Object.assign(new Error("missing"), { code: "ENOENT" }),
-    );
+    state.stat.mockRejectedValueOnce(Object.assign(new Error("missing"), { code: "ENOENT" }));
 
+    await expect(assertProductImageExists("/products/missing.jpg")).rejects.toMatchObject({
+      status: 409,
+      code: "IMAGE_NOT_FOUND",
+    });
     await expect(
-      assertProductImageExists("/products/missing.jpg"),
-    ).rejects.toMatchObject({ status: 409, code: "IMAGE_NOT_FOUND" });
-    await expect(
-      assertProductImageExists(
-        "/generated-products/../private.png" as never,
-      ),
+      assertProductImageExists("/generated-products/../private.png" as never),
     ).rejects.toMatchObject({ status: 400, code: "INVALID_IMAGE_PATH" });
   });
 
@@ -152,15 +144,18 @@ describe("product image reference validation", () => {
 
 describe("unused vendor-image deletion", () => {
   it("rejects non-content-addressed and traversal paths before reading data", async () => {
-    await expect(
-      deleteUnusedVendorImage("/vendor-products/../private.png"),
-    ).rejects.toMatchObject({ status: 400, code: "INVALID_IMAGE_PATH" });
-    await expect(
-      deleteUnusedVendorImage(`/generated-products/${hash}.png`),
-    ).rejects.toMatchObject({ status: 400, code: "INVALID_IMAGE_PATH" });
-    await expect(
-      deleteUnusedVendorImage(`/vendor-products/${hash}.jpeg`),
-    ).rejects.toMatchObject({ status: 400, code: "INVALID_IMAGE_PATH" });
+    await expect(deleteUnusedVendorImage("/vendor-products/../private.png")).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_IMAGE_PATH",
+    });
+    await expect(deleteUnusedVendorImage(`/generated-products/${hash}.png`)).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_IMAGE_PATH",
+    });
+    await expect(deleteUnusedVendorImage(`/vendor-products/${hash}.jpeg`)).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_IMAGE_PATH",
+    });
 
     expect(state.updateCalls).toBe(0);
     expect(state.unlink).not.toHaveBeenCalled();
@@ -182,11 +177,14 @@ describe("unused vendor-image deletion", () => {
   });
 
   it("keeps images referenced by historical order-item snapshots", async () => {
-    state.database = database([], [
-      {
-        items: [{ image: imagePath }],
-      } as unknown as VendorDatabase["orders"][number],
-    ]);
+    state.database = database(
+      [],
+      [
+        {
+          items: [{ image: imagePath }],
+        } as unknown as VendorDatabase["orders"][number],
+      ],
+    );
 
     await expect(deleteUnusedVendorImage(imagePath)).rejects.toMatchObject({
       status: 409,
@@ -206,9 +204,7 @@ describe("unused vendor-image deletion", () => {
   });
 
   it("treats an already-missing local file as a successful retry", async () => {
-    state.unlink.mockRejectedValueOnce(
-      Object.assign(new Error("missing"), { code: "ENOENT" }),
-    );
+    state.unlink.mockRejectedValueOnce(Object.assign(new Error("missing"), { code: "ENOENT" }));
 
     await expect(deleteUnusedVendorImage(imagePath)).resolves.toEqual({
       path: imagePath,
@@ -251,6 +247,53 @@ describe("unused vendor-image deletion", () => {
 
     await expect(deleteUnusedVendorImage(imagePath)).resolves.toEqual({
       path: imagePath,
+    });
+  });
+});
+
+describe("upload path case normalization", () => {
+  const upperCasePath = `/vendor-products/${hash.toUpperCase()}.png`;
+
+  it("refuses to delete an in-use image addressed with upper-case hex", async () => {
+    state.database = database([
+      { image: imagePath, archived: false } as VendorDatabase["products"][number],
+    ]);
+
+    await expect(deleteUnusedVendorImage(upperCasePath)).rejects.toMatchObject({
+      status: 409,
+      code: "IMAGE_IN_USE",
+    });
+    expect(state.unlink).not.toHaveBeenCalled();
+  });
+
+  it("deletes the canonical lower-case object when the image is unused", async () => {
+    await expect(deleteUnusedVendorImage(upperCasePath)).resolves.toEqual({
+      path: imagePath,
+    });
+    expect(state.unlink).toHaveBeenCalledWith(
+      path.resolve(process.cwd(), "public", "vendor-products", `${hash}.png`),
+    );
+
+    state.backend = "supabase";
+    await deleteUnusedVendorImage(upperCasePath);
+    expect(state.remove).toHaveBeenCalledWith([`${hash}.png`]);
+  });
+
+  it("treats legacy upper-case references as in use", async () => {
+    state.database = database([
+      { image: upperCasePath, archived: false } as VendorDatabase["products"][number],
+    ]);
+
+    await expect(deleteUnusedVendorImage(imagePath)).rejects.toMatchObject({
+      status: 409,
+      code: "IMAGE_IN_USE",
+    });
+  });
+
+  it("only lets products reference the canonical lower-case path", async () => {
+    await expect(assertProductImageExists(upperCasePath as never)).rejects.toMatchObject({
+      status: 400,
+      code: "INVALID_IMAGE_PATH",
     });
   });
 });

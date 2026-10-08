@@ -1,6 +1,6 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { getEffectiveMaxCartUnits } from "@/domain/cart";
 import { calculateCartTotals } from "@/domain/money";
 import { canTransitionVendorOrder } from "@/domain/vendor";
@@ -33,7 +33,6 @@ import type {
   PresenterSettings,
   Product,
   ProductAvailability,
-  ProductImagePath,
   ProductVariant,
 } from "@/types/kiosk";
 import type {
@@ -51,6 +50,7 @@ import type {
 } from "@/types/vendor";
 
 const MAX_STORED_ORDERS = 500;
+const STALE_DRAFT_MS = 7 * 24 * 60 * 60 * 1_000;
 const MAX_INVENTORY_STOCK = 100_000;
 
 type VendorActor = VendorAccessContext | VendorUser;
@@ -74,13 +74,8 @@ function requireCapability(
   }
 }
 
-function activeTenantById(
-  database: VendorDatabase,
-  vendorId: string,
-): TenantState {
-  const vendor = database.vendors.find(
-    (candidate) => candidate.id === vendorId,
-  );
+function activeTenantById(database: VendorDatabase, vendorId: string): TenantState {
+  const vendor = database.vendors.find((candidate) => candidate.id === vendorId);
   if (!vendor || vendor.status !== "active") {
     throw new VendorServiceError(
       403,
@@ -99,10 +94,7 @@ function activeTenantById(
   return { vendor, settings };
 }
 
-function activeTenantBySlug(
-  database: VendorDatabase,
-  vendorSlug: string,
-): TenantState {
+function activeTenantBySlug(database: VendorDatabase, vendorSlug: string): TenantState {
   const vendor = findVendorBySlug(database, vendorSlug);
   if (!vendor) {
     throw new VendorServiceError(404, "VENDOR_NOT_FOUND", "Vendor not found.");
@@ -125,9 +117,7 @@ function touchVendor(database: VendorDatabase, vendorId: string): void {
 }
 
 function unique(values: readonly string[]): readonly string[] {
-  return Object.freeze(
-    Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))),
-  );
+  return Object.freeze(Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))));
 }
 
 function availability(stock: number, threshold: number): ProductAvailability {
@@ -174,11 +164,7 @@ function publicSettings(settings: VendorSettings): PresenterSettings {
 }
 
 function orderDto(order: VendorOrderRecord): VendorOrder {
-  const {
-    submissionFingerprint: _privateFingerprint,
-    vendorId: _vendorId,
-    ...safeOrder
-  } = order;
+  const { submissionFingerprint: _privateFingerprint, vendorId: _vendorId, ...safeOrder } = order;
   void _privateFingerprint;
   void _vendorId;
   return safeOrder;
@@ -197,19 +183,11 @@ function settingsDto(settings: VendorSettingsRecord): VendorSettings {
 }
 
 function assertCatalogueAccess(context: VendorAccessContext): void {
-  requireCapability(
-    context,
-    "manage_catalogue",
-    "Your role cannot change the catalogue.",
-  );
+  requireCapability(context, "manage_catalogue", "Your role cannot change the catalogue.");
 }
 
 function assertSettingsAccess(context: VendorAccessContext): void {
-  requireCapability(
-    context,
-    "manage_settings",
-    "Only the shop owner can change these settings.",
-  );
+  requireCapability(context, "manage_settings", "Only the shop owner can change these settings.");
 }
 
 function slugify(value: string): string {
@@ -238,15 +216,10 @@ function normalizedProductVariants(
   );
 }
 
-type NormalizedVendorProductInput = Omit<
-  VendorProductInput,
-  "variants" | "version"
-> &
+type NormalizedVendorProductInput = Omit<VendorProductInput, "variants" | "version"> &
   Readonly<{ variants: readonly ProductVariant[] }>;
 
-function normalizedProductInput(
-  input: VendorProductInput,
-): NormalizedVendorProductInput {
+function normalizedProductInput(input: VendorProductInput): NormalizedVendorProductInput {
   return {
     name: input.name.trim(),
     shortDescription: input.shortDescription.trim(),
@@ -269,11 +242,30 @@ function normalizedProductInput(
   };
 }
 
-export async function getKioskBootstrap(
-  vendorSlug = DEFAULT_VENDOR_SLUG,
-): Promise<KioskBootstrap> {
+export async function getKioskBootstrap(vendorSlug = DEFAULT_VENDOR_SLUG): Promise<KioskBootstrap> {
+  if (usesSupabaseBackend()) {
+    // Public and polled by every kiosk: read only the catalogue, never the
+    // tenant's accounts, sessions or order history.
+    const { readSupabaseKioskSnapshot } = await import("@/server/vendor/supabase-database");
+    const catalogue = await readSupabaseKioskSnapshot(vendorSlug);
+    return kioskBootstrap(catalogue.vendor, catalogue.settings, catalogue.products);
+  }
   const database = await readVendorDatabase({ vendorSlug });
   const { vendor, settings } = activeTenantBySlug(database, vendorSlug);
+  return kioskBootstrap(
+    vendor,
+    settings,
+    database.products.filter(
+      (product) => product.vendorId === vendor.id && product.visible && !product.archived,
+    ),
+  );
+}
+
+function kioskBootstrap(
+  vendor: VendorRecord,
+  settings: VendorSettingsRecord,
+  products: readonly VendorProductRecord[],
+): KioskBootstrap {
   return {
     vendor: {
       id: vendor.id,
@@ -281,25 +273,16 @@ export async function getKioskBootstrap(
       displayName: vendor.displayName,
     },
     revision: String(vendor.revision),
-    products: database.products
-      .filter(
-        (product) =>
-          product.vendorId === vendor.id &&
-          product.visible &&
-          !product.archived,
-      )
-      .map((product) =>
-        toPublicProduct(productDto(product), settings.lowStockThreshold),
-      ),
+    products: products.map((product) =>
+      toPublicProduct(productDto(product), settings.lowStockThreshold),
+    ),
     settings: publicSettings(settings),
     storeOpen: settings.storeOpen,
     syncedAt: new Date().toISOString(),
   };
 }
 
-export async function getVendorBootstrap(
-  actor: VendorActor,
-): Promise<VendorBootstrap> {
+export async function getVendorBootstrap(actor: VendorActor): Promise<VendorBootstrap> {
   const context = actorContext(actor);
   const database = await readVendorDatabase({ vendorId: context.vendor.id });
   const { vendor, settings } = activeTenantById(database, context.vendor.id);
@@ -331,18 +314,13 @@ export async function createVendorProduct(
   assertCatalogueAccess(context);
   return updateVendorDatabase(
     async (database) => {
-      const { vendor, settings } = activeTenantById(
-        database,
-        context.vendor.id,
-      );
+      const { vendor, settings } = activeTenantById(database, context.vendor.id);
       const now = new Date().toISOString();
       const base = slugify(input.name);
       let id = base;
       let counter = 2;
       while (
-        database.products.some(
-          (product) => product.vendorId === vendor.id && product.id === id,
-        )
+        database.products.some((product) => product.vendorId === vendor.id && product.id === id)
       ) {
         id = `${base}-${counter}`;
         counter += 1;
@@ -353,10 +331,7 @@ export async function createVendorProduct(
         ...normalized,
         vendorId: vendor.id,
         id,
-        availability: availability(
-          normalized.stock,
-          settings.lowStockThreshold,
-        ),
+        availability: availability(normalized.stock, settings.lowStockThreshold),
         archived: false,
         version: 1,
         createdAt: now,
@@ -365,13 +340,7 @@ export async function createVendorProduct(
       database.products.push(product);
       touchVendor(database, vendor.id);
       database.audit.push(
-        newAuditRecord(
-          context.user.id,
-          "product.created",
-          "product",
-          product.id,
-          vendor.id,
-        ),
+        newAuditRecord(context.user.id, "product.created", "product", product.id, vendor.id),
       );
       return productDto(product);
     },
@@ -388,22 +357,13 @@ export async function updateVendorProduct(
   assertCatalogueAccess(context);
   return updateVendorDatabase(
     async (database) => {
-      const { vendor, settings } = activeTenantById(
-        database,
-        context.vendor.id,
-      );
+      const { vendor, settings } = activeTenantById(database, context.vendor.id);
       const index = database.products.findIndex(
         (product) =>
-          product.vendorId === vendor.id &&
-          product.id === productId &&
-          !product.archived,
+          product.vendorId === vendor.id && product.id === productId && !product.archived,
       );
       if (index < 0) {
-        throw new VendorServiceError(
-          404,
-          "PRODUCT_NOT_FOUND",
-          "Product not found.",
-        );
+        throw new VendorServiceError(404, "PRODUCT_NOT_FOUND", "Product not found.");
       }
       const current = database.products[index];
       if (input.version !== current.version) {
@@ -418,23 +378,16 @@ export async function updateVendorProduct(
       const product: VendorProductRecord = {
         ...current,
         ...normalized,
-        availability: availability(
-          normalized.stock,
-          settings.lowStockThreshold,
-        ),
+        // A partial edit (such as a visibility toggle) keeps the variants.
+        variants: input.variants === undefined ? current.variants : normalized.variants,
+        availability: availability(normalized.stock, settings.lowStockThreshold),
         version: current.version + 1,
         updatedAt: new Date().toISOString(),
       };
       database.products[index] = product;
       touchVendor(database, vendor.id);
       database.audit.push(
-        newAuditRecord(
-          context.user.id,
-          "product.updated",
-          "product",
-          product.id,
-          vendor.id,
-        ),
+        newAuditRecord(context.user.id, "product.updated", "product", product.id, vendor.id),
       );
       return productDto(product);
     },
@@ -454,16 +407,10 @@ export async function archiveVendorProduct(
       const { vendor } = activeTenantById(database, context.vendor.id);
       const index = database.products.findIndex(
         (product) =>
-          product.vendorId === vendor.id &&
-          product.id === productId &&
-          !product.archived,
+          product.vendorId === vendor.id && product.id === productId && !product.archived,
       );
       if (index < 0) {
-        throw new VendorServiceError(
-          404,
-          "PRODUCT_NOT_FOUND",
-          "Product not found.",
-        );
+        throw new VendorServiceError(404, "PRODUCT_NOT_FOUND", "Product not found.");
       }
       const current = database.products[index];
       if (current.version !== version) {
@@ -482,13 +429,7 @@ export async function archiveVendorProduct(
       };
       touchVendor(database, vendor.id);
       database.audit.push(
-        newAuditRecord(
-          context.user.id,
-          "product.archived",
-          "product",
-          productId,
-          vendor.id,
-        ),
+        newAuditRecord(context.user.id, "product.archived", "product", productId, vendor.id),
       );
     },
     { vendorId: context.vendor.id },
@@ -517,18 +458,69 @@ function findProduct(
   return product;
 }
 
+const ORDER_NUMBER_TIME_ZONE = "Asia/Kolkata";
+
+function orderNumberDate(now: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ORDER_NUMBER_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  return parts.replaceAll("-", "");
+}
+
+/**
+ * Assigns the friendly display number on the server, inside the tenant lock,
+ * so two kiosks can never be handed the same number. Four digits are tried
+ * first; a busy day falls back to six.
+ */
+function nextOrderNumber(
+  orders: readonly VendorOrderRecord[],
+  vendorId: string,
+  now = new Date(),
+): string {
+  const prefix = `GFT-${orderNumberDate(now)}-`;
+  const taken = new Set(
+    orders
+      .filter((order) => order.vendorId === vendorId && order.orderNumber.startsWith(prefix))
+      .map((order) => order.orderNumber),
+  );
+  for (const [minimum, maximum, attempts] of [
+    [1_000, 10_000, 40],
+    [100_000, 1_000_000, 200],
+  ] as const) {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const candidate = `${prefix}${randomInt(minimum, maximum)}`;
+      if (!taken.has(candidate)) return candidate;
+    }
+  }
+  throw new VendorServiceError(
+    503,
+    "ORDER_NUMBER_UNAVAILABLE",
+    "A new order number could not be assigned. Please try again.",
+  );
+}
+
 export async function recordKioskOrder(
   submission: KioskOrderSubmission,
   vendorSlug = DEFAULT_VENDOR_SLUG,
 ): Promise<VendorOrder> {
-  const fingerprint = sha256(JSON.stringify(submission));
+  // Only what the customer chose identifies a retry. The kiosk's suggested
+  // number and timestamp may legitimately change between attempts.
+  const fingerprint = sha256(
+    JSON.stringify({
+      kioskName: submission.kioskName,
+      customer: submission.customer,
+      items: submission.items,
+    }),
+  );
   return updateVendorDatabase(
     (database) => {
       const { vendor, settings } = activeTenantBySlug(database, vendorSlug);
       const duplicate = database.orders.find(
         (order) =>
-          order.vendorId === vendor.id &&
-          order.idempotencyKey === submission.idempotencyKey,
+          order.vendorId === vendor.id && order.idempotencyKey === submission.idempotencyKey,
       );
       if (duplicate) {
         if (duplicate.submissionFingerprint !== fingerprint) {
@@ -541,31 +533,12 @@ export async function recordKioskOrder(
         return orderDto(duplicate);
       }
       if (!settings.storeOpen) {
-        throw new VendorServiceError(
-          409,
-          "SHOP_PAUSED",
-          "The shop has paused new kiosk orders.",
-        );
+        throw new VendorServiceError(409, "SHOP_PAUSED", "The shop has paused new kiosk orders.");
       }
-      if (
-        database.orders.some(
-          (order) =>
-            order.vendorId === vendor.id &&
-            order.orderNumber === submission.orderNumber,
-        )
-      ) {
-        throw new VendorServiceError(
-          409,
-          "ORDER_NUMBER_CONFLICT",
-          "Please prepare the order again to receive a new number.",
-        );
-      }
+      const orderNumber = nextOrderNumber(database.orders, vendor.id);
 
       const maxUnits = getEffectiveMaxCartUnits(settings.maxCartQuantity);
-      const totalUnits = submission.items.reduce(
-        (total, item) => total + item.quantity,
-        0,
-      );
+      const totalUnits = submission.items.reduce((total, item) => total + item.quantity, 0);
       if (totalUnits > maxUnits) {
         throw new VendorServiceError(
           400,
@@ -579,9 +552,7 @@ export async function recordKioskOrder(
       const cartLines = submission.items.map((item, index) => {
         const product = findProduct(database, vendor.id, item.productId);
         const variant = item.variantId
-          ? product.variants.find(
-              (candidate) => candidate.id === item.variantId,
-            )
+          ? product.variants.find((candidate) => candidate.id === item.variantId)
           : undefined;
         if (
           (product.variants.length > 0 && !variant) ||
@@ -600,8 +571,7 @@ export async function recordKioskOrder(
             `${product.name} cannot be gift wrapped.`,
           );
         }
-        const nextProductTotal =
-          (productTotals.get(product.id) ?? 0) + item.quantity;
+        const nextProductTotal = (productTotals.get(product.id) ?? 0) + item.quantity;
         if (nextProductTotal > product.stock) {
           throw new VendorServiceError(
             409,
@@ -611,8 +581,7 @@ export async function recordKioskOrder(
         }
         productTotals.set(product.id, nextProductTotal);
         const variantKey = `${product.id}:${variant?.id ?? "default"}`;
-        const nextVariantTotal =
-          (variantTotals.get(variantKey) ?? 0) + item.quantity;
+        const nextVariantTotal = (variantTotals.get(variantKey) ?? 0) + item.quantity;
         if (variant?.stock !== undefined && nextVariantTotal > variant.stock) {
           throw new VendorServiceError(
             409,
@@ -621,8 +590,7 @@ export async function recordKioskOrder(
           );
         }
         variantTotals.set(variantKey, nextVariantTotal);
-        const unitPricePaise =
-          product.pricePaise + (variant?.priceAdjustmentPaise ?? 0);
+        const unitPricePaise = product.pricePaise + (variant?.priceAdjustmentPaise ?? 0);
         return {
           key: `${product.id}:${variant?.id ?? "default"}:${item.giftWrapped}:${index}`,
           productId: product.id,
@@ -664,7 +632,7 @@ export async function recordKioskOrder(
       }));
       const whatsappMessage = buildWhatsAppMessage({
         shopName: settings.shopName,
-        orderNumber: submission.orderNumber,
+        orderNumber,
         kioskName: settings.kioskName,
         customerName: submission.customer.customerName || undefined,
         items: whatsappItems,
@@ -682,7 +650,7 @@ export async function recordKioskOrder(
       const order: VendorOrderRecord = {
         vendorId: vendor.id,
         id: randomUUID(),
-        orderNumber: submission.orderNumber,
+        orderNumber,
         idempotencyKey: submission.idempotencyKey,
         submissionFingerprint: fingerprint,
         createdAt: now,
@@ -717,12 +685,22 @@ export async function recordKioskOrder(
         (candidate) => candidate.vendorId === vendor.id,
       ).length;
       if (!usesSupabaseBackend() && tenantOrderCount >= MAX_STORED_ORDERS) {
-        const removableIndex = database.orders.findIndex(
+        // Finished orders go first; then drafts nobody confirmed for a week,
+        // so anonymous floods can't lock real customers out (AUD-20).
+        const staleBefore = Date.now() - STALE_DRAFT_MS;
+        let removableIndex = database.orders.findIndex(
           (candidate) =>
             candidate.vendorId === vendor.id &&
-            (candidate.status === "completed" ||
-              candidate.status === "cancelled"),
+            (candidate.status === "completed" || candidate.status === "cancelled"),
         );
+        if (removableIndex < 0) {
+          removableIndex = database.orders.findIndex(
+            (candidate) =>
+              candidate.vendorId === vendor.id &&
+              candidate.status === "prepared" &&
+              Date.parse(candidate.createdAt) < staleBefore,
+          );
+        }
         if (removableIndex < 0) {
           throw new VendorServiceError(
             507,
@@ -734,9 +712,7 @@ export async function recordKioskOrder(
       }
       database.orders.push(order);
       touchVendor(database, vendor.id);
-      database.audit.push(
-        newAuditRecord("kiosk", "order.prepared", "order", order.id, vendor.id),
-      );
+      database.audit.push(newAuditRecord("kiosk", "order.prepared", "order", order.id, vendor.id));
       return orderDto(order);
     },
     { vendorSlug },
@@ -751,8 +727,7 @@ function applyInventoryCommit(
 ): void {
   for (const item of order.items) {
     const index = database.products.findIndex(
-      (product) =>
-        product.vendorId === order.vendorId && product.id === item.productId,
+      (product) => product.vendorId === order.vendorId && product.id === item.productId,
     );
     if (index < 0) {
       throw new VendorServiceError(
@@ -764,9 +739,7 @@ function applyInventoryCommit(
     const product = database.products[index];
     const adjustedStock = product.stock + direction * item.quantity;
     const nextStock =
-      direction === 1
-        ? Math.min(MAX_INVENTORY_STOCK, adjustedStock)
-        : adjustedStock;
+      direction === 1 ? Math.min(MAX_INVENTORY_STOCK, adjustedStock) : adjustedStock;
     if (nextStock < 0) {
       throw new VendorServiceError(
         409,
@@ -811,26 +784,15 @@ export async function transitionVendorOrder(
   note?: string,
 ): Promise<VendorOrder> {
   const context = actorContext(actor);
-  requireCapability(
-    context,
-    "manage_orders",
-    "Your role cannot update orders.",
-  );
+  requireCapability(context, "manage_orders", "Your role cannot update orders.");
   return updateVendorDatabase(
     (database) => {
-      const { vendor, settings } = activeTenantById(
-        database,
-        context.vendor.id,
-      );
+      const { vendor, settings } = activeTenantById(database, context.vendor.id);
       const index = database.orders.findIndex(
         (order) => order.vendorId === vendor.id && order.id === orderId,
       );
       if (index < 0) {
-        throw new VendorServiceError(
-          404,
-          "ORDER_NOT_FOUND",
-          "Order not found.",
-        );
+        throw new VendorServiceError(404, "ORDER_NOT_FOUND", "Order not found.");
       }
       const current = database.orders[index];
       if (current.version !== expectedVersion) {
@@ -878,13 +840,7 @@ export async function transitionVendorOrder(
       database.orders[index] = order;
       touchVendor(database, vendor.id);
       database.audit.push(
-        newAuditRecord(
-          context.user.id,
-          `order.status.${target}`,
-          "order",
-          order.id,
-          vendor.id,
-        ),
+        newAuditRecord(context.user.id, `order.status.${target}`, "order", order.id, vendor.id),
       );
       return orderDto(order);
     },
@@ -900,10 +856,7 @@ export async function updateVendorSettings(
   assertSettingsAccess(context);
   let number: string;
   try {
-    number = normalizeWhatsAppNumber(
-      input.ownerWhatsAppNumber,
-      input.defaultCountryCode,
-    );
+    number = normalizeWhatsAppNumber(input.ownerWhatsAppNumber, input.defaultCountryCode);
   } catch (error) {
     if (error instanceof WhatsAppNumberError) {
       throw new VendorServiceError(400, error.code, error.message);
@@ -913,10 +866,7 @@ export async function updateVendorSettings(
 
   return updateVendorDatabase(
     (database) => {
-      const { vendor, settings: current } = activeTenantById(
-        database,
-        context.vendor.id,
-      );
+      const { vendor, settings: current } = activeTenantById(database, context.vendor.id);
       if (current.version !== input.version) {
         throw new VendorServiceError(
           409,
@@ -944,20 +894,10 @@ export async function updateVendorSettings(
       }));
       touchVendor(database, vendor.id);
       database.audit.push(
-        newAuditRecord(
-          context.user.id,
-          "settings.updated",
-          "settings",
-          "shop",
-          vendor.id,
-        ),
+        newAuditRecord(context.user.id, "settings.updated", "settings", "shop", vendor.id),
       );
       return settingsDto(settings);
     },
     { vendorId: context.vendor.id },
   );
-}
-
-export function imagePath(value: string): ProductImagePath {
-  return value as ProductImagePath;
 }

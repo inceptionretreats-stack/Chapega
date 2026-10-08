@@ -14,14 +14,14 @@ vi.mock("@/server/vendor/auth", () => ({
 }));
 vi.mock("@/server/vendor/image-lifecycle", () => ({
   deleteUnusedVendorImage: mocks.deleteUnusedVendorImage,
-  VENDOR_UPLOAD_PATH_PATTERN:
-    /^\/vendor-products\/[0-9a-f-]{36}\/[a-f0-9]{64}\.(?:png|jpg)$/,
+  VENDOR_UPLOAD_PATH_PATTERN: /^\/vendor-products\/[0-9a-f-]{36}\/[a-f0-9]{64}\.(?:png|jpg)$/,
 }));
 vi.mock("@/server/vendor/images", () => ({
   saveVendorImage: mocks.saveVendorImage,
 }));
 
-import { DELETE } from "@/app/api/vendor/uploads/route";
+import { DELETE, POST } from "@/app/api/vendor/uploads/route";
+import { POST as scopedPost } from "@/app/api/vendor/[vendorSlug]/uploads/route";
 
 const owner: VendorUser = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -87,10 +87,7 @@ describe("DELETE /api/vendor/uploads", () => {
       ok: true,
       image: { path: imagePath },
     });
-    expect(mocks.deleteUnusedVendorImage).toHaveBeenCalledWith(
-      imagePath,
-      owner.activeVendor.id,
-    );
+    expect(mocks.deleteUnusedVendorImage).toHaveBeenCalledWith(imagePath, owner.activeVendor.id);
   });
 
   it("forbids staff before attempting deletion", async () => {
@@ -129,17 +126,14 @@ describe("DELETE /api/vendor/uploads", () => {
   });
 
   it("rejects cross-site requests", async () => {
-    const crossSiteRequest = new NextRequest(
-      "http://localhost/api/vendor/uploads",
-      {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-          origin: "https://attacker.example",
-        },
-        body: JSON.stringify({ path: imagePath }),
+    const crossSiteRequest = new NextRequest("http://localhost/api/vendor/uploads", {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+        origin: "https://attacker.example",
       },
-    );
+      body: JSON.stringify({ path: imagePath }),
+    });
 
     const response = await DELETE(crossSiteRequest);
 
@@ -147,4 +141,44 @@ describe("DELETE /api/vendor/uploads", () => {
     expect(mocks.getRequestVendorContext).not.toHaveBeenCalled();
     expect(mocks.deleteUnusedVendorImage).not.toHaveBeenCalled();
   });
+});
+
+describe("POST upload body validation", () => {
+  const handlers = [
+    ["unscoped", (request: NextRequest) => POST(request)],
+    [
+      "scoped",
+      (request: NextRequest) =>
+        scopedPost(request, { params: Promise.resolve({ vendorSlug: "chapega" }) }),
+    ],
+  ] as const;
+
+  function upload(contentType: string, body: string): NextRequest {
+    return new NextRequest("http://localhost/api/vendor/uploads", {
+      method: "POST",
+      headers: { "content-type": contentType, origin: "http://localhost" },
+      body,
+    });
+  }
+
+  for (const [label, handler] of handlers) {
+    it(`answers 400 (not 500) for a non-multipart ${label} upload`, async () => {
+      const response = await handler(upload("application/json", '{"image":"x"}'));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        error: { code: "INVALID_UPLOAD" },
+      });
+      expect(mocks.saveVendorImage).not.toHaveBeenCalled();
+    });
+
+    it(`answers 400 for a malformed multipart ${label} upload`, async () => {
+      const response = await handler(
+        upload("multipart/form-data; boundary=missing", "not really multipart"),
+      );
+
+      expect(response.status).toBe(400);
+      expect(mocks.saveVendorImage).not.toHaveBeenCalled();
+    });
+  }
 });

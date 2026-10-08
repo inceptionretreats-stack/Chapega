@@ -37,15 +37,8 @@ function assertLivePlatformAdmin(
       candidate.activeVendorId === null &&
       Date.parse(candidate.expiresAt) > Date.now(),
   );
-  const user = database.users.find(
-    (candidate) => candidate.id === context.user.id,
-  );
-  if (
-    !session ||
-    !user ||
-    !user.active ||
-    user.platformRole !== "super_admin"
-  ) {
+  const user = database.users.find((candidate) => candidate.id === context.user.id);
+  if (!session || !user || !user.active || user.platformRole !== "super_admin") {
     throw new AdminServiceError(
       401,
       "ADMIN_AUTH_REQUIRED",
@@ -65,22 +58,18 @@ function adminUser(record: VendorUserRecord): PlatformAdminUser {
 }
 
 function latestTimestamp(values: readonly (string | undefined)[]): string {
-  const valid = values.filter(
-    (value): value is string => Boolean(value && Number.isFinite(Date.parse(value))),
+  const valid = values.filter((value): value is string =>
+    Boolean(value && Number.isFinite(Date.parse(value))),
   );
-  return valid.sort((left, right) => Date.parse(right) - Date.parse(left))[0]
-    ?? new Date(0).toISOString();
+  return (
+    valid.sort((left, right) => Date.parse(right) - Date.parse(left))[0] ??
+    new Date(0).toISOString()
+  );
 }
 
-function vendorSummary(
-  database: VendorDatabase,
-  vendor: VendorRecord,
-): AdminVendorSummary {
+function vendorSummary(database: VendorDatabase, vendor: VendorRecord): AdminVendorSummary {
   const ownerMembership = database.memberships
-    .filter(
-      (membership) =>
-        membership.vendorId === vendor.id && membership.role === "owner",
-    )
+    .filter((membership) => membership.vendorId === vendor.id && membership.role === "owner")
     .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt))[0];
   const owner = ownerMembership
     ? database.users.find((user) => user.id === ownerMembership.userId)
@@ -218,10 +207,7 @@ function recentActivity(database: VendorDatabase): AdminActivityItem[] {
     .slice(0, 12);
 }
 
-function bootstrapFromDatabase(
-  database: VendorDatabase,
-  user: VendorUserRecord,
-): AdminBootstrap {
+function bootstrapFromDatabase(database: VendorDatabase, user: VendorUserRecord): AdminBootstrap {
   return {
     user: adminUser(user),
     metrics: platformMetrics(database),
@@ -232,9 +218,7 @@ function bootstrapFromDatabase(
   };
 }
 
-export async function getAdminBootstrap(
-  context: AdminAuthContext,
-): Promise<AdminBootstrap> {
+export async function getAdminBootstrap(context: AdminAuthContext): Promise<AdminBootstrap> {
   const database = await readVendorDatabase({
     platformSessionHash: context.sessionHash,
   });
@@ -266,10 +250,7 @@ export async function createAdminVendor(
 ): Promise<AdminVendorMutationResult> {
   let ownerWhatsAppNumber: string;
   try {
-    ownerWhatsAppNumber = normalizeWhatsAppNumber(
-      input.ownerWhatsAppNumber,
-      "91",
-    );
+    ownerWhatsAppNumber = normalizeWhatsAppNumber(input.ownerWhatsAppNumber, "91");
   } catch (error) {
     if (error instanceof WhatsAppNumberError) {
       throw new AdminServiceError(400, error.code, error.message);
@@ -283,140 +264,135 @@ export async function createAdminVendor(
   const auditId = randomUUID();
   const now = new Date().toISOString();
 
-  return updateVendorDatabase((database) => {
-    assertLivePlatformAdmin(database, context);
-    if (
-      database.vendors.some(
-        (vendor) => vendor.slug.toLocaleLowerCase("en-IN") === input.slug,
-      )
-    ) {
-      throw new AdminServiceError(
-        409,
-        "VENDOR_SLUG_EXISTS",
-        "That vendor URL is already in use.",
-      );
-    }
-    if (
-      database.users.some(
-        (user) => user.email.toLocaleLowerCase("en-IN") === input.ownerEmail,
-      )
-    ) {
-      throw new AdminServiceError(
-        409,
-        "OWNER_EMAIL_EXISTS",
-        "That email already belongs to a platform account.",
-      );
-    }
+  return updateVendorDatabase(
+    (database) => {
+      assertLivePlatformAdmin(database, context);
+      if (
+        database.vendors.some((vendor) => vendor.slug.toLocaleLowerCase("en-IN") === input.slug)
+      ) {
+        throw new AdminServiceError(
+          409,
+          "VENDOR_SLUG_EXISTS",
+          "That vendor URL is already in use.",
+        );
+      }
+      if (
+        database.users.some((user) => user.email.toLocaleLowerCase("en-IN") === input.ownerEmail)
+      ) {
+        throw new AdminServiceError(
+          409,
+          "OWNER_EMAIL_EXISTS",
+          "That email already belongs to a platform account.",
+        );
+      }
 
-    database.vendors.push({
-      id: vendorId,
-      slug: input.slug,
-      displayName: input.displayName,
-      status: "active",
-      revision: 1,
-      createdAt: now,
-      updatedAt: now,
-    });
-    database.users.push({
-      id: ownerId,
-      email: input.ownerEmail,
-      name: input.ownerName,
-      platformRole: null,
-      passwordSalt: credentials.salt,
-      passwordHash: credentials.hash,
-      active: true,
-      createdAt: now,
-    });
-    database.memberships.push({
-      vendorId,
-      userId: ownerId,
-      role: "owner",
-      active: true,
-      isDefault: true,
-      createdAt: now,
-    });
-    database.settings.push({
-      vendorId,
-      shopName: input.displayName,
-      ownerWhatsAppNumber,
-      defaultCountryCode: "91",
-      kioskName: "Main kiosk",
-      maxCartQuantity: 5,
-      giftWrapFeePaise: 2_500,
-      qrResetSeconds: 120,
-      showPreviewLabel: false,
-      storeOpen: true,
-      lowStockThreshold: 3,
-      version: 1,
-      updatedAt: now,
-    });
-    database.audit.push({
-      ...newAuditRecord(
-        context.user.id,
-        "platform.vendor.created",
-        "vendor",
+      database.vendors.push({
+        id: vendorId,
+        slug: input.slug,
+        displayName: input.displayName,
+        status: "active",
+        revision: 1,
+        createdAt: now,
+        updatedAt: now,
+      });
+      database.users.push({
+        id: ownerId,
+        email: input.ownerEmail,
+        name: input.ownerName,
+        platformRole: null,
+        passwordSalt: credentials.salt,
+        passwordHash: credentials.hash,
+        active: true,
+        createdAt: now,
+      });
+      database.memberships.push({
         vendorId,
+        userId: ownerId,
+        role: "owner",
+        active: true,
+        isDefault: true,
+        createdAt: now,
+      });
+      database.settings.push({
         vendorId,
-      ),
-      id: auditId,
-    });
-    database.revision += 1;
-    return mutationResult(database, vendorId, auditId);
-  }, { platformSessionHash: context.sessionHash });
+        shopName: input.displayName,
+        ownerWhatsAppNumber,
+        defaultCountryCode: "91",
+        kioskName: "Main kiosk",
+        maxCartQuantity: 5,
+        giftWrapFeePaise: 2_500,
+        qrResetSeconds: 120,
+        showPreviewLabel: false,
+        storeOpen: true,
+        lowStockThreshold: 3,
+        version: 1,
+        updatedAt: now,
+      });
+      database.audit.push({
+        ...newAuditRecord(context.user.id, "platform.vendor.created", "vendor", vendorId, vendorId),
+        id: auditId,
+      });
+      database.revision += 1;
+      return mutationResult(database, vendorId, auditId);
+    },
+    { platformSessionHash: context.sessionHash },
+  );
 }
 
+/**
+ * Change a vendor's status. The optimistic check is status-specific: the
+ * caller states the status it saw (default: the opposite of the target), so
+ * orders and catalogue edits - which bump vendor.revision - never block it,
+ * while a duplicate or conflicting change from a stale screen is refused.
+ */
 export async function updateAdminVendorStatus(
   context: AdminAuthContext,
   vendorId: string,
   status: VendorStatus,
-  expectedRevision: number,
+  expectedStatus: VendorStatus = status === "active" ? "suspended" : "active",
 ): Promise<AdminVendorMutationResult> {
   const auditId = randomUUID();
-  return updateVendorDatabase((database) => {
-    assertLivePlatformAdmin(database, context);
-    const index = database.vendors.findIndex((vendor) => vendor.id === vendorId);
-    const current = database.vendors[index];
-    if (!current) {
-      throw new AdminServiceError(404, "VENDOR_NOT_FOUND", "Vendor not found.");
-    }
-    if (current.revision !== expectedRevision) {
-      throw new AdminServiceError(
-        409,
-        "VENDOR_CHANGED",
-        "This vendor changed in another session. Refresh and try again.",
-      );
-    }
-    if (current.status === status) {
-      throw new AdminServiceError(
-        409,
-        "VENDOR_STATUS_UNCHANGED",
-        `This vendor is already ${status}.`,
-      );
-    }
-    const now = new Date().toISOString();
-    database.vendors[index] = {
-      ...current,
-      status,
-      revision: current.revision + 1,
-      updatedAt: now,
-    };
-    const action = status === "active"
-      ? "platform.vendor.reactivated"
-      : "platform.vendor.suspended";
-    database.audit.push({
-      ...newAuditRecord(
-        context.user.id,
-        action,
-        "vendor",
-        vendorId,
-        vendorId,
-      ),
-      id: auditId,
-    });
-    database.revision += 1;
-    return mutationResult(database, vendorId, auditId);
-  }, {
-    vendorId,
-    platformSessionHash: context.sessionHash,
-  });
+  return updateVendorDatabase(
+    (database) => {
+      assertLivePlatformAdmin(database, context);
+      const index = database.vendors.findIndex((vendor) => vendor.id === vendorId);
+      const current = database.vendors[index];
+      if (!current) {
+        throw new AdminServiceError(404, "VENDOR_NOT_FOUND", "Vendor not found.");
+      }
+      if (current.status === status) {
+        throw new AdminServiceError(
+          409,
+          "VENDOR_STATUS_UNCHANGED",
+          `This vendor is already ${status}.`,
+        );
+      }
+      if (current.status !== expectedStatus) {
+        throw new AdminServiceError(
+          409,
+          "VENDOR_STATUS_CHANGED",
+          "This vendor's status changed in another session. Refresh and try again.",
+        );
+      }
+      const now = new Date().toISOString();
+      database.vendors[index] = {
+        ...current,
+        status,
+        revision: current.revision + 1,
+        updatedAt: now,
+      };
+      const action =
+        status === "active" ? "platform.vendor.reactivated" : "platform.vendor.suspended";
+      database.audit.push({
+        ...newAuditRecord(context.user.id, action, "vendor", vendorId, vendorId),
+        id: auditId,
+      });
+      database.revision += 1;
+      return mutationResult(database, vendorId, auditId);
+    },
+    {
+      vendorId,
+      platformSessionHash: context.sessionHash,
+    },
+  );
 }

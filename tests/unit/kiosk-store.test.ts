@@ -1,23 +1,37 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CATALOGUE_PRODUCTS } from "@/data/catalogue";
-import { useKioskStore } from "@/store/kiosk-store";
+import { DEFAULT_PRESENTER_SETTINGS, useKioskStore } from "@/store/kiosk-store";
+
+function configureOwnerNumber() {
+  useKioskStore.setState({
+    settings: {
+      ...DEFAULT_PRESENTER_SETTINGS,
+      ownerWhatsAppNumber: "919876543210",
+    },
+  });
+}
+
+// The store is a module singleton. Snapshot its pristine state at import time
+// so every test starts from (and leaves behind) the exact initial state, no
+// matter which order the tests run in.
+const INITIAL_STATE = useKioskStore.getState();
+
+function resetKioskEnvironment() {
+  useKioskStore.setState(INITIAL_STATE, true);
+  window.localStorage.clear();
+  window.sessionStorage.clear();
+}
 
 describe("kiosk order retries", () => {
-  afterEach(() => {
-    useKioskStore.getState().resetAllLocalData();
-    window.localStorage.clear();
-    window.sessionStorage.clear();
-  });
+  beforeEach(resetKioskEnvironment);
+  afterEach(resetKioskEnvironment);
 
   it("reuses the same idempotency key after an uncertain request failure", () => {
     const store = useKioskStore.getState();
-    const settings = store.updateSettings({
-      ownerWhatsAppNumber: "919876543210",
-    });
-    expect(settings.ok).toBe(true);
+    configureOwnerNumber();
 
     const product = CATALOGUE_PRODUCTS[0];
     expect(product).toBeDefined();
@@ -50,9 +64,7 @@ describe("kiosk order retries", () => {
 
   it("keeps the exact pending request when a live catalogue sync changes the cart", () => {
     const store = useKioskStore.getState();
-    expect(
-      store.updateSettings({ ownerWhatsAppNumber: "919876543210" }).ok,
-    ).toBe(true);
+    configureOwnerNumber();
     const product = CATALOGUE_PRODUCTS[0];
     expect(store.addToCart(product.id).ok).toBe(true);
     store.setScreen("review");
@@ -114,25 +126,21 @@ describe("kiosk order retries", () => {
 
     useKioskStore.getState().setTenant("reset-scope");
     useKioskStore.getState().setTenant("chapega");
-    useKioskStore.getState().hydrate(
-      bootstrap("chapega", "00000000-0000-4000-8000-000000000001"),
-    );
+    useKioskStore.getState().hydrate(bootstrap("chapega", "00000000-0000-4000-8000-000000000001"));
     expect(useKioskStore.getState().addToCart(CATALOGUE_PRODUCTS[0].id).ok).toBe(true);
     useKioskStore.getState().updateCustomer({ customerName: "Chapega customer" });
     expect(useKioskStore.getState().cartItems).toHaveLength(1);
 
     useKioskStore.getState().setTenant("second-store");
-    useKioskStore.getState().hydrate(
-      bootstrap("second-store", "00000000-0000-4000-8000-000000000002"),
-    );
+    useKioskStore
+      .getState()
+      .hydrate(bootstrap("second-store", "00000000-0000-4000-8000-000000000002"));
     expect(useKioskStore.getState().cartItems).toEqual([]);
     expect(useKioskStore.getState().customer.customerName).toBe("");
     expect(useKioskStore.getState().addToCart(CATALOGUE_PRODUCTS[1].id).ok).toBe(true);
 
     useKioskStore.getState().setTenant("chapega");
-    useKioskStore.getState().hydrate(
-      bootstrap("chapega", "00000000-0000-4000-8000-000000000001"),
-    );
+    useKioskStore.getState().hydrate(bootstrap("chapega", "00000000-0000-4000-8000-000000000001"));
     expect(useKioskStore.getState().cartItems).toHaveLength(1);
     expect(useKioskStore.getState().cartItems[0].productId).toBe(CATALOGUE_PRODUCTS[0].id);
     expect(useKioskStore.getState().customer.customerName).toBe("Chapega customer");

@@ -1,0 +1,3 @@
+-- Intentionally empty. config.toml lists this file for `supabase db reset`;
+-- local data comes from `npm run supabase:import` and
+-- `npm run supabase:bootstrap-owner`, never from committed seed rows.

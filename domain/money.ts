@@ -16,9 +16,7 @@ export function formatInr(paise: number): string {
   }).format(paise / 100);
 }
 
-export function getCartLineTotalPaise(
-  line: Pick<CartLine, "quantity" | "unitPricePaise">,
-): number {
+export function getCartLineTotalPaise(line: Pick<CartLine, "quantity" | "unitPricePaise">): number {
   assertPaise(line.unitPricePaise, "Unit price");
 
   if (!Number.isSafeInteger(line.quantity) || line.quantity < 1) {
@@ -31,10 +29,7 @@ export function getCartLineTotalPaise(
 }
 
 export function calculateCartTotals(
-  items: readonly Pick<
-    CartLine,
-    "quantity" | "unitPricePaise" | "giftWrapped"
-  >[],
+  items: readonly Pick<CartLine, "quantity" | "unitPricePaise" | "giftWrapped">[],
   giftWrapFeePaise: number,
 ): CartTotals {
   assertPaise(giftWrapFeePaise, "Gift-wrap fee");

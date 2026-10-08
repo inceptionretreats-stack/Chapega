@@ -1,9 +1,6 @@
 import { formatInr } from "@/domain/money";
 
-export type WhatsAppNumberErrorCode =
-  | "NUMBER_REQUIRED"
-  | "INVALID_COUNTRY_CODE"
-  | "INVALID_LENGTH";
+export type WhatsAppNumberErrorCode = "NUMBER_REQUIRED" | "INVALID_COUNTRY_CODE" | "INVALID_LENGTH";
 
 export class WhatsAppNumberError extends Error {
   readonly code: WhatsAppNumberErrorCode;
@@ -26,18 +23,12 @@ function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
 }
 
-export function normalizeWhatsAppNumber(
-  rawNumber: string,
-  defaultCountryCode = "91",
-): string {
+export function normalizeWhatsAppNumber(rawNumber: string, defaultCountryCode = "91"): string {
   const digits = digitsOnly(rawNumber).replace(/^0+/, "");
   const countryCode = digitsOnly(defaultCountryCode).replace(/^0+/, "");
 
   if (!digits) {
-    throw new WhatsAppNumberError(
-      "NUMBER_REQUIRED",
-      "Owner WhatsApp number is required.",
-    );
+    throw new WhatsAppNumberError("NUMBER_REQUIRED", "Owner WhatsApp number is required.");
   }
 
   if (digits.length < 10 || digits.length > 15) {
@@ -91,10 +82,7 @@ export function normalizeWhatsAppNumber(
   return normalized;
 }
 
-export function maskWhatsAppNumber(
-  rawNumber: string,
-  visibleDigits = 4,
-): string {
+export function maskWhatsAppNumber(rawNumber: string, visibleDigits = 4): string {
   const digits = digitsOnly(rawNumber);
   if (!digits) {
     return "Not configured";
@@ -106,8 +94,20 @@ export function maskWhatsAppNumber(
   return `${"•".repeat(hiddenCount)}${suffix}`;
 }
 
+// Bidi embedding/override (U+202A-202E) and isolate (U+2066-2069) controls can
+// visually reorder the shop owner's WhatsApp text, so they are dropped.
+const BIDI_CONTROLS = /[‪-‮⁦-⁩]/g;
+// C0 and C1 controls other than tab/LF/CR (which \s collapses), including NEL.
+const OTHER_CONTROLS = /[\u0000-\u0008\u000E-\u001F\u007F-\u009F]/g;
+const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+
+/** Removes invisible/unsafe characters and makes the string URL-encodable. */
+function sanitizeText(value: string): string {
+  return value.replace(LONE_SURROGATE, "�").replace(BIDI_CONTROLS, "").replace(OTHER_CONTROLS, " ");
+}
+
 function compactText(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  return sanitizeText(value).replace(/\s+/g, " ").trim();
 }
 
 export function buildWhatsAppMessage(input: {
@@ -136,14 +136,10 @@ export function buildWhatsAppMessage(input: {
   const itemLines = input.items.map((item, index) => {
     const name = compactText(item.name);
     const variant = item.variant ? ` / ${compactText(item.variant)}` : "";
-    return `${index + 1}. ${name}${variant} × ${item.quantity} — ${formatInr(
-      item.lineTotalPaise,
-    )}`;
+    return `${index + 1}. ${name}${variant} × ${item.quantity} — ${formatInr(item.lineTotalPaise)}`;
   });
 
-  const customerName = input.customerName
-    ? compactText(input.customerName)
-    : "";
+  const customerName = input.customerName ? compactText(input.customerName) : "";
   const orderNote = input.orderNote ? compactText(input.orderNote) : "";
   const giftNote = input.giftNote ? compactText(input.giftNote) : "";
   const optionalLines = [
@@ -175,15 +171,12 @@ export function buildWhatsAppUrl(input: {
   defaultCountryCode?: string;
   message: string;
 }): string {
-  const message = input.message.trim();
+  const message = sanitizeText(input.message).trim();
   if (!message) {
     throw new Error("A WhatsApp order message is required.");
   }
 
-  const phone = normalizeWhatsAppNumber(
-    input.rawNumber,
-    input.defaultCountryCode ?? "91",
-  );
+  const phone = normalizeWhatsAppNumber(input.rawNumber, input.defaultCountryCode ?? "91");
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }

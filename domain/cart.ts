@@ -23,9 +23,7 @@ export function getEffectiveMaxCartUnits(configuredMax = MAX_CART_UNITS): number
   return Math.min(configuredMax, MAX_CART_UNITS);
 }
 
-export function getCartUnitCount(
-  items: readonly Pick<CartLine, "quantity">[],
-): number {
+export function getCartUnitCount(items: readonly Pick<CartLine, "quantity">[]): number {
   return items.reduce((total, item) => total + item.quantity, 0);
 }
 
@@ -33,10 +31,7 @@ export function getRemainingCartCapacity(
   items: readonly Pick<CartLine, "quantity">[],
   maxQuantity = MAX_CART_UNITS,
 ): number {
-  return Math.max(
-    0,
-    getEffectiveMaxCartUnits(maxQuantity) - getCartUnitCount(items),
-  );
+  return Math.max(0, getEffectiveMaxCartUnits(maxQuantity) - getCartUnitCount(items));
 }
 
 export function getCartLineKey(
@@ -65,10 +60,7 @@ function failure(error: CartError): CartResult {
   return { ok: false, error: Object.freeze(error) };
 }
 
-function maxUnitsFailure(
-  items: readonly CartLine[],
-  maxUnits: number,
-): CartResult {
+function maxUnitsFailure(items: readonly CartLine[], maxUnits: number): CartResult {
   return failure({
     code: "MAX_UNITS_EXCEEDED",
     message:
@@ -79,10 +71,7 @@ function maxUnitsFailure(
   });
 }
 
-function findVariant(
-  product: Product,
-  variantId: string | undefined,
-): ProductVariant | undefined {
+function findVariant(product: Product, variantId: string | undefined): ProductVariant | undefined {
   return product.variants.find((variant) => variant.id === variantId);
 }
 
@@ -93,11 +82,7 @@ function getVariantQuantity(
   excludingKey?: string,
 ): number {
   return items.reduce((total, item) => {
-    if (
-      item.key !== excludingKey &&
-      item.productId === productId &&
-      item.variantId === variantId
-    ) {
+    if (item.key !== excludingKey && item.productId === productId && item.variantId === variantId) {
       return total + item.quantity;
     }
 
@@ -112,9 +97,7 @@ function getProductQuantity(
 ): number {
   return items.reduce(
     (total, item) =>
-      item.key !== excludingKey && item.productId === productId
-        ? total + item.quantity
-        : total,
+      item.key !== excludingKey && item.productId === productId ? total + item.quantity : total,
     0,
   );
 }
@@ -188,11 +171,7 @@ export function addCartItem(
   }
 
   const stockLimit = variant?.stock ?? product.stock;
-  const quantityForVariant = getVariantQuantity(
-    items,
-    product.id,
-    variant?.id,
-  );
+  const quantityForVariant = getVariantQuantity(items, product.id, variant?.id);
   if (quantityForVariant + quantity > stockLimit) {
     return failure({
       code: "OUT_OF_STOCK",
@@ -263,19 +242,12 @@ export function setCartLineQuantity(
     return maxUnitsFailure(items, maxUnits);
   }
 
-  const otherProductUnits = getProductQuantity(
-    items,
-    current.productId,
-    current.key,
-  );
+  const otherProductUnits = getProductQuantity(items, current.productId, current.key);
   if (otherProductUnits + quantity > current.productStockLimit) {
     return failure({
       code: "OUT_OF_STOCK",
       message: `Only ${current.productStockLimit} total units of this gift are available.`,
-      availableStock: Math.max(
-        0,
-        current.productStockLimit - otherProductUnits,
-      ),
+      availableStock: Math.max(0, current.productStockLimit - otherProductUnits),
     });
   }
 
@@ -292,10 +264,7 @@ export function setCartLineQuantity(
     return failure({
       code: "OUT_OF_STOCK",
       message: `Only ${current.variantStockLimit} units are available for this selection.`,
-      availableStock: Math.max(
-        0,
-        current.variantStockLimit - otherVariantUnits,
-      ),
+      availableStock: Math.max(0, current.variantStockLimit - otherVariantUnits),
     });
   }
 
@@ -340,11 +309,7 @@ export function setCartLineGiftWrapped(
     return mutation(items, maxUnits);
   }
 
-  const nextKey = getCartLineKey(
-    current.productId,
-    current.variantId,
-    giftWrapped,
-  );
+  const nextKey = getCartLineKey(current.productId, current.variantId, giftWrapped);
   const matchingIndex = items.findIndex((item) => item.key === nextKey);
   const nextItems = [...items];
 

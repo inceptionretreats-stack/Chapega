@@ -3,11 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PORT ?? 3100);
 const baseURL = `http://localhost:${port}`;
-const testDataDirectory = path.join(
-  process.cwd(),
-  ".data",
-  `e2e-${process.pid}`,
-);
+const testDataDirectory = path.join(process.cwd(), ".data", `e2e-${process.pid}`);
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -17,7 +13,7 @@ export default defineConfig({
   // The local JSON adapter is intentionally single-process and the scenarios
   // mutate shared catalogue/order state, so E2E files must not overlap.
   workers: 1,
-  reporter: "list",
+  reporter: process.env.CI ? [["list"], ["html", { open: "never" }]] : "list",
   timeout: 60_000,
   expect: {
     timeout: 10_000,
@@ -33,6 +29,22 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "webkit",
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
+      name: "mobile-chrome",
+      use: { ...devices["Pixel 7"] },
+    },
+    {
+      name: "mobile-safari",
+      use: { ...devices["iPhone 14"] },
+    },
   ],
   webServer: {
     command: `npm run dev -- --hostname localhost --port ${port}`,
@@ -42,7 +54,9 @@ export default defineConfig({
       ALLOW_VENDOR_PREVIEW_LOGIN: "true",
       VENDOR_EMAIL: "owner@chapega.com",
       VENDOR_PASSWORD: "Chapega@2026",
-      VENDOR_NAME: "Aanya",
+      // The specs read VENDOR_NAME from the same environment, so CI's value
+      // must reach the server instead of being overridden here.
+      VENDOR_NAME: process.env.VENDOR_NAME ?? "Aanya",
       NEXT_PUBLIC_SUPABASE_URL: "",
     },
     url: baseURL,

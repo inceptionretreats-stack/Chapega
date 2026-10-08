@@ -13,25 +13,32 @@ async function main(): Promise<void> {
   if (!email || !password) {
     throw new Error("Set VENDOR_EMAIL and VENDOR_PASSWORD before rotating credentials.");
   }
-  if (password.length < 12 || password.length > 200) {
-    throw new Error("VENDOR_PASSWORD must contain 12 to 200 characters.");
+  // Validate before the data store is opened (opening it may seed it).
+  const [configModule, policyModule] = await Promise.all([
+    import("../server/vendor/config"),
+    import("../server/security/password-policy"),
+  ]);
+  if (configModule.isPlaceholderPassword(password)) {
+    throw new Error(
+      "Refusing to set the .env.example placeholder password. Choose a long, unique password.",
+    );
   }
-
-  const [{ derivePasswordHash }, databaseModule, configModule] =
-    await Promise.all([
-      import("../server/vendor/crypto"),
-      import("../server/vendor/database"),
-      import("../server/vendor/config"),
-    ]);
   if (configModule.isKnownPreviewCredentialPair(email, password)) {
     throw new Error("Refusing to set the public preview password.");
   }
+  const problem = policyModule.newPasswordProblem(password, { email });
+  if (problem) {
+    throw new Error(`VENDOR_PASSWORD is not acceptable: ${problem}`);
+  }
+
+  const [{ derivePasswordHash }, databaseModule] = await Promise.all([
+    import("../server/vendor/crypto"),
+    import("../server/vendor/database"),
+  ]);
 
   const derived = await derivePasswordHash(password);
   const updated = await databaseModule.updateVendorDatabase((database) => {
-    const userIndex = database.users.findIndex(
-      (candidate) => candidate.email === email,
-    );
+    const userIndex = database.users.findIndex((candidate) => candidate.email === email);
     const user = database.users[userIndex];
     if (!user) return false;
     database.users[userIndex] = {
@@ -40,16 +47,9 @@ async function main(): Promise<void> {
       passwordHash: derived.hash,
       active: true,
     };
-    database.sessions = database.sessions.filter(
-      (session) => session.userId !== user.id,
-    );
+    database.sessions = database.sessions.filter((session) => session.userId !== user.id);
     database.audit.push(
-      databaseModule.newAuditRecord(
-        user.id,
-        "vendor.password.rotated",
-        "auth",
-        user.id,
-      ),
+      databaseModule.newAuditRecord(user.id, "vendor.password.rotated", "auth", user.id),
     );
     database.revision += 1;
     return true;

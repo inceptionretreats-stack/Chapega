@@ -24,8 +24,7 @@ export type ProductVariant = Readonly<{
   stock?: number;
 }>;
 
-type ProductImageDirectory =
-  "products" | "generated-products" | "vendor-products";
+type ProductImageDirectory = "products" | "generated-products" | "vendor-products";
 
 export type ProductImagePath =
   `/${ProductImageDirectory}/${string}.${"webp" | "jpeg" | "jpg" | "png"}`;
@@ -90,8 +89,7 @@ export type CartError = Readonly<{
   availableStock?: number;
 }>;
 
-export type Result<T, E> =
-  Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: E }>;
+export type Result<T, E> = Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: E }>;
 
 export type CartMutation = Readonly<{
   items: readonly CartLine[];
