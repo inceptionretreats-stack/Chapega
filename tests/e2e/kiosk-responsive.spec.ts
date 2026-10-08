@@ -158,3 +158,19 @@ test("hydration keeps the server-rendered welcome screen and its hero image (AUD
   });
   expect(kept).toBe(true);
 });
+
+test("first load does not refetch the catalogue or prefetch staff pages (AUD-24)", async ({
+  page,
+}) => {
+  await seedKiosk(page);
+  const early: string[] = [];
+  page.on("request", (request) => {
+    const url = request.url();
+    if (url.includes("/api/kiosk/") || url.includes("/vendor/login")) early.push(url);
+  });
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: /Start Shopping/ })).toBeEnabled();
+  // Long enough for idle-time prefetching to kick in, well short of the 30 s refresh.
+  await page.waitForTimeout(2_500);
+  expect(early).toEqual([]);
+});

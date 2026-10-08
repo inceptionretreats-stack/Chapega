@@ -128,14 +128,28 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
 
   useEffect(() => {
     useKioskStore.getState().setTenant(normalizedVendorSlug);
-    // The server already resolved this shop: hydrate straight away instead of
-    // waiting for a round trip.
-    if (initialBootstrap && !useKioskStore.getState().hasHydrated) {
-      useKioskStore.getState().hydrate(initialBootstrap);
-    }
     let active = true;
     let requestVersion = 0;
     let currentController: AbortController | null = null;
+    // Hydrates a new session, or syncs a restored cart to the latest prices
+    // and availability and says so.
+    const applyBootstrap = (bootstrap: KioskBootstrap) => {
+      setShopState(null);
+      const state = useKioskStore.getState();
+      const cartBefore = JSON.stringify(state.cartItems);
+      if (!state.hasHydrated) state.hydrate(bootstrap);
+      else state.syncBootstrap(bootstrap);
+      setBackendStatus("live");
+      const syncedState = useKioskStore.getState();
+      if (state.hasHydrated && cartBefore !== JSON.stringify(syncedState.cartItems)) {
+        setToast({
+          message: "Your cart was updated to match the latest prices and availability.",
+          tone: "success",
+          screen: syncedState.screen,
+        });
+        syncedState.clearCartError();
+      }
+    };
     const loadBootstrap = async () => {
       const version = requestVersion + 1;
       requestVersion = version;
@@ -159,21 +173,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
         if (!response.ok) throw new Error("Live catalogue unavailable");
         const bootstrap = (await response.json()) as KioskBootstrap;
         if (!active || version !== requestVersion) return;
-        setShopState(null);
-        const state = useKioskStore.getState();
-        const cartBefore = JSON.stringify(state.cartItems);
-        if (!state.hasHydrated) state.hydrate(bootstrap);
-        else state.syncBootstrap(bootstrap);
-        setBackendStatus("live");
-        const syncedState = useKioskStore.getState();
-        if (state.hasHydrated && cartBefore !== JSON.stringify(syncedState.cartItems)) {
-          setToast({
-            message: "Your cart was updated to match the latest prices and availability.",
-            tone: "success",
-            screen: syncedState.screen,
-          });
-          syncedState.clearCartError();
-        }
+        applyBootstrap(bootstrap);
       } catch {
         if (!active || version !== requestVersion) return;
         setBackendStatus("unavailable");
@@ -192,7 +192,11 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       }
     };
 
-    void loadBootstrap();
+    // The server rendered this page from the same catalogue a moment ago, so
+    // apply it rather than fetching it again while the page first paints
+    // (AUD-24). The 30 s refresh and the focus check keep it current.
+    if (initialBootstrap) applyBootstrap(initialBootstrap);
+    else void loadBootstrap();
     const refresh = () => {
       if (document.visibilityState === "visible") void loadBootstrap();
     };
@@ -204,7 +208,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       window.clearInterval(interval);
       window.removeEventListener("focus", refresh);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialBootstrap only seeds the first hydration
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialBootstrap is applied once, on mount
   }, [kioskApiBase, normalizedVendorSlug, vendorSlug]);
 
   useEffect(() => {

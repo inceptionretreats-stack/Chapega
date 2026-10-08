@@ -61,9 +61,12 @@ export function WelcomeScreen({
             )}
             <span>{online ? "Online" : "Offline"}</span>
           </div>
+          {/* No prefetch: staff rarely use it, and on the public kiosk it would
+              compete with the first paint (AUD-24). */}
           <Link
             className="kiosk-vendor-access welcome-settings"
             href={vendorLoginHref}
+            prefetch={false}
             aria-label="Vendor login"
           >
             <LogIn size={19} aria-hidden="true" />
@@ -85,7 +88,7 @@ export function WelcomeScreen({
             <button className="primary-button" onClick={onStart} disabled={!ready}>
               Start Shopping <ChevronRight size={20} aria-hidden="true" />
             </button>
-            <Link className="secondary-button" href={vendorLoginHref}>
+            <Link className="secondary-button" href={vendorLoginHref} prefetch={false}>
               <LogIn size={18} aria-hidden="true" /> Vendor login
             </Link>
           </div>
