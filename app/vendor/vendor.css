@@ -452,7 +452,7 @@
 .vendor-search-field input:focus,
 .vendor-select-field select:focus {
   border-color: var(--border-accent-soft);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--shadow-accent) 10%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-accent) 10%, transparent);
 }
 
 .vendor-field small,
@@ -482,7 +482,7 @@
 
 .vendor-input-with-icon:focus-within {
   border-color: var(--border-accent-soft);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--shadow-accent) 10%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-accent) 10%, transparent);
 }
 
 .vendor-input-with-icon > svg {
@@ -891,14 +891,14 @@ html:has(.vendor-app-shell) {
   height: 10px;
   border-radius: 50%;
   background: var(--accent-4);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--shadow-accent-3) 10%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-4) 10%, transparent);
 }
 
 .vendor-store-state i.is-open,
 .vendor-shop-status-line > span.is-open,
 .vendor-kiosk-preview i.is-online {
   background: var(--success-3);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--shadow-success-2) 10%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--success-3) 10%, transparent);
 }
 
 .vendor-mobile-menu,
@@ -1634,7 +1634,7 @@ html:has(.vendor-app-shell) {
 .vendor-option-fields .vendor-field input { min-height: 44px; padding: 0 11px; font-size: 12px; }
 .vendor-option-fields .vendor-field input[aria-invalid="true"] {
   border-color: var(--border-accent-8);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--shadow-accent-4) 8%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-accent-2) 8%, transparent);
 }
 .vendor-option-fields .vendor-field small { font-size: 9px; }
 
@@ -1726,7 +1726,9 @@ html:has(.vendor-app-shell) {
 }
 
 .vendor-segmented button span { margin-left: 4px; color: var(--text-muted); }
-.vendor-segmented button.is-selected { background: var(--surface-7); color: var(--text-accent-3); box-shadow: inset 0 -2px var(--shadow-accent); }
+.vendor-segmented button.is-selected { background: var(--surface-7); color: var(--text-accent-3); box-shadow: inset 0 -2px var(--border-accent); }
+/* The count in the selected tab takes the tab's colour (muted was 4.4:1 on its pink). */
+.vendor-segmented button.is-selected span { color: inherit; }
 
 .vendor-orders-grid {
   display: grid;
@@ -1834,7 +1836,7 @@ html:has(.vendor-app-shell) {
 .vendor-order-timeline ol { margin: 14px 0 0; padding: 0; list-style: none; }
 .vendor-order-timeline li { min-height: 54px; display: grid; grid-template-columns: 14px 1fr; gap: 10px; position: relative; }
 .vendor-order-timeline li:not(:last-child)::before { content: ""; width: 1px; background: var(--surface-22); position: absolute; left: 5px; top: 12px; bottom: -3px; }
-.vendor-order-timeline li > i { width: 11px; height: 11px; margin-top: 2px; border: 2px solid var(--border-12); border-radius: 50%; background: var(--accent-6); box-shadow: 0 0 0 1px var(--shadow-accent-5); z-index: 1; }
+.vendor-order-timeline li > i { width: 11px; height: 11px; margin-top: 2px; border: 2px solid var(--border-12); border-radius: 50%; background: var(--accent-6); box-shadow: 0 0 0 1px var(--border-accent-11); z-index: 1; }
 .vendor-order-timeline li div { display: grid; align-content: start; gap: 2px; }
 .vendor-order-timeline strong { color: var(--text-3); font-size: 10px; }
 .vendor-order-timeline span,

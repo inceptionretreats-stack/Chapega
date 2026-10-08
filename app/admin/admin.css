@@ -280,7 +280,7 @@
 .admin-select-field:focus-within,
 .admin-login-input:focus-within {
   border-color: color-mix(in srgb, var(--border-accent) 58%, transparent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--shadow-accent) 8%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--border-accent) 8%, transparent);
 }
 
 .admin-field small {
@@ -1270,7 +1270,7 @@ html:has(.admin-shell) {
 
 .admin-slug-field:focus-within {
   border-color: color-mix(in srgb, var(--border-accent) 58%, transparent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--shadow-accent) 8%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--border-accent) 8%, transparent);
 }
 
 .admin-slug-field b {
@@ -1298,7 +1298,7 @@ html:has(.admin-shell) {
 
 .admin-password-field:focus-within {
   border-color: color-mix(in srgb, var(--border-accent) 58%, transparent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--shadow-accent) 8%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--border-accent) 8%, transparent);
 }
 
 .admin-password-field input,
