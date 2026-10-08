@@ -1,4 +1,5 @@
 import { getEffectiveMaxCartUnits, getCartUnitCount } from "@/domain/cart";
+import { optionalCustomerPhoneError } from "@/domain/customer";
 import { calculateCartTotals } from "@/domain/money";
 import {
   buildWhatsAppMessage,
@@ -146,6 +147,16 @@ export function createOrder(input: CreateOrderInput): OrderResult {
     return error({
       code: "MAX_UNITS_EXCEEDED",
       message: `This kiosk order can contain at most ${maxUnits} gift units.`,
+    });
+  }
+
+  const customerPhoneError = optionalCustomerPhoneError(
+    input.customer.customerPhone,
+  );
+  if (customerPhoneError) {
+    return error({
+      code: "INVALID_CUSTOMER_PHONE",
+      message: customerPhoneError,
     });
   }
 

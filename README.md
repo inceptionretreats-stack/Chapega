@@ -1,163 +1,229 @@
-# Chapega.com
+# Chapega.com Kiosk + Vendor Studio
 
-A touchscreen-friendly kiosk for browsing supplied products, building an order of up to five units, choosing **Pay Later / Pay at Counter**, and handing the exact order to a shop owner through a WhatsApp Click-to-Chat QR code.
+Chapega.com is a responsive, multi-vendor gift-ordering kiosk with a tenant-scoped Vendor Studio and a separate platform-admin portal. Customers browse one vendor's live catalogue, prepare an order, and continue through WhatsApp; each vendor signs in to manage only its own products, stock, orders, availability, and kiosk settings.
 
-This frontend-only phase prepares a WhatsApp message but never claims that the message was sent automatically: the customer must review it and tap **Send** in WhatsApp.
+The interface keeps the existing ivory, blush, burgundy, and gold brand palette. The kiosk is designed for touch screens and the vendor studio adapts from desktop tables to mobile cards and bottom navigation.
 
-## Implemented features
+## What is implemented
 
-- Premium responsive flow for kiosk, laptop, tablet, and phone layouts
-- 24 supplied products across Gift Hampers, Personalized Gifts, Photo Frames, Resin Art, and Varmala Preservation
-- Product search, data-driven category filtering, availability states, details, and comparison pricing
-- Cart quantities, stock checks, optional gift wrap, integer-paise totals, and a hard five-unit limit
-- Optional customer name, mobile number, gift note, and order note
-- Pay Later / Pay at Counter review flow and local `GFT-YYYYMMDD-NNNN` order numbers
-- Validated WhatsApp number normalization, including Indian 10-digit numbers
-- Per-order `wa.me` URL, message preview, scannable QR, direct-open link, and copy-message fallback
-- QR privacy countdown, pause control, clean-session reset, and manual approval summary
-- Presenter Settings, first-use setup, redacted recent-order history, online/offline feedback, and recovery states
-- Unit tests for cart, money, order, and WhatsApp logic, plus a Playwright critical-flow test
+### Customer kiosk
 
-Product names, prices, descriptions, and categories were transcribed from the 28 supplied `WhatsApp Image … .jpeg` files in the project root. The 24 complete product-detail screenshots are copied under `public/products/` with clean filenames and referenced from `data/catalogue.ts`; four catalogue-overview screenshots remain untouched as source references. The original 28 supplied files are preserved exactly.
+- Server-synced catalogue, stock, pricing, availability, and shop status
+- Search, category filters, product details, variants, gift wrap, and a five-unit hard limit
+- Server-authoritative order validation and integer-paise total calculation
+- Idempotent order submission with opaque internal IDs and friendly display numbers
+- Customer name, phone, gift note, order note, and Pay Later / Pay at Counter selection
+- Exact WhatsApp Click-to-Chat message, scannable QR, copy fallback, and privacy countdown
+- Responsive layouts for kiosk landscape, tablet, and phone sizes
 
-## Architecture
+### Vendor Studio
 
-The application is a single Next.js App Router page with a client-side kiosk screen flow. There are no API routes or production services in this phase.
+- Protected sign-in with an opaque, `HttpOnly`, `SameSite=Strict` session cookie
+- Slug-scoped workspaces (`/vendor/:vendorSlug`) with isolated carts, products, orders, settings, uploads, sessions, and audit data
+- Owner, manager, and staff memberships with capability-based navigation and server authorization
+- Dashboard with order value, product count, low-stock count, live orders, and shop status
+- Product create, edit, publish/hide, stock update, image upload, and archive flows
+- PNG/JPEG signature and size validation, dimension limits, metadata stripping, and content-addressed filenames
+- Order search/filtering, immutable item snapshots, timeline, WhatsApp handoff, cancellation, and controlled status progression
+- Stock deduction exactly once at confirmation, with release when a confirmed order is cancelled
+- Shop identity, WhatsApp destination, ordering limits, wrapping fee, QR timeout, low-stock threshold, and open/closed controls
+- Automatic refresh on focus and every 30 seconds while the studio is open
 
-```text
-app/                 App Router entry, metadata, global styles, and route states
-components/          Welcome, catalogue, cart, checkout, review, QR, and presenter UI
-data/                Supplied catalogue and derived category metadata
-domain/              Pure cart, INR money, order, and WhatsApp utilities
-store/               Zustand state, validation, hydration, and browser persistence
-types/               Shared kiosk and order types
-public/              Local copies of supplied product screenshots
-tests/unit/           Vitest domain tests
-tests/e2e/            Playwright welcome-to-QR critical flow
-design/               Design-system notes
-```
+### Super admin
 
-`domain/` owns the business rules; `store/kiosk-store.ts` coordinates UI state and browser storage; components render the screens. Prices are kept in integer paise. The final QR is rendered from the current order's exact WhatsApp URL, not from a saved QR asset.
+- Separate `/admin/login` and protected `/admin` surface with its own platform-scoped session cookie
+- Platform metrics, recent activity, vendor search/filtering, and responsive vendor tables/cards
+- Create a vendor with its initial owner, shop settings, and isolated kiosk in one guarded operation
+- Suspend or reactivate a vendor without deleting its catalogue, orders, settings, or audit history
+- Every platform read and mutation revalidates a live `super_admin` session in the database
+
+### Production backend
+
+- Supabase Postgres persistence for vendors, memberships, platform/vendor sessions, products, variants, orders, events, settings, assets, audit records, and distributed rate limits
+- One transaction and a database lock for every mutation, preserving atomic stock/order behavior across multiple app instances
+- A private database schema with forced RLS and no `anon` or `authenticated` Data API grants
+- Supabase Storage for validated, metadata-stripped runtime product images
+- Checksum-verified, idempotent migration from the existing local JSON snapshot
+
+## Vendor workflow
+
+1. Open `/vendor/login?shop=<vendor-slug>` and sign in. Successful sign-in opens `/vendor/<vendor-slug>`; users with more than one membership can switch shops.
+2. Use **Products → Add product** to upload an image, enter product information and stock, then publish it to the kiosk.
+3. A kiosk order appears in **Orders** as **Prepared on kiosk**. This means the draft was created; it does not claim that WhatsApp delivered the message.
+4. After the shop receives and accepts the request, move it through **Confirmed → Preparing → Ready → Completed**. Cancelling a confirmed order releases its committed stock once.
+5. Use **Shop settings** to pause new orders or change the public kiosk rules and WhatsApp destination.
+
+## Super-admin workflow
+
+1. Open `/admin/login` and sign in with an account whose platform role is `super_admin`.
+2. Use **Add vendor** to create the tenant, initial owner credentials, and default shop settings.
+3. Open `/kiosk/<vendor-slug>` to verify the isolated public kiosk.
+4. Suspend a tenant to block its kiosk ordering and vendor sign-in while retaining all records; reactivate it when access should resume.
 
 ## Local setup
 
-Install dependencies and start the development server:
+Use Node.js 22 or newer.
 
 ```bash
 npm install
+copy .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). To open settings directly, use [http://localhost:3000/?presenter=1](http://localhost:3000/?presenter=1).
+Open:
 
-The kiosk requires no secret or backend configuration. `.env.example` contains only public defaults. If you copy it to `.env.local`, never place private keys or sensitive data in a `NEXT_PUBLIC_` variable because those values are exposed to the browser. The owner's phone number should be entered in Presenter Settings instead.
+- Customer kiosk: [http://localhost:3000](http://localhost:3000)
+- Vendor sign-in: [http://localhost:3000/vendor/login](http://localhost:3000/vendor/login)
+- Super-admin sign-in: [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
 
-## Presenter Settings and the real owner number
-
-On first use, the setup dialog asks for the shop name and owner WhatsApp number. You can also use the gear button or visit `/?presenter=1` to configure:
-
-- Shop and kiosk names
-- Owner WhatsApp number and default country code
-- Maximum cart quantity from 1 to 5 (the application never permits more than 5)
-- Gift-wrap fee
-- QR reset timeout
-- Preview-label visibility
-
-For an Indian owner, entering `9876543210`, `+91 98765 43210`, or the digits-only international form saves the normalized destination as `919876543210`. Use **Test WhatsApp link** to confirm the destination. Settings are saved only for the current browser and site origin, so configure them again for a different browser, device, domain, or Vercel preview URL. After configuring through `?presenter=1`, return to the site root to run the customer flow.
-
-### When the real WhatsApp details arrive
-
-Provide the shop owner's **WhatsApp-enabled phone number with country code**, then enter it in Presenter Settings. A WhatsApp **My Code** contact QR (`wa.me/qr/...`) only opens or adds that contact; it does not carry the changing order text, so a static QR image is neither required nor consumed by this project.
-
-Each prepared order contains different items, quantities, prices, notes, total, kiosk name, and order number. The app therefore generates a new QR for every order from:
+The built-in local-preview credentials are:
 
 ```text
-https://wa.me/<normalized-owner-number>?text=<encoded-current-order-message>
+Email: owner@chapega.com
+Password: Chapega@2026
 ```
 
-Do not replace the generated QR with a supplied QR image; that would lose the per-order message and weaken the approval proof.
+The known preview account is accepted only in development. Production fails closed when private vendor credentials are missing (or still match the preview pair). `ALLOW_VENDOR_PREVIEW_LOGIN=true` exists only for an intentional, private local production preview and must not be enabled on a public deployment.
+
+Set private production values in `.env.local` before using the portal beyond a local preview:
+
+```env
+VENDOR_EMAIL=owner@example.com
+VENDOR_PASSWORD=replace-with-a-long-unique-password
+VENDOR_NAME=Shop owner
+VENDOR_SESSION_HOURS=12
+CHAPEGA_OWNER_WHATSAPP_NUMBER=919876543210
+# Only for a known non-Vercel reverse proxy; Vercel is detected automatically.
+# TRUST_PROXY_HEADERS=true
+```
+
+Never prefix these values with `NEXT_PUBLIC_`. If `.data/vendor-db.json` has already been initialized, changing the seed environment variables does not rewrite that existing account; start with an empty data directory or provide an intentional account-migration step.
+
+## Architecture
+
+```text
+app/                     Kiosk, Vendor Studio pages, styles, and Route Handlers
+components/              Kiosk, vendor, and responsive super-admin screens
+data/                    Initial catalogue used only to seed a new local store
+domain/                  Cart, money, order, WhatsApp, and status-state rules
+server/vendor/           Auth, validation, image handling, persistence, and services
+server/admin/            Platform authentication, validation, and vendor lifecycle services
+server/supabase/         Server-only Supabase configuration, Storage, and Postgres clients
+supabase/migrations/     Versioned private database schema and Storage bucket
+scripts/                 Verified one-time JSON-to-Supabase importer
+store/                   Kiosk UI/session state synchronized from the server
+types/                   Shared public and vendor DTOs
+tests/unit/              Domain, validation, and status-machine tests
+tests/e2e/               Kiosk, responsive, vendor, and multi-tenant admin workflow tests
+.data/                   Ignored local JSON database and recovery backup
+public/vendor-products/  Ignored, validated vendor uploads for local hosting
+```
+
+All mutations pass through strict Zod schemas and the server reconstructs order totals from its own product records. Local development can use the checksummed JSON repository. The Supabase adapter keeps the same service/API contracts and serializes each mutation with a Postgres row lock inside one transaction, so order, stock, event, and audit changes commit or roll back together.
+
+### Main endpoints
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /api/vendor/login` | Validate credentials, rotate sessions, and set the secure cookie |
+| `POST /api/vendor/logout` | Revoke the current session |
+| `GET /api/vendor/:vendorSlug/bootstrap` | Load that authenticated tenant's dashboard, products, orders, and settings |
+| `POST /api/vendor/:vendorSlug/products` | Create a product inside the authenticated tenant |
+| `PATCH /api/vendor/:vendorSlug/orders/:id` | Apply a permitted transition to that tenant's order |
+| `PATCH /api/vendor/:vendorSlug/settings` | Publish that tenant's kiosk and shop settings |
+| `GET /api/vendor/bootstrap` | Load the authenticated dashboard, products, orders, and settings |
+| `POST /api/vendor/products` | Create a product |
+| `PATCH /api/vendor/products/:id` | Edit, publish/hide, or archive a product with version checks |
+| `POST /api/vendor/uploads` | Validate and store a PNG/JPEG product image |
+| `DELETE /api/vendor/uploads` | Delete an unused content-addressed vendor image |
+| `PATCH /api/vendor/orders/:id` | Apply a permitted order-status transition |
+| `PATCH /api/vendor/settings` | Publish kiosk and shop settings with version checks |
+| `GET /api/kiosk/bootstrap` | Return only the public catalogue/settings DTO |
+| `POST /api/kiosk/orders` | Reprice, validate, and idempotently create a kiosk order |
+| `GET /api/kiosk/:vendorSlug/bootstrap` | Return one tenant's public catalogue/settings DTO |
+| `POST /api/kiosk/:vendorSlug/orders` | Validate and create an order inside one tenant |
+| `POST /api/admin/login` | Create a separate platform-admin session |
+| `GET /api/admin/bootstrap` | Load platform metrics, vendors, and recent activity |
+| `POST /api/admin/vendors` | Create a vendor and its initial owner |
+| `PATCH /api/admin/vendors/:vendorId/status` | Suspend or reactivate a vendor without deleting data |
+
+Authenticated and PII-bearing responses are private and `no-store`. Cookie-authenticated mutations reject cross-site requests, login/order creation is rate-limited, passwords use parameterized `scrypt`, and only hashed session tokens are stored.
+
+New uploads use `/vendor-products/<vendor-id>/<sha256>.png` or `.jpg`; legacy flat paths remain readable during the cutover. Owner and manager roles may retry deletion safely when the object is already missing; staff cannot upload or delete images. Cross-vendor ownership checks run before deletion, and deletion is refused while the image is referenced by any active or archived product or immutable historical order-item snapshot. Supabase objects are removed through the Storage API rather than by modifying `storage.objects` directly.
+
+## Persistence and deployment
+
+The default development mode remains local so the kiosk can run without cloud credentials:
+
+```env
+CHAPEGA_DATA_DIR=D:\secure\chapega-data
+```
+
+The local backend is for one persistent Node.js process only. Do not use it on serverless or multi-instance production hosts. Production fails closed unless Supabase is configured; it never silently redirects failed cloud writes to JSON.
+
+To provision a Supabase project:
+
+```bash
+npx supabase link --project-ref YOUR_PROJECT_REF
+npx supabase db push --linked --dry-run
+npx supabase db push --linked
+```
+
+Copy the project URL, a server-only Supabase secret key, and the **transaction pooler** owner URI from the project dashboard into `.env.local`. Generate a separate strong password for the runtime role and URL-encode passwords in both URIs.
+
+```env
+CHAPEGA_DATA_BACKEND=supabase
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+SUPABASE_SECRET_KEY=sb_secret_...
+SUPABASE_DATABASE_URL=postgresql://chapega_app.YOUR_PROJECT_REF:APP_PASSWORD@POOLER_HOST:6543/postgres
+SUPABASE_ADMIN_DATABASE_URL=postgresql://postgres.YOUR_PROJECT_REF:OWNER_PASSWORD@POOLER_HOST:6543/postgres
+```
+
+After the schema migration, provision and verify the restricted runtime role:
+
+```bash
+npm run supabase:provision
+npm run supabase:verify
+```
+
+The application refuses to start with the `postgres` owner as its runtime connection. `SUPABASE_ADMIN_DATABASE_URL` is reserved for migrations and provisioning; normal requests use `chapega_app` with table grants and explicit RLS policies. The secret key and both database URLs must never use a `NEXT_PUBLIC_` prefix. Prepared statements are disabled for transaction-pooler compatibility.
+
+Rate limits use Vercel's platform-supplied client IP automatically. On another deployment behind a trusted reverse proxy, set `TRUST_PROXY_HEADERS=true` only when that proxy overwrites incoming `X-Forwarded-For`/`X-Real-IP` headers. Leave it unset for direct hosting, or set it to `false` to disable proxy-header trust explicitly.
+
+Before the first cutover, verify and import the current snapshot:
+
+```bash
+npm run supabase:import:check
+npm run supabase:import
+```
+
+The importer verifies the snapshot checksum, uploads content-addressed runtime images, and replaces normalized database rows in one transaction. Its checksum ledger makes a repeated run a no-op instead of overwriting newer production data. Static generated catalogue art remains bundled with the application; new vendor uploads live in the public `vendor-products` Storage bucket.
+
+Vendor login/logout keeps the existing secure cookie contract. Password hashes and hashed session tokens are stored in the private Supabase schema; raw passwords and raw session tokens are never stored in the database.
+
+To rotate the owner password, set `VENDOR_EMAIL` and a new 12–200 character `VENDOR_PASSWORD` in `.env.local`, then run `npm run vendor:password`. The command re-hashes the password, updates the selected backend, revokes that vendor’s existing sessions, and records an audit event.
+
+## WhatsApp behavior
+
+The system creates a different `wa.me` URL for every order because the message includes the current items, quantities, prices, notes, total, kiosk, and order number. Scanning the QR or opening the link only prepares a WhatsApp draft. The customer must review it and tap **Send**; the portal never labels a draft as delivered.
+
+Before launch, verify the destination and exact message with a physical phone and the real owner account.
 
 ## Quality commands
 
 ```bash
-npm run typecheck  # TypeScript, no emitted files
-npm run lint       # ESLint across app, domain, store, and tests
-npm test           # Vitest unit suite, one run
-npm run build      # Next.js production build
-```
-
-For the browser flow, install Playwright's Chromium once and run:
-
-```bash
-npx playwright install chromium
+npm run typecheck
+npm run lint
+npm test
+npm run build
 npm run test:e2e
 ```
 
-`test:e2e` starts or reuses the local Next.js server and verifies the five-unit flow, order creation, generated `wa.me` data, QR rendering, and clean-session reset. It cannot prove that a physical phone opens WhatsApp or that the owner receives the message; use the acceptance procedure below.
+The automated suite verifies domain rules, strict server schemas, the vendor status machine, customer critical flow, responsive kiosk layouts, authentication, product-to-kiosk synchronization, the vendor order lifecycle, super-admin vendor provisioning, cross-tenant denial, and suspension/reactivation. A physical WhatsApp receipt remains a manual acceptance check.
 
-## Browser storage and reset behavior
+## Current production follow-ups
 
-| Browser storage | Key | Contents and lifetime |
-| --- | --- | --- |
-| `localStorage` | `gift-kiosk-presenter-settings` | Normalized presenter settings; preserved across sessions |
-| `localStorage` | `gift-kiosk-orders` | Up to 20 redacted order summaries; no customer name, phone, notes, or item details |
-| `localStorage` | `gift-kiosk-setup-dismissed-v2` | Whether the first-use setup dialog was dismissed |
-| `localStorage` | `gift-kiosk-catalogue-revision` | Non-personal marker used once to discard data from the removed seeded catalogue |
-| `sessionStorage` | `gift-kiosk-active-session` | Current screen, filters, cart, optional customer data, prepared order, and countdown |
-
-**Start new order**, the QR timeout, and **Reset active session** clear the active cart, customer details, current order, search/filter state, and session-storage key. Presenter settings and redacted order history remain. **Clear order history** removes only the history key. **Reset all local data** removes the customer/settings keys and restores the first-use setup; clearing all site data in the browser has the same effect. On the first load of this supplied catalogue, the revision marker automatically discards any cart, order, or settings left by the removed seeded catalogue.
-
-Pausing the QR countdown is intentionally not restored after a reload; the countdown resumes to avoid leaving customer details on a public kiosk indefinitely. If browser storage is unavailable, the app can continue in memory but the data may disappear when the page closes.
-
-## Physical-phone WhatsApp acceptance test
-
-Automated browser tests are not a substitute for this final approval check.
-
-1. Keep the owner's phone visible with WhatsApp or WhatsApp Business active.
-2. In Presenter Settings, save the real owner number and use **Test WhatsApp link** to verify the destination.
-3. On the kiosk, select one or more products, review quantities and totals, choose Pay at Counter, and create the order.
-4. Scan the displayed QR with a separate physical phone. If camera scanning is unavailable, use **Open WhatsApp** on a suitable device; it uses the same URL.
-5. Confirm that the correct owner chat opens and the draft contains the displayed order number, gift names, variants, quantities, prices, gift-wrap total, grand total, payment method, kiosk name, and entered notes.
-6. Tap **Send** manually on the scanning phone. QR display or scanning alone does not send anything.
-7. Confirm receipt by viewing the message on the owner's phone. Only then mark owner receipt in the approval summary.
-8. Tap **Start new order** and verify that the welcome screen returns and the previous cart/customer session is gone.
-
-Record the test phone OS, WhatsApp app type, destination-number result, message-content result, manual-send result, and observed owner receipt. Test the final deployed URL again before the approval meeting.
-
-## Deploy to Vercel
-
-Run the production check first:
-
-```bash
-npm run build
-npx vercel
-```
-
-Alternatively, import the repository in Vercel and use the detected Next.js settings. No secret environment variables or database are required. After deployment:
-
-1. Open the final HTTPS URL with `?presenter=1` on the presentation browser.
-2. Save the real shop and WhatsApp details for that deployed origin.
-3. Return to the root URL and complete the physical-phone acceptance test.
-4. Verify local product images, direct page loading, the exact `wa.me` destination, and the manual owner receipt.
-
-Do not put the owner's number in a public environment variable unless the owner explicitly wants it bundled into the public app. Presenter Settings is the intended configuration path.
-
-## Current limitations
-
-- Products, prices, and descriptions are static data transcribed from the supplied screenshots; nothing is reserved.
-- The current product media are catalogue screenshots and may contain source-app chrome or text. Replace them with original product photographs when available for cleaner crops.
-- Orders and settings exist only in the current browser. There is no shared database, server reconciliation, or guaranteed globally unique order sequence.
-- Pay at Counter is a workflow choice, not an online payment or reservation confirmation.
-- WhatsApp Click-to-Chat opens a pre-filled draft. It cannot auto-send, verify delivery, or confirm owner receipt.
-- The scanning phone needs a compatible camera/browser, internet access, and WhatsApp or WhatsApp Web.
-- There are no customer accounts, staff authentication, admin product tools, invoices, printers, analytics, or delivery integrations.
-- Browser storage is suitable for an attended kiosk preview, not for production handling of personal information.
-
-## Production roadmap
-
-1. Add a secured database for products, categories, settings, kiosks, orders, order items, and audit logs.
-2. Move pricing, stock validation, idempotency, and order-number generation to a server-authoritative order API.
-3. Add staff authentication, an order dashboard, confirmation and preparation statuses, inventory tools, and product management.
-4. Add optional UPI or gateway payments, keeping any payment QR visually distinct from the WhatsApp order QR.
-5. Integrate the WhatsApp Business Platform for approved templates, inbound-message matching, status webhooks, and pickup notifications.
-6. Add production privacy controls, retention rules, monitoring, accessibility/device testing, and multi-kiosk operations.
+- Add owner-facing account management and password recovery instead of relying on the server-side rotation command.
+- Define the shop's order/PII retention, export, monitoring, and recovery procedures before handling real customer data.
+- Integrate the WhatsApp Business Platform only if verified delivery/webhook status is required.
+- Run accessibility, multi-browser, physical touch-screen, and physical-phone acceptance tests on the final hardware and deployment.

@@ -3,9 +3,7 @@
 import { create } from "zustand";
 
 import {
-  CATALOGUE_CATEGORIES,
   CATALOGUE_PRODUCTS,
-  getProductById,
 } from "@/data/catalogue";
 import {
   addCartItem,
@@ -33,6 +31,7 @@ import {
   type CartTotals,
   type CategoryFilter,
   type CustomerDetails,
+  type KioskBootstrap,
   type KioskScreen,
   type Order,
   type OrderError,
@@ -50,6 +49,8 @@ export const ACTIVE_SESSION_STORAGE_KEY = "gift-kiosk-active-session";
 export const CATALOGUE_REVISION_STORAGE_KEY = "gift-kiosk-catalogue-revision";
 export const CURRENT_CATALOGUE_REVISION = "supplied-catalogue-2026-08-10-v1";
 export const MAX_ORDER_HISTORY = 20;
+export const KIOSK_IDLE_TIMEOUT_MS = 2 * 60 * 1_000;
+export const KIOSK_IDLE_WARNING_MS = 30 * 1_000;
 
 const LEGACY_DEFAULT_SHOP_NAMES: readonly string[] = Object.freeze([
   "Gift House",
@@ -85,7 +86,6 @@ const KIOSK_SCREENS: readonly KioskScreen[] = [
   "checkout",
   "review",
   "qr",
-  "presenter",
   "approval",
 ];
 
@@ -95,6 +95,15 @@ const memoryStorage: Record<StorageKind, Map<string, string>> = {
   local: new Map<string, string>(),
   session: new Map<string, string>(),
 };
+
+function normalizedTenantKey(value: string): string {
+  const normalized = value.trim().toLocaleLowerCase("en-IN").replace(/[^a-z0-9-]/g, "-");
+  return normalized.replace(/-+/g, "-").replace(/^-|-$/g, "") || "chapega";
+}
+
+export function kioskStorageKey(baseKey: string, tenantKey: string): string {
+  return `${baseKey}:${normalizedTenantKey(tenantKey)}`;
+}
 
 function nativeStorage(kind: StorageKind): Storage | undefined {
   if (typeof window === "undefined") {
@@ -164,21 +173,29 @@ function removeStorage(kind: StorageKind, key: string): boolean {
   }
 }
 
-function resetLegacyDataForCurrentCatalogue(): boolean {
-  const revisionRead = readStorage("local", CATALOGUE_REVISION_STORAGE_KEY);
+function resetLegacyDataForCurrentCatalogue(tenantKey: string): boolean {
+  const revisionKey = kioskStorageKey(CATALOGUE_REVISION_STORAGE_KEY, tenantKey);
+  const ordersKey = kioskStorageKey(ORDERS_STORAGE_KEY, tenantKey);
+  const sessionKey = kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey);
+  const revisionRead = readStorage("local", revisionKey);
   if (revisionRead.value === CURRENT_CATALOGUE_REVISION) {
     return revisionRead.available;
   }
 
   const results = [
-    removeStorage("local", ORDERS_STORAGE_KEY),
+    removeStorage("local", ordersKey),
     removeStorage("local", "gift-kiosk-demo-orders"),
     removeStorage("local", "gift-kiosk-setup-dismissed"),
     removeStorage("local", "gift-kiosk-setup-dismissed-v2"),
+    removeStorage("session", sessionKey),
+    // Pre-tenant browser data had no ownership marker. Clear it during the
+    // v4 cutover instead of risking its restoration in the wrong storefront.
+    removeStorage("local", ORDERS_STORAGE_KEY),
+    removeStorage("local", PRESENTER_SETTINGS_STORAGE_KEY),
     removeStorage("session", ACTIVE_SESSION_STORAGE_KEY),
     writeStorage(
       "local",
-      CATALOGUE_REVISION_STORAGE_KEY,
+      revisionKey,
       CURRENT_CATALOGUE_REVISION,
     ),
   ];
@@ -468,9 +485,63 @@ function parseOrder(value: unknown): Order | null {
   });
 }
 
+type PendingOrderSubmission = Readonly<{
+  order: Order;
+  customer: CustomerDetails;
+  items: readonly Readonly<{
+    productId: string;
+    variantId?: string;
+    quantity: number;
+    giftWrapped: boolean;
+  }>[];
+}>;
+
+function parsePendingOrderSubmission(
+  value: unknown,
+): PendingOrderSubmission | null {
+  if (!isRecord(value) || !Array.isArray(value.items)) return null;
+  const order = parseOrder(value.order);
+  if (!order || value.items.length < 1 || value.items.length > 5) return null;
+
+  const items: Array<PendingOrderSubmission["items"][number]> = [];
+  let unitCount = 0;
+  for (const item of value.items) {
+    if (
+      !isRecord(item) ||
+      typeof item.productId !== "string" ||
+      !item.productId.trim() ||
+      (item.variantId !== undefined && typeof item.variantId !== "string") ||
+      !isPositiveInteger(item.quantity) ||
+      item.quantity > 5 ||
+      typeof item.giftWrapped !== "boolean"
+    ) {
+      return null;
+    }
+    unitCount += item.quantity;
+    items.push(
+      Object.freeze({
+        productId: item.productId,
+        ...(typeof item.variantId === "string"
+          ? { variantId: item.variantId }
+          : {}),
+        quantity: item.quantity,
+        giftWrapped: item.giftWrapped,
+      }),
+    );
+  }
+  if (unitCount > 5) return null;
+
+  return Object.freeze({
+    order,
+    customer: parseCustomer(value.customer),
+    items: Object.freeze(items),
+  });
+}
+
 function restoreCart(
   value: unknown,
   settings: PresenterSettings,
+  products: readonly Product[],
 ): readonly CartLine[] {
   if (!Array.isArray(value)) {
     return Object.freeze([]);
@@ -489,7 +560,7 @@ function restoreCart(
       continue;
     }
 
-    const product = getProductById(candidate.productId);
+    const product = products.find((item) => item.id === candidate.productId);
     if (!product) {
       continue;
     }
@@ -512,10 +583,13 @@ function restoreCart(
   return Object.freeze([...restored]);
 }
 
-function parseCategory(value: unknown): CategoryFilter {
+function parseCategory(
+  value: unknown,
+  products: readonly Product[],
+): CategoryFilter {
   return value === "all" ||
     (typeof value === "string" &&
-      CATALOGUE_CATEGORIES.some((category) => category === value))
+      products.some((product) => product.category === value))
     ? (value as CategoryFilter)
     : "all";
 }
@@ -541,18 +615,22 @@ function parseCustomer(value: unknown): CustomerDetails {
 }
 
 type PersistedSession = Readonly<{
-  version: 1;
+  version: 4;
+  tenantKey: string;
+  lastActivityAt: number;
   screen: KioskScreen;
   searchQuery: string;
   selectedCategory: CategoryFilter;
   selectedProductId: string | null;
   cartItems: readonly CartLine[];
   customer: CustomerDetails;
+  pendingSubmission: PendingOrderSubmission | null;
   currentOrder: Order | null;
   countdownSeconds: number;
 }>;
 
 export interface KioskStoreState {
+  tenantKey: string;
   hasHydrated: boolean;
   storageAvailable: boolean;
   screen: KioskScreen;
@@ -563,14 +641,18 @@ export interface KioskStoreState {
   cartItems: readonly CartLine[];
   customer: CustomerDetails;
   settings: PresenterSettings;
+  storeOpen: boolean;
   orderHistory: readonly OrderHistoryItem[];
+  pendingSubmission: PendingOrderSubmission | null;
   currentOrder: Order | null;
   countdownSeconds: number;
   isCountdownPaused: boolean;
   isCreatingOrder: boolean;
   lastCartError: CartError | null;
   lastOrderError: OrderError | null;
-  hydrate: () => void;
+  setTenant: (tenantKey: string) => void;
+  hydrate: (bootstrap?: KioskBootstrap) => void;
+  syncBootstrap: (bootstrap: KioskBootstrap) => void;
   setScreen: (screen: KioskScreen) => void;
   startShopping: () => void;
   openProduct: (productId: string) => void;
@@ -586,6 +668,8 @@ export interface KioskStoreState {
   updateCustomer: (details: Partial<CustomerDetails>) => void;
   updateSettings: (settings: Partial<PresenterSettings>) => SettingsResult;
   createOrder: () => OrderResult;
+  completeOrderCreation: (order: Order) => void;
+  failOrderCreation: (error: OrderError) => void;
   markCurrentOrderAsSent: () => void;
   clearOrderHistory: () => void;
   clearOrderError: () => void;
@@ -594,6 +678,7 @@ export interface KioskStoreState {
   resumeCountdown: () => void;
   resetCountdown: () => void;
   keepQrOpen: () => void;
+  touchSession: () => void;
   resetSession: () => void;
   resetAllLocalData: () => void;
 }
@@ -607,13 +692,16 @@ type StoreGet = () => KioskStoreState;
 
 function persistedSession(state: KioskStoreState): PersistedSession {
   return {
-    version: 1,
+    version: 4,
+    tenantKey: state.tenantKey,
+    lastActivityAt: Date.now(),
     screen: state.screen,
     searchQuery: state.searchQuery,
     selectedCategory: state.selectedCategory,
     selectedProductId: state.selectedProductId,
     cartItems: state.cartItems,
     customer: state.customer,
+    pendingSubmission: state.pendingSubmission,
     currentOrder: state.currentOrder,
     countdownSeconds: state.countdownSeconds,
   };
@@ -629,7 +717,7 @@ function persistSession(state: KioskStoreState, set: StoreSet): void {
   noteStorageResult(
     writeStorage(
       "session",
-      ACTIVE_SESSION_STORAGE_KEY,
+      kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, state.tenantKey),
       JSON.stringify(persistedSession(state)),
     ),
     set,
@@ -640,7 +728,7 @@ function persistSettings(state: KioskStoreState, set: StoreSet): void {
   noteStorageResult(
     writeStorage(
       "local",
-      PRESENTER_SETTINGS_STORAGE_KEY,
+      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, state.tenantKey),
       JSON.stringify(state.settings),
     ),
     set,
@@ -651,7 +739,7 @@ function persistHistory(state: KioskStoreState, set: StoreSet): void {
   noteStorageResult(
     writeStorage(
       "local",
-      ORDERS_STORAGE_KEY,
+      kioskStorageKey(ORDERS_STORAGE_KEY, state.tenantKey),
       JSON.stringify(state.orderHistory.slice(0, MAX_ORDER_HISTORY)),
     ),
     set,
@@ -690,6 +778,7 @@ function commitCartResult(
 
   set({
     cartItems: result.value.items,
+    pendingSubmission: null,
     currentOrder: null,
     lastCartError: null,
     lastOrderError: null,
@@ -699,6 +788,7 @@ function commitCartResult(
 }
 
 export const useKioskStore = create<KioskStoreState>((set, get) => ({
+  tenantKey: "chapega",
   hasHydrated: false,
   storageAvailable: true,
   screen: "welcome",
@@ -709,7 +799,9 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   cartItems: Object.freeze([]),
   customer: EMPTY_CUSTOMER_DETAILS,
   settings: DEFAULT_PRESENTER_SETTINGS,
+  storeOpen: true,
   orderHistory: Object.freeze([]),
+  pendingSubmission: null,
   currentOrder: null,
   countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
   isCountdownPaused: false,
@@ -717,19 +809,64 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   lastCartError: null,
   lastOrderError: null,
 
-  hydrate: () => {
+  setTenant: (tenantKey) => {
+    const nextTenantKey = normalizedTenantKey(tenantKey);
+    if (get().tenantKey === nextTenantKey) return;
+    set({
+      tenantKey: nextTenantKey,
+      hasHydrated: false,
+      storageAvailable: true,
+      screen: "welcome",
+      searchQuery: "",
+      selectedCategory: "all",
+      selectedProductId: null,
+      products: CATALOGUE_PRODUCTS,
+      cartItems: Object.freeze([]),
+      customer: EMPTY_CUSTOMER_DETAILS,
+      settings: DEFAULT_PRESENTER_SETTINGS,
+      storeOpen: true,
+      orderHistory: Object.freeze([]),
+      pendingSubmission: null,
+      currentOrder: null,
+      countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
+      isCountdownPaused: false,
+      isCreatingOrder: false,
+      lastCartError: null,
+      lastOrderError: null,
+    });
+  },
+
+  hydrate: (bootstrap) => {
+    const bootstrapTenantKey = bootstrap?.vendor?.slug
+      ? normalizedTenantKey(bootstrap.vendor.slug)
+      : get().tenantKey;
+    if (bootstrapTenantKey !== get().tenantKey) {
+      get().setTenant(bootstrapTenantKey);
+    }
     if (get().hasHydrated || typeof window === "undefined") {
       return;
     }
 
-    const revisionAvailable = resetLegacyDataForCurrentCatalogue();
+    const tenantKey = get().tenantKey;
+    const revisionAvailable = resetLegacyDataForCurrentCatalogue(tenantKey);
     const settingsRead = readStorage(
       "local",
-      PRESENTER_SETTINGS_STORAGE_KEY,
+      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, tenantKey),
     );
-    const historyRead = readStorage("local", ORDERS_STORAGE_KEY);
-    const sessionRead = readStorage("session", ACTIVE_SESSION_STORAGE_KEY);
-    const settings = parseSettings(parseJson(settingsRead.value));
+    const historyRead = readStorage(
+      "local",
+      kioskStorageKey(ORDERS_STORAGE_KEY, tenantKey),
+    );
+    const sessionRead = readStorage(
+      "session",
+      kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey),
+    );
+    const products = bootstrap
+      ? Object.freeze([...bootstrap.products])
+      : CATALOGUE_PRODUCTS;
+    const settings = bootstrap
+      ? parseSettings(bootstrap.settings)
+      : parseSettings(parseJson(settingsRead.value));
     const orderHistory = parseHistory(parseJson(historyRead.value));
     const rawSession = parseJson(sessionRead.value);
 
@@ -739,20 +876,31 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     let selectedProductId: string | null = null;
     let cartItems: readonly CartLine[] = Object.freeze([]);
     let customer = EMPTY_CUSTOMER_DETAILS;
+    let pendingSubmission: PendingOrderSubmission | null = null;
     let currentOrder: Order | null = null;
     let countdownSeconds = settings.qrResetSeconds;
     let isCountdownPaused = false;
 
-    if (isRecord(rawSession)) {
+    const sessionAge = isRecord(rawSession) && typeof rawSession.lastActivityAt === "number"
+      ? Date.now() - rawSession.lastActivityAt
+      : Number.POSITIVE_INFINITY;
+    const sessionIsFresh = isRecord(rawSession) &&
+      rawSession.version === 4 &&
+      rawSession.tenantKey === tenantKey &&
+      sessionAge >= 0 &&
+      sessionAge <= KIOSK_IDLE_TIMEOUT_MS;
+
+    if (sessionIsFresh) {
       screen = parseScreen(rawSession.screen);
       searchQuery = stringValue(rawSession.searchQuery).slice(0, 120);
-      selectedCategory = parseCategory(rawSession.selectedCategory);
+      selectedCategory = parseCategory(rawSession.selectedCategory, products);
       const candidateProductId = stringValue(rawSession.selectedProductId);
-      selectedProductId = getProductById(candidateProductId)
+      selectedProductId = products.some((product) => product.id === candidateProductId)
         ? candidateProductId
         : null;
-      cartItems = restoreCart(rawSession.cartItems, settings);
+      cartItems = restoreCart(rawSession.cartItems, settings, products);
       customer = parseCustomer(rawSession.customer);
+      pendingSubmission = parsePendingOrderSubmission(rawSession.pendingSubmission);
       currentOrder = parseOrder(rawSession.currentOrder);
       if (
         currentOrder &&
@@ -771,6 +919,11 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       // A pause is intentionally not restored. Reloading resumes the privacy
       // countdown so customer details cannot remain on a public kiosk forever.
       isCountdownPaused = false;
+    } else if (isRecord(rawSession)) {
+      removeStorage(
+        "session",
+        kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, tenantKey),
+      );
     }
 
     if (screen === "product-details" && !selectedProductId) {
@@ -778,6 +931,9 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     }
     if (screen === "qr" && !currentOrder) {
       screen = cartItems.length > 0 ? "review" : "welcome";
+    }
+    if (screen === "approval") {
+      screen = currentOrder ? "qr" : cartItems.length > 0 ? "review" : "welcome";
     }
 
     set({
@@ -788,6 +944,8 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         historyRead.available &&
         sessionRead.available,
       settings,
+      storeOpen: bootstrap?.storeOpen ?? true,
+      products,
       orderHistory,
       screen,
       searchQuery,
@@ -795,6 +953,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       selectedProductId,
       cartItems,
       customer,
+      pendingSubmission,
       currentOrder,
       countdownSeconds,
       isCountdownPaused,
@@ -802,6 +961,64 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       lastCartError: null,
       lastOrderError: null,
     });
+  },
+
+  syncBootstrap: (bootstrap) => {
+    const bootstrapTenantKey = normalizedTenantKey(bootstrap.vendor.slug);
+    if (bootstrapTenantKey !== get().tenantKey) {
+      get().setTenant(bootstrapTenantKey);
+    }
+    const products = Object.freeze([...bootstrap.products]);
+    const settings = parseSettings(bootstrap.settings);
+    const state = get();
+    const selectedCategory = parseCategory(state.selectedCategory, products);
+    const selectedProductId =
+      state.selectedProductId &&
+      products.some((product) => product.id === state.selectedProductId)
+        ? state.selectedProductId
+        : null;
+    const screen =
+      state.screen === "product-details" && !selectedProductId
+        ? "catalogue"
+        : state.screen;
+    const cartItems = restoreCart(state.cartItems, settings, products);
+    const cartChanged =
+      JSON.stringify(cartItems) !== JSON.stringify(state.cartItems);
+    const activeCheckoutScreens: readonly KioskScreen[] = [
+      "cart",
+      "customer",
+      "checkout",
+      "review",
+    ];
+    const reconciledScreen =
+      cartChanged &&
+      cartItems.length === 0 &&
+      activeCheckoutScreens.includes(screen)
+        ? "catalogue"
+        : screen;
+    set({
+      products,
+      settings,
+      storeOpen: bootstrap.storeOpen,
+      selectedCategory,
+      selectedProductId,
+      screen: reconciledScreen,
+      cartItems,
+      ...(cartChanged
+        ? {
+            lastCartError: Object.freeze({
+              code: "PRODUCT_UNAVAILABLE" as const,
+              message:
+                "Your cart was updated to match the latest prices and availability.",
+            }),
+          }
+        : {}),
+      countdownSeconds:
+        state.screen === "qr"
+          ? Math.min(state.countdownSeconds, settings.qrResetSeconds)
+          : settings.qrResetSeconds,
+    });
+    persistSession(get(), set);
   },
 
   setScreen: (screen) => {
@@ -815,7 +1032,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   },
 
   openProduct: (productId) => {
-    if (!getProductById(productId)) {
+    if (!get().products.some((product) => product.id === productId)) {
       return;
     }
     set({ selectedProductId: productId, screen: "product-details" });
@@ -838,7 +1055,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   },
 
   addToCart: (productId, options = {}) => {
-    const product = getProductById(productId);
+    const product = get().products.find((item) => item.id === productId);
     if (!product) {
       return commitCartResult(productNotFoundResult(), set, get);
     }
@@ -877,7 +1094,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       return commitCartResult(lineNotFoundResult(), set, get);
     }
 
-    const product = getProductById(line.productId);
+    const product = get().products.find((item) => item.id === line.productId);
     if (!product) {
       return commitCartResult(productNotFoundResult(), set, get);
     }
@@ -909,6 +1126,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   clearCart: () => {
     set({
       cartItems: Object.freeze([]),
+      pendingSubmission: null,
       currentOrder: null,
       lastCartError: null,
       lastOrderError: null,
@@ -931,6 +1149,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
         giftNote: (details.giftNote ?? state.customer.giftNote).slice(0, 240),
         orderNote: (details.orderNote ?? state.customer.orderNote).slice(0, 240),
       }),
+      pendingSubmission: null,
       currentOrder: null,
       lastOrderError: null,
     }));
@@ -1027,7 +1246,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       qrResetSeconds: merged.qrResetSeconds,
       showPreviewLabel: merged.showPreviewLabel,
     });
-    set({ settings });
+    set({ settings, pendingSubmission: null });
     persistSettings(get(), set);
     persistSession(get(), set);
     return { ok: true, value: settings };
@@ -1037,6 +1256,10 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     const state = get();
     if (state.currentOrder) {
       return { ok: true, value: state.currentOrder };
+    }
+    if (state.pendingSubmission) {
+      set({ isCreatingOrder: true, lastOrderError: null });
+      return { ok: true, value: state.pendingSubmission.order };
     }
     if (state.isCreatingOrder) {
       const duplicateError: OrderError = Object.freeze({
@@ -1058,7 +1281,29 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       return result;
     }
 
-    const historyItem = redactOrderForHistory(result.value);
+    set({
+      pendingSubmission: Object.freeze({
+        order: result.value,
+        customer: state.customer,
+        items: Object.freeze(
+          state.cartItems.map((item) =>
+            Object.freeze({
+              productId: item.productId,
+              ...(item.variantId ? { variantId: item.variantId } : {}),
+              quantity: item.quantity,
+              giftWrapped: item.giftWrapped,
+            }),
+          ),
+        ),
+      }),
+    });
+    persistSession(get(), set);
+    return result;
+  },
+
+  completeOrderCreation: (order) => {
+    const state = get();
+    const historyItem = redactOrderForHistory(order);
     const orderHistory = Object.freeze([
       historyItem,
       ...state.orderHistory.filter(
@@ -1066,7 +1311,8 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       ),
     ].slice(0, MAX_ORDER_HISTORY));
     set({
-      currentOrder: result.value,
+      pendingSubmission: null,
+      currentOrder: order,
       orderHistory,
       screen: "qr",
       countdownSeconds: state.settings.qrResetSeconds,
@@ -1076,7 +1322,14 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     });
     persistHistory(get(), set);
     persistSession(get(), set);
-    return result;
+  },
+
+  failOrderCreation: (error) => {
+    set({
+      isCreatingOrder: false,
+      lastOrderError: error,
+    });
+    persistSession(get(), set);
   },
 
   markCurrentOrderAsSent: () => {
@@ -1101,7 +1354,10 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
   clearOrderHistory: () => {
     set({ orderHistory: Object.freeze([]) });
     noteStorageResult(
-      removeStorage("local", ORDERS_STORAGE_KEY),
+      removeStorage(
+        "local",
+        kioskStorageKey(ORDERS_STORAGE_KEY, get().tenantKey),
+      ),
       set,
     );
   },
@@ -1147,6 +1403,10 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     persistSession(get(), set);
   },
 
+  touchSession: () => {
+    if (get().screen !== "welcome") persistSession(get(), set);
+  },
+
   resetSession: () => {
     set({
       screen: "welcome",
@@ -1155,6 +1415,7 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       selectedProductId: null,
       cartItems: Object.freeze([]),
       customer: EMPTY_CUSTOMER_DETAILS,
+      pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: get().settings.qrResetSeconds,
       isCountdownPaused: false,
@@ -1163,7 +1424,10 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       lastOrderError: null,
     });
     noteStorageResult(
-      removeStorage("session", ACTIVE_SESSION_STORAGE_KEY),
+      removeStorage(
+        "session",
+        kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey),
+      ),
       set,
     );
   },
@@ -1177,7 +1441,9 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       cartItems: Object.freeze([]),
       customer: EMPTY_CUSTOMER_DETAILS,
       settings: DEFAULT_PRESENTER_SETTINGS,
+      storeOpen: true,
       orderHistory: Object.freeze([]),
+      pendingSubmission: null,
       currentOrder: null,
       countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
       isCountdownPaused: false,
@@ -1187,12 +1453,15 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     });
     const settingsRemoved = removeStorage(
       "local",
-      PRESENTER_SETTINGS_STORAGE_KEY,
+      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, get().tenantKey),
     );
-    const historyRemoved = removeStorage("local", ORDERS_STORAGE_KEY);
+    const historyRemoved = removeStorage(
+      "local",
+      kioskStorageKey(ORDERS_STORAGE_KEY, get().tenantKey),
+    );
     const sessionRemoved = removeStorage(
       "session",
-      ACTIVE_SESSION_STORAGE_KEY,
+      kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey),
     );
     noteStorageResult(
       settingsRemoved && historyRemoved && sessionRemoved,

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Check, Clock3, Gift, Minus, PackageCheck, Plus, ShoppingBag, X } from "lucide-react";
+import { Check, Clock3, Gift, MessageCircle, Minus, PackageCheck, Plus, ShoppingBag, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { formatInr } from "@/domain/money";
 import type { Product } from "@/types/kiosk";
@@ -10,18 +10,21 @@ import { useModalFocus } from "./use-modal-focus";
 type ProductDetailModalProps = {
   product: Product;
   remainingCapacity: number;
+  giftWrapFeePaise: number;
   onClose: () => void;
   onAdd: (input: { productId: string; variantId?: string; quantity: number; giftWrapped: boolean }) => void;
 };
 
-export function ProductDetailModal({ product, remainingCapacity, onClose, onAdd }: ProductDetailModalProps) {
+export function ProductDetailModal({ product, remainingCapacity, giftWrapFeePaise, onClose, onAdd }: ProductDetailModalProps) {
   const [variantId, setVariantId] = useState(product.variants[0]?.id ?? "");
   const [quantity, setQuantity] = useState(1);
   const [giftWrapped, setGiftWrapped] = useState(false);
   const selectedVariant = product.variants.find((variant) => variant.id === variantId);
   const price = product.pricePaise + (selectedVariant?.priceAdjustmentPaise ?? 0);
+  const totalPrice = (price + (giftWrapped ? giftWrapFeePaise : 0)) * quantity;
   const unavailable = product.availability === "unavailable" || product.stock < 1;
   const maxQuantity = Math.max(1, Math.min(product.stock, remainingCapacity));
+  const detailTags = Array.from(new Set([...product.occasionTags, ...product.recipientTags])).slice(0, 4);
   const dialogRef = useRef<HTMLElement>(null);
   const initialFocusRef = useRef<HTMLButtonElement>(null);
 
@@ -33,13 +36,22 @@ export function ProductDetailModal({ product, remainingCapacity, onClose, onAdd 
         <button ref={initialFocusRef} className="icon-button modal-close" onClick={onClose} aria-label="Close product details"><X size={21} /></button>
         <div className="product-detail-layout">
           <div className="product-detail-media">
-            <Image src={product.image} alt={product.name} width={720} height={720} priority />
+            <Image src={product.image} alt={product.name} width={720} height={720} sizes="(max-width: 900px) 100vw, 500px" />
           </div>
           <div className="product-detail-copy">
             <span className="product-card__category">{product.category}</span>
             <h2 id="product-detail-title">{product.name}</h2>
             <p>{product.description}</p>
-            <div className="product-detail-price">{formatInr(price)}</div>
+            <div className="product-detail-price">
+              <span>{formatInr(price)}</span>
+              {product.compareAtPricePaise && product.compareAtPricePaise > product.pricePaise ? <del>{formatInr(product.compareAtPricePaise)}</del> : null}
+            </div>
+
+            {detailTags.length ? (
+              <div className="product-detail-tags" aria-label="Suitable occasions">
+                {detailTags.map((tag) => <span key={tag}>{tag.replace(/(^|-)\w/g, (letter) => letter.replace("-", " ").toUpperCase())}</span>)}
+              </div>
+            ) : null}
 
             {product.variants.length ? (
               <div className="field">
@@ -71,12 +83,19 @@ export function ProductDetailModal({ product, remainingCapacity, onClose, onAdd 
 
             {product.giftWrapEligible ? (
               <button className={`wrap-toggle ${giftWrapped ? "active" : ""}`} onClick={() => setGiftWrapped((current) => !current)} aria-pressed={giftWrapped}>
-                <Gift size={17} /> {giftWrapped ? <><Check size={15} /> Gift wrap selected</> : "Add gift wrap"}
+                <Gift size={17} /> {giftWrapped ? <><Check size={15} /> Gift wrap selected · {formatInr(giftWrapFeePaise)} each</> : `Add gift wrap · ${formatInr(giftWrapFeePaise)} each`}
               </button>
             ) : null}
 
+            <div className="product-detail-total" aria-live="polite">
+              <span><small>Current total</small><strong>{formatInr(totalPrice)}</strong></span>
+              <small>{quantity} {quantity === 1 ? "gift" : "gifts"}{giftWrapped ? " with gift wrap" : ""}</small>
+            </div>
+
+            <div className="product-detail-guidance"><MessageCircle size={17} aria-hidden="true" /><span>Names, photos, and final personalisation details are confirmed with the shop on WhatsApp.</span></div>
+
             <button className="primary-button" style={{ width: "100%", marginTop: 22 }} disabled={remainingCapacity === 0 || unavailable} onClick={() => onAdd({ productId: product.id, variantId: variantId || undefined, quantity, giftWrapped })}>
-              <ShoppingBag size={19} /> {unavailable ? "Currently unavailable" : `Add ${quantity} to cart · ${formatInr(price * quantity)}`}
+              <ShoppingBag size={19} /> {unavailable ? "Currently unavailable" : `Add ${quantity} to cart · ${formatInr(totalPrice)}`}
             </button>
           </div>
         </div>

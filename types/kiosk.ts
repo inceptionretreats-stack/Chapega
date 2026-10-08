@@ -24,8 +24,11 @@ export type ProductVariant = Readonly<{
   stock?: number;
 }>;
 
+type ProductImageDirectory =
+  "products" | "generated-products" | "vendor-products";
+
 export type ProductImagePath =
-  `/products/${string}.${"webp" | "jpeg" | "jpg" | "png"}`;
+  `/${ProductImageDirectory}/${string}.${"webp" | "jpeg" | "jpg" | "png"}`;
 
 export type Product = Readonly<{
   id: string;
@@ -88,8 +91,7 @@ export type CartError = Readonly<{
 }>;
 
 export type Result<T, E> =
-  | Readonly<{ ok: true; value: T }>
-  | Readonly<{ ok: false; error: E }>;
+  Readonly<{ ok: true; value: T }> | Readonly<{ ok: false; error: E }>;
 
 export type CartMutation = Readonly<{
   items: readonly CartLine[];
@@ -124,9 +126,7 @@ export type SettingsError = Readonly<{
 
 export type SettingsResult = Result<PresenterSettings, SettingsError>;
 
-export type OrderStatus =
-  | "prepared_for_whatsapp"
-  | "presenter_marked_sent";
+export type OrderStatus = "prepared_for_whatsapp" | "presenter_marked_sent";
 
 export type OrderItem = Readonly<{
   productId: string;
@@ -171,6 +171,7 @@ export type OrderErrorCode =
   | "EMPTY_CART"
   | "MAX_UNITS_EXCEEDED"
   | "INVALID_CART"
+  | "INVALID_CUSTOMER_PHONE"
   | "OWNER_NUMBER_REQUIRED"
   | "INVALID_OWNER_NUMBER";
 
@@ -180,3 +181,16 @@ export type OrderError = Readonly<{
 }>;
 
 export type OrderResult = Result<Order, OrderError>;
+
+export type KioskBootstrap = Readonly<{
+  vendor: Readonly<{
+    id: string;
+    slug: string;
+    displayName: string;
+  }>;
+  revision: string;
+  products: readonly Product[];
+  settings: PresenterSettings;
+  storeOpen: boolean;
+  syncedAt: string;
+}>;

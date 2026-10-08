@@ -22,6 +22,10 @@
 # production
 /build
 
+# local single-process vendor backend state and runtime uploads
+/.data/
+/public/vendor-products/
+
 # misc
 .DS_Store
 *.pem

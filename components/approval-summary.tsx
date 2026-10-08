@@ -9,12 +9,12 @@ type ApprovalSummaryProps = {
 };
 
 export function ApprovalSummary({ confirmed, onConfirmReceipt, onStartAnother }: ApprovalSummaryProps) {
-  const checks = ["Five-gift cart limit checked", "Pay Later flow completed", "Working order QR generated", "WhatsApp link prepared with exact order"];
+  const checks = ["Gift cart limit checked", "Pay Later flow completed", "Working order QR generated", "WhatsApp link prepared with exact order"];
   return (
-    <main className="screen-page narrow">
+    <main className="screen-page narrow approval-page">
       <div className="surface-panel panel-padding" style={{ maxWidth: 860, margin: "30px auto" }}>
         <span className="selected-check" style={{ width: 46, height: 46 }}><Check size={24} /></span>
-        <h1 className="screen-heading" style={{ marginTop: 18 }}>Order Handoff Ready</h1>
+        <h1 className="screen-heading" style={{ marginTop: 18 }} data-screen-heading tabIndex={-1}>Order Handoff Ready</h1>
         <p className="screen-subtitle">The customer journey has reached the WhatsApp handoff. Receipt is confirmed manually only after the real message is seen on the owner’s phone.</p>
         <div style={{ margin: "28px 0" }}>{checks.map((check) => <div className="switch-row" key={check}><span>{check}</span><Check size={19} color="#25683D" /></div>)}</div>
         <button className={`wrap-toggle ${confirmed ? "active" : ""}`} onClick={onConfirmReceipt} aria-pressed={confirmed} disabled={confirmed}><MessageCircle size={17} /> {confirmed ? "Owner confirmed receipt" : "Mark owner receipt after seeing the message"}</button>

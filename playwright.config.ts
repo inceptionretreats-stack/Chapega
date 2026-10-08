@@ -1,14 +1,22 @@
+import path from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 
-const port = Number(process.env.PORT ?? 3000);
-const baseURL = `http://127.0.0.1:${port}`;
+const port = Number(process.env.PORT ?? 3100);
+const baseURL = `http://localhost:${port}`;
+const testDataDirectory = path.join(
+  process.cwd(),
+  ".data",
+  `e2e-${process.pid}`,
+);
 
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // The local JSON adapter is intentionally single-process and the scenarios
+  // mutate shared catalogue/order state, so E2E files must not overlap.
+  workers: 1,
   reporter: "list",
   timeout: 60_000,
   expect: {
@@ -27,9 +35,18 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+    command: `npm run dev -- --hostname localhost --port ${port}`,
+    env: {
+      CHAPEGA_DATA_BACKEND: "local",
+      CHAPEGA_DATA_DIR: testDataDirectory,
+      ALLOW_VENDOR_PREVIEW_LOGIN: "true",
+      VENDOR_EMAIL: "owner@chapega.com",
+      VENDOR_PASSWORD: "Chapega@2026",
+      VENDOR_NAME: "Aanya",
+      NEXT_PUBLIC_SUPABASE_URL: "",
+    },
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 180_000,
   },
 });

@@ -36,11 +36,26 @@ export function useModalFocus<
     const container = containerRef.current;
     if (!container) return;
 
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
     const previouslyFocused = document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
     const focusFrame = window.requestAnimationFrame(() => {
-      const initialFocus = initialFocusRef.current ?? getFocusableElements(container)[0] ?? container;
+      const preferredFocus = initialFocusRef.current;
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      const preferredFocusOpensKeyboard = preferredFocus?.matches(
+        "input, textarea, select, [contenteditable='true']",
+      );
+      const initialFocus = coarsePointer && preferredFocusOpensKeyboard
+        ? container
+        : preferredFocus ?? getFocusableElements(container)[0] ?? container;
       initialFocus.focus();
     });
 
@@ -80,6 +95,8 @@ export function useModalFocus<
     return () => {
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handleKeyDown, true);
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.paddingRight = previousBodyPaddingRight;
       if (previouslyFocused?.isConnected) previouslyFocused.focus();
     };
   }, [containerRef, initialFocusRef]);

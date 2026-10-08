@@ -5,8 +5,8 @@ import QRCode from "react-qr-code";
 import {
   Check,
   Clipboard,
+  Clock3,
   ExternalLink,
-  Info,
   MessageCircle,
   Pause,
   Play,
@@ -16,18 +16,19 @@ import {
 import { formatInr } from "@/domain/money";
 import { maskWhatsAppNumber } from "@/domain/whatsapp";
 import type { Order, Product } from "@/types/kiosk";
-import { CheckoutStepper } from "./checkout-stepper";
+import { CheckoutStepper, HandoffStatusRail } from "./checkout-stepper";
 
 type OrderReadyScreenProps = {
+  shopName: string;
   order: Order;
   products: readonly Product[];
   secondsRemaining: number;
   paused: boolean;
   copied: boolean;
+  copyError: string | null;
   onCopy: () => void;
   onTogglePause: () => void;
   onStartNewOrder: () => void;
-  onApprovalSummary: () => void;
 };
 
 function formatCountdown(seconds: number) {
@@ -48,83 +49,101 @@ function getOrderDestinationLabel(order: Order) {
 }
 
 export function OrderReadyScreen({
+  shopName,
   order,
   products,
   secondsRemaining,
   paused,
   copied,
+  copyError,
   onCopy,
   onTogglePause,
   onStartNewOrder,
-  onApprovalSummary,
 }: OrderReadyScreenProps) {
   const finalWarning = !paused && secondsRemaining <= 15;
   return (
     <main className="order-ready-page">
       <CheckoutStepper active={4} />
-      <div className="order-ready-grid">
-        <section className="order-ready-copy">
-          <h1 className="order-ready-title">Your order is ready to send</h1>
-          <p className="order-ready-lede">Scan the QR with your phone. WhatsApp will open with your selected gifts—review the message and tap Send.</p>
-          <div className="order-status"><Info size={18} /> Message prepared. Complete the final step in WhatsApp.</div>
-          <div className="order-detail-columns">
-            <div>
-              <p className="order-kicker">Order details</p>
-              <span className="order-number">{order.orderNumber}</span>
-              <ul className="review-items">
-                {order.items.map((item) => {
-                  const product = products.find((candidate) => candidate.id === item.productId);
-                  return (
-                    <li className="review-item" key={`${item.productId}-${item.variant ?? "default"}`}>
-                      {product ? <Image src={product.image} alt="" width={132} height={132} /> : <div />}
-                      <div><h3>{item.name}</h3><p>{item.variant ? `${item.variant} · ` : ""}× {item.quantity}{item.giftWrapped ? " · Gift wrapped" : ""}</p></div>
-                      <strong>{formatInr(item.lineTotalPaise)}</strong>
-                    </li>
-                  );
-                })}
-              </ul>
-              <dl className="summary-list" style={{ marginTop: 10 }}>
-                <div><dt>Gift wrap</dt><dd>{formatInr(order.giftWrapPaise)}</dd></div>
-                <div><dt>Total</dt><dd>{formatInr(order.totalPaise)}</dd></div>
-                <div><dt>Payment</dt><dd>Pay at Counter</dd></div>
-                <div><dt>Kiosk</dt><dd>{order.kioskName}</dd></div>
-              </dl>
-            </div>
-            <div>
-              <p className="order-kicker">WhatsApp message preview</p>
-              <div className="message-preview">
-                <div className="message-bubble">{order.whatsappMessage}</div>
-                <div className="message-preview__footer"><MessageCircle size={17} /> {getOrderDestinationLabel(order)}</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="qr-column" aria-label="WhatsApp QR handoff">
-          <div className="qr-card" aria-label="WhatsApp order QR code" data-testid="whatsapp-qr">
+      <header className="order-ready-header">
+        <h1 className="order-ready-title" data-screen-heading tabIndex={-1}>Your order is ready to send</h1>
+        <div className="order-ready-meta" aria-label="Prepared order status">
+          <span className="order-number">Order {order.orderNumber}</span>
+          <span className="order-ready-meta__status"><ShieldCheck size={16} aria-hidden="true" /> Prepared · not sent</span>
+        </div>
+        <p className="order-ready-lede">Your message is prepared. Scan the QR code to open WhatsApp and send your order to {shopName}.</p>
+      </header>
+      <HandoffStatusRail active={2} />
+      <section className="order-ready-frame" aria-label="WhatsApp QR handoff">
+        <div className="qr-handoff-row">
+          <div className="qr-card" role="img" aria-label="WhatsApp order QR code" data-testid="whatsapp-qr">
             <QRCode value={order.whatsappUrl} size={420} bgColor="#FFFFFF" fgColor="#111111" level="M" />
           </div>
-          <div className="scan-instructions">
+          <div className="order-ready-guidance">
             <ol className="instruction-list">
-              <li><span className="instruction-number">1</span>Open your phone camera</li>
-              <li><span className="instruction-number">2</span>Scan this QR code</li>
-              <li><span className="instruction-number">3</span>WhatsApp opens—tap Send</li>
+              <li><span className="instruction-number">1</span><span><strong>Scan the QR code</strong><small>Open WhatsApp on your phone</small></span></li>
+              <li><span className="instruction-number">2</span><span><strong>Check your message</strong><small>Your order details are pre-filled</small></span></li>
+              <li><span className="instruction-number">3</span><span><strong>Tap send</strong><small>Review and send to {shopName}</small></span></li>
             </ol>
-            <div>
-              <div className="countdown-ring" aria-label={`${secondsRemaining} seconds until reset`}>{paused ? "Paused" : formatCountdown(secondsRemaining)}</div>
-              {finalWarning ? <div className="error-notice" style={{ marginTop: 8 }}>Resetting soon</div> : null}
+            <p className="qr-scan-tip"><strong>Scanning tip:</strong> Keep the full code in view and hold your phone steady.</p>
+            <div className="order-status"><ShieldCheck size={22} aria-hidden="true" /><span><strong>Message prepared</strong><small>Nothing is sent until you tap Send in WhatsApp</small></span></div>
+            <a className="whatsapp-button order-ready-guidance__primary" href={order.whatsappUrl} target="_blank" rel="noopener noreferrer">
+              <MessageCircle size={20} /> Open WhatsApp <ExternalLink size={16} />
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <div className="order-ready-controls">
+        <div className="expiry-row">
+          <Clock3 size={22} aria-hidden="true" />
+          <span>This kiosk screen will reset in</span>
+          <strong className="countdown-ring" role="timer" aria-label={paused ? "Automatic reset paused" : `${secondsRemaining} seconds until reset`}>{paused ? "Paused" : formatCountdown(secondsRemaining)}</strong>
+        </div>
+        <button className="text-button qr-pause" aria-pressed={paused} onClick={onTogglePause}>{paused ? <Play size={17} /> : <Pause size={17} />}{paused ? "Resume reset" : "Keep this screen open"}</button>
+      </div>
+      {finalWarning ? <div className="error-notice order-ready-warning" role="alert">Resetting soon</div> : null}
+
+      <div className="qr-actions">
+        <a className="whatsapp-button" href={order.whatsappUrl} target="_blank" rel="noopener noreferrer"><MessageCircle size={20} /> Open WhatsApp <ExternalLink size={16} /></a>
+        <button className="quiet-button" onClick={onCopy} aria-live="polite">{copied ? <Check size={17} /> : <Clipboard size={17} />}{copied ? "Message copied" : "Copy message"}</button>
+        <span className="qr-actions__or" aria-hidden="true">OR</span>
+        <button className="quiet-button" onClick={onStartNewOrder}><RefreshCcw size={17} /> Start new order</button>
+      </div>
+      {copyError ? <div className="error-notice qr-copy-error" role="alert">{copyError}</div> : null}
+
+      <details className="order-ready-copy">
+        <summary>View order details · <span className="order-number">{order.orderNumber}</span></summary>
+        <div className="order-detail-columns">
+          <div>
+            <p className="order-kicker">Order details</p>
+            <ul className="review-items">
+              {order.items.map((item, index) => {
+                const product = products.find((candidate) => candidate.id === item.productId);
+                return (
+                  <li className="review-item" key={`${item.productId}-${item.variant ?? "default"}-${item.giftWrapped ? "wrapped" : "plain"}-${index}`}>
+                    {product ? <div className="review-item__image"><Image src={product.image} alt="" width={132} height={132} sizes="66px" /></div> : <div />}
+                    <div><h3>{item.name}</h3><p>{item.variant ? `${item.variant} · ` : ""}× {item.quantity}{item.giftWrapped ? " · Gift wrapped" : ""}</p></div>
+                    <strong>{formatInr(item.lineTotalPaise)}</strong>
+                  </li>
+                );
+              })}
+            </ul>
+            <dl className="summary-list order-ready-summary-list">
+              <div><dt>Gift wrap</dt><dd>{formatInr(order.giftWrapPaise)}</dd></div>
+              <div><dt>Total</dt><dd>{formatInr(order.totalPaise)}</dd></div>
+              <div><dt>Payment</dt><dd>Pay at Counter</dd></div>
+              <div><dt>Kiosk</dt><dd>{order.kioskName}</dd></div>
+            </dl>
+          </div>
+          <div>
+            <p className="order-kicker">WhatsApp message preview</p>
+            <div className="message-preview">
+              <div className="message-bubble">{order.whatsappMessage}</div>
+              <div className="message-preview__footer"><MessageCircle size={17} /> {getOrderDestinationLabel(order)}</div>
             </div>
           </div>
-          <div className="qr-actions">
-            <a className="whatsapp-button" href={order.whatsappUrl} target="_blank" rel="noopener noreferrer"><MessageCircle size={20} /> Open WhatsApp <ExternalLink size={16} /></a>
-            <button className="quiet-button" onClick={onCopy}>{copied ? <Check size={17} /> : <Clipboard size={17} />}{copied ? "Message copied" : "Copy message"}</button>
-            <button className="quiet-button" onClick={onTogglePause}>{paused ? <Play size={17} /> : <Pause size={17} />}{paused ? "Resume reset" : "Keep this screen open"}</button>
-            <button className="quiet-button" onClick={onStartNewOrder}><RefreshCcw size={17} /> Start new order</button>
-          </div>
-          <div className="success-notice" style={{ width: "100%", maxWidth: 600, marginTop: 14 }}><ShieldCheck size={18} /><span>The QR contains this exact order link. WhatsApp still requires you to tap Send.</span></div>
-          <button className="text-button" style={{ marginTop: 8 }} onClick={onApprovalSummary}>Presenter: show approval summary</button>
-        </section>
-      </div>
+        </div>
+      </details>
     </main>
   );
 }

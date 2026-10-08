@@ -35,12 +35,12 @@ export function CartScreen({
 }: CartScreenProps) {
   if (!cart.length) {
     return (
-      <main className="screen-page narrow">
+      <main className="screen-page narrow cart-page">
         <CheckoutStepper active={1} />
         <div className="empty-state">
           <PackageOpen size={46} />
           <div>
-            <h2>Your cart is empty</h2>
+            <h2 data-screen-heading tabIndex={-1}>Your cart is empty</h2>
             <p>Add at least one thoughtful gift before continuing to Pay Later.</p>
             <button className="primary-button" onClick={onContinueShopping}>Browse gifts</button>
           </div>
@@ -49,16 +49,34 @@ export function CartScreen({
     );
   }
 
+  const remainingUnits = Math.max(0, maxUnits - unitCount);
+  const capacityPercentage = maxUnits > 0 ? Math.min(100, (unitCount / maxUnits) * 100) : 0;
+
   return (
-    <main className="screen-page narrow">
+    <main className="screen-page narrow cart-page">
       <CheckoutStepper active={1} />
-      <h1 className="screen-heading">Review your gifts</h1>
-      <p className="screen-subtitle">Adjust quantities, add wrapping, and check your total before continuing.</p>
+      <header className="transaction-intro">
+        <h1 className="screen-heading" data-screen-heading tabIndex={-1}>Review your gifts</h1>
+        <p className="screen-subtitle">Adjust quantities, add wrapping, and check your total before continuing.</p>
+      </header>
       <div className="checkout-grid">
-        <section className="surface-panel panel-padding">
+        <section className="transaction-primary cart-workspace" aria-labelledby="cart-selection-heading">
+          <h2 className="sr-only" id="cart-selection-heading">Selected gifts</h2>
           <div className="capacity-meter">
-            <div className="capacity-meter__label"><span>{unitCount} of {maxUnits} gifts selected</span><span>{maxUnits - unitCount} remaining</span></div>
-            <div className="capacity-meter__track"><div className="capacity-meter__fill" style={{ width: `${Math.min(100, unitCount / maxUnits * 100)}%` }} /></div>
+            <div className="capacity-meter__label">
+              <span>{unitCount} of {maxUnits} gifts selected</span>
+              <span>{remainingUnits} remaining</span>
+            </div>
+            <div
+              className="capacity-meter__track"
+              role="progressbar"
+              aria-label="Cart capacity"
+              aria-valuemin={0}
+              aria-valuemax={maxUnits}
+              aria-valuenow={unitCount}
+            >
+              <div className="capacity-meter__fill" style={{ width: `${capacityPercentage}%` }} />
+            </div>
           </div>
           <div className="cart-list">
             {cart.map((line) => {
@@ -66,8 +84,8 @@ export function CartScreen({
               const lineTotal = line.unitPricePaise * line.quantity + (line.giftWrapped ? giftWrapFeePaise * line.quantity : 0);
               return (
                 <article className="cart-line" key={line.key}>
-                  <Image src={line.productImage} alt={line.productName} width={236} height={236} />
-                  <div>
+                  <div className="cart-line__image"><Image src={line.productImage} alt={line.productName} width={236} height={236} sizes="118px" /></div>
+                  <div className="cart-line__content">
                     <h3>{line.productName}</h3>
                     {line.variantName ? <p>Style: {line.variantName}</p> : null}
                     <p>Unit price: {formatInr(line.unitPricePaise)}</p>
@@ -82,7 +100,7 @@ export function CartScreen({
                           <Gift size={16} /> {line.giftWrapped ? `Wrapped · ${formatInr(giftWrapFeePaise)} each` : "Add gift wrap"}
                         </button>
                       ) : null}
-                      <button className="text-button" onClick={() => onRemove(line.key)}><Trash2 size={16} /> Remove</button>
+                      <button className="text-button" onClick={() => onRemove(line.key)} aria-label={`Remove ${line.productName}`}><Trash2 size={16} /> Remove</button>
                     </div>
                   </div>
                   <div className="cart-line__price"><strong>{formatInr(lineTotal)}</strong></div>
@@ -91,13 +109,25 @@ export function CartScreen({
             })}
           </div>
         </section>
-        <aside className="surface-panel panel-padding sticky-summary">
-          <h2 className="panel-title">Order summary</h2>
-          <div className="totals-row"><span>Subtotal</span><strong>{formatInr(totals.subtotalPaise)}</strong></div>
-          <div className="totals-row"><span>Gift wrapping</span><strong>{formatInr(totals.giftWrapPaise)}</strong></div>
-          <div className="totals-row total"><span>Grand total</span><strong>{formatInr(totals.totalPaise)}</strong></div>
-          <div className="notice" style={{ marginTop: 18 }}><ShoppingBag size={18} /><span>You can select up to {maxUnits} total gift units in this kiosk order.</span></div>
-          <button className="primary-button" style={{ width: "100%", marginTop: 20 }} onClick={onCheckout}>Continue to Pay Later</button>
+        <aside className="transaction-summary sticky-summary" aria-label="Order summary">
+          <header className="transaction-summary__header">
+            <div>
+              <h2 className="panel-title">Order summary</h2>
+              <p>{unitCount} gift {unitCount === 1 ? "unit" : "units"} in this order</p>
+            </div>
+            <span className="transaction-summary__icon" aria-hidden="true"><ShoppingBag size={20} /></span>
+          </header>
+          <div className="transaction-summary__body">
+            <div className="transaction-summary__totals">
+              <div className="totals-row"><span>Subtotal</span><strong>{formatInr(totals.subtotalPaise)}</strong></div>
+              <div className="totals-row"><span>Gift wrapping</span><strong>{formatInr(totals.giftWrapPaise)}</strong></div>
+              <div className="totals-row total"><span>Grand total</span><strong>{formatInr(totals.totalPaise)}</strong></div>
+            </div>
+            <div className="notice transaction-summary__notice"><ShoppingBag size={18} /><span>You can select up to {maxUnits} total gift units in this kiosk order.</span></div>
+          </div>
+          <div className="transaction-summary__actions">
+            <button className="primary-button" onClick={onCheckout}>Continue to Pay Later</button>
+          </div>
         </aside>
       </div>
       <div className="cart-actions-row"><button className="secondary-button" onClick={onContinueShopping}>Continue shopping</button></div>
