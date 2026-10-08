@@ -13,7 +13,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Chapega.com",
+  title: { default: "Chapega.com", template: "%s | Chapega.com" },
   description:
     "Browse personalized gifts and prepare a Pay at Counter order for Chapega.com on WhatsApp.",
 };
