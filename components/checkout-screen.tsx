@@ -115,15 +115,12 @@ export function CheckoutScreen({ customer, cart, totals, unitCount, onChange, on
               <span>Contact details</span>
               <span className="checkout-form-section__optional">Optional</span>
             </legend>
+            {/* One line, so the primary action stays on a 768 px kiosk screen. */}
             <p className="checkout-form-section__helper">
               <ShieldCheck size={17} aria-hidden="true" />
-              Only share the details you’re comfortable sending to the shop on WhatsApp.
-            </p>
-            <p className="checkout-form-section__helper">
-              <Info size={17} aria-hidden="true" />
               <span>
-                We use your name and phone only to prepare this order on WhatsApp.
-                Read our <Link href="/privacy">privacy notice</Link>.
+                Share only what you’re comfortable sending; we use it only to prepare
+                this order on WhatsApp (<Link href="/privacy">privacy notice</Link>).
               </span>
             </p>
             <div className="form-grid">
