@@ -56,7 +56,7 @@ type VendorViewName = "Products" | "Orders" | "Settings";
 async function openVendorView(page: Page, view: VendorViewName) {
   if (isVendorMobileLayout(page)) {
     const bottomNav = page.getByRole("navigation", { name: "Mobile vendor navigation" });
-    const name = view === "Settings" ? "More" : view === "Orders" ? /Orders/ : "Products";
+    const name = view === "Orders" ? /Orders/ : view;
     await bottomNav.getByRole("button", { name }).click();
     return;
   }
@@ -147,9 +147,9 @@ test("public vendor login and mobile sign-out keep the studio protected", async 
 
   const welcomeActions = page.locator(".welcome-actions");
   await expect(
-    welcomeActions.getByRole("button", { name: "Vendor login" }),
+    welcomeActions.getByRole("link", { name: "Vendor login" }),
   ).toBeVisible();
-  await welcomeActions.getByRole("button", { name: "Vendor login" }).click();
+  await welcomeActions.getByRole("link", { name: "Vendor login" }).click();
   await expect(page).toHaveURL(/\/vendor\/login$/);
   await expect(page.getByRole("link", { name: "Back to kiosk" })).toBeVisible();
 
@@ -184,7 +184,8 @@ test("public vendor login and mobile sign-out keep the studio protected", async 
   ).toBe(true);
   await page.unroute("**/api/vendor/logout");
   await topbarSignOut.click();
-  await expect(page).toHaveURL(/\/vendor\/login$/);
+  // Signing out keeps the shop so the login page offers the same workspace.
+  await expect(page).toHaveURL(/\/vendor\/login\?vendor=chapega$/);
   expect(
     (await context.cookies()).some(
       (cookie) => cookie.name === "chapega_vendor_session",
@@ -195,7 +196,7 @@ test("public vendor login and mobile sign-out keep the studio protected", async 
   await expect(page).toHaveURL(/\/vendor\/login$/);
   await page.reload();
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Good morning,/ })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: /Welcome back,/ })).toHaveCount(0);
 });
 
 test("vendor signs in, publishes a product, receives an order, and cleans up", async ({
@@ -239,7 +240,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
     expect(setCookie).toMatch(/;\s*SameSite=Strict/i);
     await expect(page).toHaveURL(/\/vendor\/chapega$/);
     await expect(
-      page.getByRole("heading", { name: /Good morning,/ }),
+      page.getByRole("heading", { name: /Welcome back,/ }),
     ).toBeVisible();
     await expect(page.getByText("Studio overview")).toHaveCount(0);
 
@@ -570,7 +571,7 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       .locator(".vendor-topbar")
       .getByRole("button", { name: "Sign out of Vendor Studio" })
       .click();
-    await expect(page).toHaveURL(/\/vendor\/login$/);
+    await expect(page).toHaveURL(/\/vendor\/login\?vendor=chapega$/);
     await expect(
       page.getByRole("heading", { name: "Welcome back" }),
     ).toBeVisible();
