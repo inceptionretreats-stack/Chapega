@@ -1,3 +1,11 @@
-# Reviewed false positive: throwaway fixture password for an ephemeral
-# integration-test database (owner@integration.test), not a real credential.
-11cbb59466c6927654850cb1b1884c43545864a7:tests/integration/supabase-tenant-rls.test.ts:generic-api-key:22
+# Reviewed false positives (generic-api-key). Not credentials:
+# tests/unit/password-toggle.test.ts: typed test value in a unit test
+8109a59bbfc8e976355682d6d90b0cca16c007c5:tests/unit/password-toggle.test.ts:generic-api-key:44
+# tests/integration/helpers.ts: fixture password for the throwaway integration database
+b0806b3b4ccbc99f3386671d3c95be912290f320:tests/integration/helpers.ts:generic-api-key:18
+# server/vendor/crypto.ts: deliberate dummy salt for timing-safe rejection of unknown accounts; no password matches
+92751200485cb46573d8fb98c88dfb076c3b1d0a:server/vendor/crypto.ts:generic-api-key:49
+# server/security/common-passwords.ts: entry in the blocklist of common passwords
+92751200485cb46573d8fb98c88dfb076c3b1d0a:server/security/common-passwords.ts:generic-api-key:123
+# tests/integration/supabase-tenant-rls.test.ts: fixture password for the throwaway integration database
+93845d3e30b4799d2a5e040cd8dea7be9bd7141d:tests/integration/supabase-tenant-rls.test.ts:generic-api-key:22
