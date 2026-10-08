@@ -2,4 +2,4 @@
 # git config blame.ignoreRevsFile .git-blame-ignore-revs (GitHub does this automatically).
 
 # style: format the codebase with Prettier (AUD-34)
-b71c699ef78a4a7c22d2c5bd2b07e4bcc3abe416
+b17d1105c5566f765382193abe7b6a9d903cdfa8
