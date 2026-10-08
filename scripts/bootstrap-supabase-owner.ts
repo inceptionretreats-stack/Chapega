@@ -4,10 +4,10 @@ import { pathToFileURL } from "node:url";
 import { loadEnvConfig } from "@next/env";
 import postgres from "postgres";
 
+import { newPasswordProblem } from "../server/security/password-policy";
+
 const confirmationFlag = "--confirm-bootstrap";
 const PLACEHOLDER_PASSWORD = "replace-with-a-long-unique-password";
-const MIN_PASSWORD_LENGTH = 15;
-const MAX_PASSWORD_LENGTH = 128;
 
 export type BootstrapOwnerInput = Readonly<{
   vendorSlug: string;
@@ -41,14 +41,9 @@ export function validateBootstrapOwnerInput(
     throw new Error("VENDOR_EMAIL must be a valid email address.");
   }
   if (!name) throw new Error("VENDOR_NAME is required.");
-  if (
-    input.password.length < MIN_PASSWORD_LENGTH ||
-    input.password.length > MAX_PASSWORD_LENGTH
-  ) {
-    throw new Error(
-      `VENDOR_PASSWORD must contain ${MIN_PASSWORD_LENGTH} to ${MAX_PASSWORD_LENGTH} characters.`,
-    );
-  }
+  // The same NIST policy as admin-issued passwords and rotation.
+  const problem = newPasswordProblem(input.password, { email, name });
+  if (problem) throw new Error(`VENDOR_PASSWORD: ${problem}`);
   if (
     input.password === PLACEHOLDER_PASSWORD ||
     input.password === preview.password ||
