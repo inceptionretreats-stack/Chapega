@@ -30,7 +30,7 @@ export default function AdminError({ retry }: AdminErrorProps) {
           <Link className="admin-login-back" href="/">
             <ArrowLeft size={17} aria-hidden="true" /> Back to kiosk
           </Link>
-          <AlertTriangle size={34} color="#8f2e3b" aria-hidden="true" />
+          <AlertTriangle size={34} className="icon-danger" aria-hidden="true" />
           <header>
             <h1>Platform admin could not load</h1>
             <p>The platform service may be temporarily unavailable. Try again in a moment.</p>

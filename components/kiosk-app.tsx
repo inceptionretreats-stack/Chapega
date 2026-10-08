@@ -577,7 +577,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
         />
       ) : null}
       <div className="toast-region">
-        {toast && (toast.screen === store.screen || (toast.screen === "product-details" && store.screen === "catalogue")) ? <div className={`toast ${toast.tone === "error" ? "error" : ""}`} role={toast.tone === "error" ? "alert" : "status"} aria-atomic="true">{toast.tone === "error" ? <AlertCircle size={19} /> : <CheckCircle2 size={19} color="#25683D" />}<span>{toast.message}</span></div> : null}
+        {toast && (toast.screen === store.screen || (toast.screen === "product-details" && store.screen === "catalogue")) ? <div className={`toast ${toast.tone === "error" ? "error" : ""}`} role={toast.tone === "error" ? "alert" : "status"} aria-atomic="true">{toast.tone === "error" ? <AlertCircle size={19} /> : <CheckCircle2 size={19} className="icon-success" />}<span>{toast.message}</span></div> : null}
       </div>
       {store.screen !== "welcome" && store.screen !== "catalogue" && store.screen !== "product-details" && unitCount > 0 ? <div className="sr-only" aria-live="polite"><ShoppingBag size={1} />{unitCount} of {store.settings.maxCartQuantity} gifts selected.</div> : null}
     </div>

@@ -34,7 +34,7 @@ export default function VendorError({ retry }: VendorErrorProps) {
             <span className="vendor-wordmark">Chapega.com</span>
             <span>Vendor studio</span>
           </div>
-          <AlertTriangle size={34} color="#8f2e3b" aria-hidden="true" />
+          <AlertTriangle size={34} className="icon-danger" aria-hidden="true" />
           <header>
             <h1>Vendor Studio could not load</h1>
             <p>The catalogue service may be temporarily unavailable. No product, order, or setting was changed.</p>
