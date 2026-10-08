@@ -530,4 +530,55 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
       ),
     ).rejects.toThrow(/already exists/);
   });
+
+  it("lets a session slide only its own expiry, never its start or scope (AUD-17)", async () => {
+    const [owner] = await admin<{ id: string }[]>`
+      select id from private.vendor_users where email = ${OWNER.email}`;
+    const sessionHash = createHash("sha256").update(randomUUID()).digest("hex");
+    await admin`
+      insert into private.vendor_sessions
+        (id_hash, user_id, session_scope, active_vendor_id, created_at, expires_at)
+      values (${sessionHash}, ${owner.id}, 'vendor', ${CHAPEGA_ID}, now(), now() + interval '30 minutes')
+    `;
+    const app = postgres(appUrl.toString(), clientOptions());
+    try {
+      const asSession = <T>(run: (sql: postgres.TransactionSql) => Promise<T>) =>
+        app.begin(async (sql) => {
+          await sql`select set_config('app.session_hash', ${sessionHash}, true)`;
+          return run(sql);
+        });
+
+      const slid = await asSession(
+        (sql) => sql`
+          update private.vendor_sessions set expires_at = now() + interval '45 minutes'
+          where id_hash = ${sessionHash} returning id_hash`,
+      );
+      expect(slid).toHaveLength(1);
+
+      // Moving created_at forward would lift the 168 h cap in the policy.
+      await expect(
+        asSession(
+          (sql) => sql`
+            update private.vendor_sessions
+            set created_at = now() + interval '99 days', expires_at = now() + interval '100 days'
+            where id_hash = ${sessionHash}`,
+        ),
+      ).rejects.toMatchObject({ code: "42501" });
+      await expect(
+        asSession(
+          (sql) => sql`
+            update private.vendor_sessions set session_scope = 'platform', active_vendor_id = null
+            where id_hash = ${sessionHash}`,
+        ),
+      ).rejects.toMatchObject({ code: "42501" });
+
+      const [row] = await admin<{ scope: string; days: number }[]>`
+        select session_scope as scope,
+               extract(day from expires_at - created_at)::int as days
+        from private.vendor_sessions where id_hash = ${sessionHash}`;
+      expect(row).toEqual({ scope: "vendor", days: 0 });
+    } finally {
+      await app.end({ timeout: 5 });
+    }
+  });
 });

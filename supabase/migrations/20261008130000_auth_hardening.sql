@@ -24,6 +24,12 @@ create policy chapega_sessions_refresh
     and expires_at <= created_at + interval '168 hours'
   );
 
+-- The policy above limits which row; this limits which column. Without it the
+-- same UPDATE could move created_at forward (lifting the 168 h cap) or turn a
+-- vendor session into a platform one.
+revoke update on private.vendor_sessions from chapega_app;
+grant update (expires_at) on private.vendor_sessions to chapega_app;
+
 -- AUD-18: let a signed-in user replace only their own password hash, only
 -- with a modern `scrypt$N=…,r=…,p=…$…` hash, and only if the stored hash is
 -- still the one that was just verified (compare-and-swap). Nothing else on
