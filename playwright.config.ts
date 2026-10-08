@@ -17,7 +17,9 @@ export default defineConfig({
   // The local JSON adapter is intentionally single-process and the scenarios
   // mutate shared catalogue/order state, so E2E files must not overlap.
   workers: 1,
-  reporter: "list",
+  reporter: process.env.CI
+    ? [["list"], ["html", { open: "never" }]]
+    : "list",
   timeout: 60_000,
   expect: {
     timeout: 10_000,
