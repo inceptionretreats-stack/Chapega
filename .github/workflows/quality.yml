@@ -41,6 +41,7 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run format:check
       - name: Unit tests with coverage (ratcheted thresholds in vitest.config.mts)
         run: npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=coverage/junit.xml
       - name: Upload coverage and JUnit results
