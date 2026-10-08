@@ -473,7 +473,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
 
   let headerBack: (() => void) | undefined;
   if (store.screen === "cart") headerBack = () => store.setScreen("catalogue");
-  if (store.screen === "customer" || store.screen === "checkout") headerBack = () => store.setScreen("cart");
+  if (store.screen === "customer") headerBack = () => store.setScreen("cart");
   if (store.screen === "review") headerBack = () => store.setScreen("customer");
 
   if (shopState) return <ShopUnavailable kind={shopState} />;
@@ -523,7 +523,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
       return <CartScreen cart={store.cartItems} products={store.products} unitCount={unitCount} maxUnits={store.settings.maxCartQuantity} totals={totals} giftWrapFeePaise={store.settings.giftWrapFeePaise} onQuantityChange={changeQuantity} onRemove={removeLine} onToggleWrap={toggleWrap} onContinueShopping={() => store.setScreen("catalogue")} onCheckout={() => store.setScreen("customer")} />;
     }
 
-    if (store.screen === "customer" || store.screen === "checkout") {
+    if (store.screen === "customer") {
       return <CheckoutScreen customer={store.customer} cart={store.cartItems} totals={totals} unitCount={unitCount} onChange={store.updateCustomer} onEditSelection={() => store.setScreen("cart")} onReview={() => store.setScreen("review")} />;
     }
 

@@ -17,12 +17,10 @@ import {
 import { calculateCartTotals } from "@/domain/money";
 import {
   createOrder,
-  markOrderAsPresenterSent,
   redactOrderForHistory,
 } from "@/domain/order";
 import {
   normalizeWhatsAppNumber,
-  WhatsAppNumberError,
 } from "@/domain/whatsapp";
 import {
   type CartError,
@@ -39,7 +37,6 @@ import {
   type OrderResult,
   type PresenterSettings,
   type Product,
-  type SettingsResult,
 } from "@/types/kiosk";
 
 export const PRESENTER_SETTINGS_STORAGE_KEY =
@@ -86,10 +83,8 @@ const KIOSK_SCREENS: readonly KioskScreen[] = [
   "product-details",
   "cart",
   "customer",
-  "checkout",
   "review",
   "qr",
-  "approval",
 ];
 
 type StorageKind = "local" | "session";
@@ -703,21 +698,15 @@ export interface KioskStoreState {
   updateCartQuantity: (lineKey: string, quantity: number) => CartResult;
   setCartGiftWrapped: (lineKey: string, giftWrapped: boolean) => CartResult;
   removeFromCart: (lineKey: string) => CartResult;
-  clearCart: () => void;
   clearCartError: () => void;
   updateCustomer: (details: Partial<CustomerDetails>) => void;
-  updateSettings: (settings: Partial<PresenterSettings>) => SettingsResult;
   createOrder: () => OrderResult;
   completeOrderCreation: (order: Order) => void;
   failOrderCreation: (error: OrderError) => void;
-  markCurrentOrderAsSent: () => void;
-  clearOrderHistory: () => void;
-  clearOrderError: () => void;
   tickCountdown: () => void;
   keepQrOpen: () => void;
   touchSession: () => void;
   resetSession: () => void;
-  resetAllLocalData: () => void;
 }
 
 type StoreSet = (
@@ -757,17 +746,6 @@ function persistSession(state: KioskStoreState, set: StoreSet): void {
       "session",
       kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, state.tenantKey),
       JSON.stringify(persistedSession(state)),
-    ),
-    set,
-  );
-}
-
-function persistSettings(state: KioskStoreState, set: StoreSet): void {
-  noteStorageResult(
-    writeStorage(
-      "local",
-      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, state.tenantKey),
-      JSON.stringify(state.settings),
     ),
     set,
   );
@@ -972,9 +950,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     if (screen === "qr" && !currentOrder) {
       screen = cartItems.length > 0 ? "review" : "welcome";
     }
-    if (screen === "approval") {
-      screen = currentOrder ? "qr" : cartItems.length > 0 ? "review" : "welcome";
-    }
 
     set({
       hasHydrated: true,
@@ -1027,7 +1002,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     const activeCheckoutScreens: readonly KioskScreen[] = [
       "cart",
       "customer",
-      "checkout",
       "review",
     ];
     const reconciledScreen =
@@ -1168,17 +1142,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       get,
     ),
 
-  clearCart: () => {
-    set({
-      cartItems: Object.freeze([]),
-      pendingSubmission: null,
-      currentOrder: null,
-      lastCartError: null,
-      lastOrderError: null,
-    });
-    persistSession(get(), set);
-  },
-
   clearCartError: () => set({ lastCartError: null }),
 
   updateCustomer: (details) => {
@@ -1199,102 +1162,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       lastOrderError: null,
     }));
     persistSession(get(), set);
-  },
-
-  updateSettings: (patch) => {
-    const current = get();
-    const merged = { ...current.settings, ...patch };
-    const countryCode = merged.defaultCountryCode
-      .replace(/\D/g, "")
-      .replace(/^0+/, "");
-    if (countryCode.length < 1 || countryCode.length > 3) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Enter a valid one-to-three digit country code.",
-        }),
-      };
-    }
-
-    if (!merged.shopName.trim() || !merged.kioskName.trim()) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Shop name and kiosk name are required.",
-        }),
-      };
-    }
-
-    if (
-      !Number.isSafeInteger(merged.maxCartQuantity) ||
-      merged.maxCartQuantity < 1 ||
-      merged.maxCartQuantity > 5 ||
-      merged.maxCartQuantity < getCartUnitCount(current.cartItems)
-    ) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message:
-            "The maximum cart quantity must be between 1 and 5 and cannot be below the current cart count.",
-        }),
-      };
-    }
-
-    if (
-      !Number.isSafeInteger(merged.giftWrapFeePaise) ||
-      merged.giftWrapFeePaise < 0 ||
-      merged.giftWrapFeePaise > 100_000 ||
-      !Number.isSafeInteger(merged.qrResetSeconds) ||
-      merged.qrResetSeconds < 15 ||
-      merged.qrResetSeconds > 3_600
-    ) {
-      return {
-        ok: false,
-        error: Object.freeze({
-          code: "INVALID_SETTINGS",
-          message: "Enter valid gift-wrap and QR timeout values.",
-        }),
-      };
-    }
-
-    let ownerWhatsAppNumber = "";
-    if (merged.ownerWhatsAppNumber.trim()) {
-      try {
-        ownerWhatsAppNumber = normalizeWhatsAppNumber(
-          merged.ownerWhatsAppNumber,
-          countryCode,
-        );
-      } catch (caught) {
-        return {
-          ok: false,
-          error: Object.freeze({
-            code: "INVALID_OWNER_NUMBER",
-            message:
-              caught instanceof WhatsAppNumberError
-                ? caught.message
-                : "Enter a valid owner WhatsApp number.",
-          }),
-        };
-      }
-    }
-
-    const settings: PresenterSettings = Object.freeze({
-      shopName: merged.shopName.trim().slice(0, 80),
-      ownerWhatsAppNumber,
-      defaultCountryCode: countryCode,
-      kioskName: merged.kioskName.trim().slice(0, 80),
-      maxCartQuantity: merged.maxCartQuantity,
-      giftWrapFeePaise: merged.giftWrapFeePaise,
-      qrResetSeconds: merged.qrResetSeconds,
-      showPreviewLabel: merged.showPreviewLabel,
-    });
-    set({ settings, pendingSubmission: null });
-    persistSettings(get(), set);
-    persistSession(get(), set);
-    return { ok: true, value: settings };
   },
 
   createOrder: () => {
@@ -1378,38 +1245,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
     persistSession(get(), set);
   },
 
-  markCurrentOrderAsSent: () => {
-    const currentOrder = get().currentOrder;
-    if (!currentOrder) {
-      return;
-    }
-
-    const markedOrder = markOrderAsPresenterSent(currentOrder);
-    const orderHistory = Object.freeze(
-      get().orderHistory.map((item) =>
-        item.orderNumber === markedOrder.orderNumber
-          ? Object.freeze({ ...item, status: markedOrder.status })
-          : item,
-      ),
-    );
-    set({ currentOrder: markedOrder, orderHistory });
-    persistHistory(get(), set);
-    persistSession(get(), set);
-  },
-
-  clearOrderHistory: () => {
-    set({ orderHistory: Object.freeze([]) });
-    noteStorageResult(
-      removeStorage(
-        "local",
-        kioskStorageKey(ORDERS_STORAGE_KEY, get().tenantKey),
-      ),
-      set,
-    );
-  },
-
-  clearOrderError: () => set({ lastOrderError: null }),
-
   tickCountdown: () => {
     const state = get();
     if (state.screen !== "qr" || !state.currentOrder) {
@@ -1472,43 +1307,6 @@ export const useKioskStore = create<KioskStoreState>((set, get) => ({
       set,
     );
   },
-
-  resetAllLocalData: () => {
-    set({
-      screen: "welcome",
-      searchQuery: "",
-      selectedCategory: "all",
-      selectedProductId: null,
-      cartItems: Object.freeze([]),
-      customer: EMPTY_CUSTOMER_DETAILS,
-      settings: DEFAULT_PRESENTER_SETTINGS,
-      storeOpen: true,
-      orderHistory: Object.freeze([]),
-      pendingSubmission: null,
-      currentOrder: null,
-      countdownSeconds: DEFAULT_PRESENTER_SETTINGS.qrResetSeconds,
-      qrExtended: false,
-      isCreatingOrder: false,
-      lastCartError: null,
-      lastOrderError: null,
-    });
-    const settingsRemoved = removeStorage(
-      "local",
-      kioskStorageKey(PRESENTER_SETTINGS_STORAGE_KEY, get().tenantKey),
-    );
-    const historyRemoved = removeStorage(
-      "local",
-      kioskStorageKey(ORDERS_STORAGE_KEY, get().tenantKey),
-    );
-    const sessionRemoved = removeStorage(
-      "session",
-      kioskStorageKey(ACTIVE_SESSION_STORAGE_KEY, get().tenantKey),
-    );
-    noteStorageResult(
-      settingsRemoved && historyRemoved && sessionRemoved,
-      set,
-    );
-  },
 }));
 
 export const selectCartUnitCount = (state: KioskStoreState): number =>
@@ -1559,7 +1357,3 @@ export const selectVisibleProducts = (
       .includes(query);
   });
 };
-
-export const selectOwnerNumberIsConfigured = (
-  state: KioskStoreState,
-): boolean => Boolean(state.settings.ownerWhatsAppNumber);

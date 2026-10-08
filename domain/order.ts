@@ -278,7 +278,3 @@ export function redactOrderForHistory(order: Order): OrderHistoryItem {
     status: order.status,
   });
 }
-
-export function markOrderAsPresenterSent(order: Order): Order {
-  return freezeOrder({ ...order, status: "presenter_marked_sent" });
-}

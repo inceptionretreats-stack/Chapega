@@ -3,21 +3,31 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { CATALOGUE_PRODUCTS } from "@/data/catalogue";
-import { useKioskStore } from "@/store/kiosk-store";
+import {
+  DEFAULT_PRESENTER_SETTINGS,
+  useKioskStore,
+} from "@/store/kiosk-store";
+
+function configureOwnerNumber() {
+  useKioskStore.setState({
+    settings: {
+      ...DEFAULT_PRESENTER_SETTINGS,
+      ownerWhatsAppNumber: "919876543210",
+    },
+  });
+}
 
 describe("kiosk order retries", () => {
   afterEach(() => {
-    useKioskStore.getState().resetAllLocalData();
+    useKioskStore.getState().resetSession();
+    useKioskStore.setState({ settings: DEFAULT_PRESENTER_SETTINGS });
     window.localStorage.clear();
     window.sessionStorage.clear();
   });
 
   it("reuses the same idempotency key after an uncertain request failure", () => {
     const store = useKioskStore.getState();
-    const settings = store.updateSettings({
-      ownerWhatsAppNumber: "919876543210",
-    });
-    expect(settings.ok).toBe(true);
+    configureOwnerNumber();
 
     const product = CATALOGUE_PRODUCTS[0];
     expect(product).toBeDefined();
@@ -50,9 +60,7 @@ describe("kiosk order retries", () => {
 
   it("keeps the exact pending request when a live catalogue sync changes the cart", () => {
     const store = useKioskStore.getState();
-    expect(
-      store.updateSettings({ ownerWhatsAppNumber: "919876543210" }).ok,
-    ).toBe(true);
+    configureOwnerNumber();
     const product = CATALOGUE_PRODUCTS[0];
     expect(store.addToCart(product.id).ok).toBe(true);
     store.setScreen("review");
