@@ -42,7 +42,9 @@ export default defineConfig({
       ALLOW_VENDOR_PREVIEW_LOGIN: "true",
       VENDOR_EMAIL: "owner@chapega.com",
       VENDOR_PASSWORD: "Chapega@2026",
-      VENDOR_NAME: "Aanya",
+      // The specs read VENDOR_NAME from the same environment, so CI's value
+      // must reach the server instead of being overridden here.
+      VENDOR_NAME: process.env.VENDOR_NAME ?? "Aanya",
       NEXT_PUBLIC_SUPABASE_URL: "",
     },
     url: baseURL,
