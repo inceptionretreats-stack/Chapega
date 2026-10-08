@@ -161,11 +161,13 @@ const customerSchema = z
 export const kioskOrderSubmissionSchema = z
   .object({
     idempotencyKey: trimmed(100),
+    // Older kiosks still send these; the server assigns its own number and time.
     orderNumber: z
       .string()
-      .regex(/^GFT-\d{8}-\d{4}$/)
-      .max(40),
-    createdAt: z.string().datetime(),
+      .regex(/^GFT-\d{8}-\d{4,6}$/)
+      .max(40)
+      .optional(),
+    createdAt: z.string().datetime().optional(),
     kioskName: trimmed(80),
     customer: customerSchema,
     items: z

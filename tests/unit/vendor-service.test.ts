@@ -418,6 +418,40 @@ describe("vendor service persistence rules", () => {
     expect(currentDatabase().orders).toHaveLength(1);
   });
 
+  it("assigns its own order number and ignores the kiosk's suggestion (AUD-37)", async () => {
+    const order = await recordKioskOrder({
+      ...submission,
+      orderNumber: "GFT-20000101-0001",
+    });
+
+    expect(order.orderNumber).toMatch(/^GFT-\d{8}-\d{4,6}$/);
+    expect(order.orderNumber).not.toBe("GFT-20000101-0001");
+    expect(order.whatsappMessage).toContain(`Order: ${order.orderNumber}`);
+  });
+
+  it("treats a retry with a new timestamp and number as the same order (AUD-37)", async () => {
+    const first = await recordKioskOrder(submission);
+    const retry = await recordKioskOrder({
+      ...submission,
+      orderNumber: "GFT-20260918-9999",
+      createdAt: "2026-09-18T08:05:00.000Z",
+    });
+
+    expect(retry).toEqual(first);
+    expect(currentDatabase().orders).toHaveLength(1);
+  });
+
+  it("never reuses an order number already taken that day (AUD-37)", async () => {
+    const first = await recordKioskOrder(submission);
+    const second = await recordKioskOrder({
+      ...submission,
+      idempotencyKey: "service-test-order-2",
+    });
+
+    expect(second.orderNumber).not.toBe(first.orderNumber);
+    expect(new Set(currentDatabase().orders.map((order) => order.orderNumber)).size).toBe(2);
+  });
+
   it("keeps products, idempotency keys, and order numbers isolated per vendor", async () => {
     const otherId = "00000000-0000-4000-8000-000000000002";
     const otherUser: VendorUser = {

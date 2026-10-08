@@ -156,8 +156,10 @@ export type VendorBootstrap = Readonly<{
 
 export type KioskOrderSubmission = Readonly<{
   idempotencyKey: string;
-  orderNumber: string;
-  createdAt: string;
+  /** Ignored: the server assigns the display number. Accepted from older kiosks. */
+  orderNumber?: string;
+  /** Ignored: the server records its own time. Accepted from older kiosks. */
+  createdAt?: string;
   kioskName: string;
   customer: CustomerDetails;
   items: readonly Readonly<{

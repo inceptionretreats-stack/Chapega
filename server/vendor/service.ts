@@ -1,6 +1,6 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { getEffectiveMaxCartUnits } from "@/domain/cart";
 import { calculateCartTotals } from "@/domain/money";
 import { canTransitionVendorOrder } from "@/domain/vendor";
@@ -517,11 +517,66 @@ function findProduct(
   return product;
 }
 
+const ORDER_NUMBER_TIME_ZONE = "Asia/Kolkata";
+
+function orderNumberDate(now: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ORDER_NUMBER_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  return parts.replaceAll("-", "");
+}
+
+/**
+ * Assigns the friendly display number on the server, inside the tenant lock,
+ * so two kiosks can never be handed the same number. Four digits are tried
+ * first; a busy day falls back to six.
+ */
+function nextOrderNumber(
+  orders: readonly VendorOrderRecord[],
+  vendorId: string,
+  now = new Date(),
+): string {
+  const prefix = `GFT-${orderNumberDate(now)}-`;
+  const taken = new Set(
+    orders
+      .filter(
+        (order) =>
+          order.vendorId === vendorId && order.orderNumber.startsWith(prefix),
+      )
+      .map((order) => order.orderNumber),
+  );
+  for (const [minimum, maximum, attempts] of [
+    [1_000, 10_000, 40],
+    [100_000, 1_000_000, 200],
+  ] as const) {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      const candidate = `${prefix}${randomInt(minimum, maximum)}`;
+      if (!taken.has(candidate)) return candidate;
+    }
+  }
+  throw new VendorServiceError(
+    503,
+    "ORDER_NUMBER_UNAVAILABLE",
+    "A new order number could not be assigned. Please try again.",
+  );
+}
+
 export async function recordKioskOrder(
   submission: KioskOrderSubmission,
   vendorSlug = DEFAULT_VENDOR_SLUG,
 ): Promise<VendorOrder> {
-  const fingerprint = sha256(JSON.stringify(submission));
+  // Only what the customer chose identifies a retry. The kiosk's suggested
+  // number and timestamp may legitimately change between attempts.
+  const fingerprint = sha256(
+    JSON.stringify({
+      kioskName: submission.kioskName,
+      customer: submission.customer,
+      items: submission.items,
+    }),
+  );
   return updateVendorDatabase(
     (database) => {
       const { vendor, settings } = activeTenantBySlug(database, vendorSlug);
@@ -547,19 +602,7 @@ export async function recordKioskOrder(
           "The shop has paused new kiosk orders.",
         );
       }
-      if (
-        database.orders.some(
-          (order) =>
-            order.vendorId === vendor.id &&
-            order.orderNumber === submission.orderNumber,
-        )
-      ) {
-        throw new VendorServiceError(
-          409,
-          "ORDER_NUMBER_CONFLICT",
-          "Please prepare the order again to receive a new number.",
-        );
-      }
+      const orderNumber = nextOrderNumber(database.orders, vendor.id);
 
       const maxUnits = getEffectiveMaxCartUnits(settings.maxCartQuantity);
       const totalUnits = submission.items.reduce(
@@ -664,7 +707,7 @@ export async function recordKioskOrder(
       }));
       const whatsappMessage = buildWhatsAppMessage({
         shopName: settings.shopName,
-        orderNumber: submission.orderNumber,
+        orderNumber,
         kioskName: settings.kioskName,
         customerName: submission.customer.customerName || undefined,
         items: whatsappItems,
@@ -682,7 +725,7 @@ export async function recordKioskOrder(
       const order: VendorOrderRecord = {
         vendorId: vendor.id,
         id: randomUUID(),
-        orderNumber: submission.orderNumber,
+        orderNumber,
         idempotencyKey: submission.idempotencyKey,
         submissionFingerprint: fingerprint,
         createdAt: now,
