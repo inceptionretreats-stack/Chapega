@@ -413,6 +413,48 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
     expect(statuses.sort()).toEqual([201, 409]);
   });
 
+  it("timestamps every table, keeps audit history append-only and purges stale sessions (AUD-38)", async () => {
+    const missing = await admin<{ table_name: string }[]>`
+      select tables.table_name
+      from information_schema.tables tables
+      where tables.table_schema = 'private'
+        and tables.table_type = 'BASE TABLE'
+        and tables.table_name in
+          ('vendor_users', 'vendor_memberships', 'product_variants', 'order_items', 'vendor_assets')
+        and not exists (
+          select 1 from information_schema.columns columns
+          where columns.table_schema = 'private'
+            and columns.table_name = tables.table_name
+            and columns.column_name = 'updated_at'
+        )
+    `;
+    expect(missing.map((row) => row.table_name)).toEqual([]);
+
+    const app = postgres(appUrl.toString(), clientOptions());
+    try {
+      await expect(
+        app.begin(async (sql) => {
+          await sql`select set_config('app.vendor_id', ${CHAPEGA_ID}, true)`;
+          await sql`update private.audit_log set action = 'rewritten' where vendor_id = ${CHAPEGA_ID}`;
+        }),
+      ).rejects.toMatchObject({ code: "42501" });
+    } finally {
+      await app.end({ timeout: 5 });
+    }
+
+    const [owner] = await admin<{ id: string }[]>`
+      select id from private.vendor_users where email = ${OWNER.email}`;
+    await admin`
+      insert into private.vendor_sessions
+        (id_hash, user_id, session_scope, active_vendor_id, created_at, expires_at)
+      values (${createHash("sha256").update(randomUUID()).digest("hex")}, ${owner.id},
+              'vendor', ${CHAPEGA_ID}, now() - interval '3 days', now() - interval '2 days')
+    `;
+    const [purged] = await admin<{ sessions_deleted: number }[]>`
+      select sessions_deleted::int from private.purge_expired_records()`;
+    expect(purged.sessions_deleted).toBeGreaterThanOrEqual(1);
+  });
+
   it("refuses to bootstrap a second super administrator (AUD-3)", async () => {
     const { bootstrapFirstOwner } = await import("@/scripts/bootstrap-supabase-owner");
     const { derivePasswordHash } = await import("@/server/vendor/crypto");
