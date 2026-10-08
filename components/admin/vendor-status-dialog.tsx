@@ -1,7 +1,7 @@
 "use client";
 
 import { LoaderCircle, PauseCircle, PlayCircle } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   AdminVendorMutationResult,
   AdminVendorSummary,
@@ -20,10 +20,18 @@ export function VendorStatusDialog({
   onClose,
   onSaved,
 }: VendorStatusDialogProps) {
-  const confirmRef = useRef<HTMLButtonElement>(null);
+  // Open on the safe action: Cancel, never the destructive confirm.
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const suspending = vendor.status === "active";
+
+  // The confirm button is disabled while saving, which drops focus; on
+  // failure move it to the announced error.
+  useEffect(() => {
+    if (error) errorRef.current?.focus();
+  }, [error]);
 
   const confirm = async () => {
     if (pending) return;
@@ -60,7 +68,7 @@ export function VendorStatusDialog({
         : `Restore ${vendor.displayName} and allow its team to operate again.`}
       onClose={onClose}
       busy={pending}
-      initialFocusRef={confirmRef}
+      initialFocusRef={cancelRef}
       compact
     >
       <div className="admin-confirm-dialog">
@@ -72,12 +80,11 @@ export function VendorStatusDialog({
             ? "Existing products, orders and account history will be preserved. The storefront can be reactivated later."
             : "The vendor storefront and owner access will return immediately."}
         </p>
-        {error ? <p className="admin-form-error" role="alert">{error}</p> : null}
+        {error ? <p ref={errorRef} tabIndex={-1} className="admin-form-error" role="alert">{error}</p> : null}
       </div>
       <footer className="admin-dialog__actions">
-        <button className="admin-secondary" type="button" onClick={onClose} disabled={pending}>Cancel</button>
+        <button ref={cancelRef} className="admin-secondary" type="button" onClick={onClose} disabled={pending}>Cancel</button>
         <button
-          ref={confirmRef}
           className={suspending ? "admin-danger" : "admin-primary"}
           type="button"
           onClick={confirm}

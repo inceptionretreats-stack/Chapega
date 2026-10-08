@@ -81,7 +81,13 @@ export function AdminDialog({
     return () => {
       window.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = priorOverflow;
-      window.requestAnimationFrame(() => returnFocusRef.current?.focus());
+      window.requestAnimationFrame(() => {
+        const opener = returnFocusRef.current;
+        // If the opener was removed (the list re-rendered), land on the main
+        // region instead of letting focus fall back to <body>.
+        if (opener?.isConnected) opener.focus();
+        else document.getElementById("admin-main")?.focus();
+      });
     };
   }, [initialFocusRef]);
 

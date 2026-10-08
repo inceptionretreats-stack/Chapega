@@ -28,7 +28,7 @@ import type {
 import { AddVendorDialog } from "./add-vendor-dialog";
 import { AdminActivityRail } from "./admin-activity-rail";
 import { adminRequest, AdminClientError } from "./admin-client";
-import { AdminAccountAvatar } from "./admin-shared";
+import { AdminAccountAvatar, AdminSkipLink } from "./admin-shared";
 import { AdminVendorCollection } from "./admin-vendor-collection";
 import { PlatformMetricBand } from "./platform-metric-band";
 import { VendorStatusDialog } from "./vendor-status-dialog";
@@ -176,7 +176,7 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
 
   return (
     <div className="admin-shell">
-      <a className="admin-skip-link" href="#admin-main">Skip to main content</a>
+      <AdminSkipLink targetId="admin-main" />
 
       <aside className="admin-sidebar" aria-label="Platform administration navigation">
         <div className="admin-sidebar__brand">
@@ -244,7 +244,7 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
           </div>
         </header>
 
-        <main id="admin-main" className="admin-main">
+        <main id="admin-main" tabIndex={-1} className="admin-main">
           <section
             className="admin-overview-heading"
             id="platform-overview"

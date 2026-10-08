@@ -1,13 +1,14 @@
 "use client";
 
 import { LoaderCircle, Plus, Store } from "lucide-react";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type {
   AdminVendorMutationResult,
   CreateAdminVendorInput,
 } from "@/types/admin";
 import { adminRequest, AdminClientError } from "./admin-client";
 import { AdminDialog } from "./admin-dialog";
+import { focusFirstInvalid } from "./admin-shared";
 
 type AddVendorDialogProps = {
   onClose: () => void;
@@ -57,6 +58,16 @@ export function AddVendorDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [failureCount, setFailureCount] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+
+  // After a failed submit focus the first invalid field, or the error summary
+  // when the failure is not tied to a field.
+  useEffect(() => {
+    if (failureCount === 0) return;
+    focusFirstInvalid(formRef.current, errorRef.current);
+  }, [failureCount]);
 
   const update = <Key extends keyof CreateAdminVendorInput>(
     key: Key,
@@ -105,6 +116,7 @@ export function AddVendorDialog({
       } else {
         setError("The vendor could not be created. Check the connection and try again.");
       }
+      setFailureCount((count) => count + 1);
     } finally {
       setPending(false);
     }
@@ -118,9 +130,9 @@ export function AddVendorDialog({
       busy={pending}
       initialFocusRef={nameRef}
     >
-      <form className="admin-vendor-form" onSubmit={submit}>
+      <form ref={formRef} className="admin-vendor-form" onSubmit={submit}>
         {error ? (
-          <p className="admin-form-error" role="alert">
+          <p ref={errorRef} tabIndex={-1} className="admin-form-error" role="alert">
             {error}
           </p>
         ) : null}

@@ -400,6 +400,12 @@
   transform: translateY(0);
 }
 
+/* Skip-link and dialog-return targets receive programmatic focus only. */
+.admin-main:focus,
+.admin-login-shell:focus {
+  outline: none;
+}
+
 .admin-sidebar {
   width: var(--admin-sidebar);
   height: 100vh;
