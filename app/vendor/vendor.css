@@ -660,6 +660,18 @@
 
 /* App shell */
 
+/* Keep anchor and focus scrolling clear of the sticky studio top bar
+   (94 px desktop, 66 px at 820 px and below). */
+html:has(.vendor-app-shell) {
+  --sticky-header-offset: 110px;
+}
+
+@media (max-width: 820px) {
+  html:has(.vendor-app-shell) {
+    --sticky-header-offset: 82px;
+  }
+}
+
 .vendor-app-shell {
   --vendor-sidebar: 236px;
   min-height: 100vh;

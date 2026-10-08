@@ -43,6 +43,9 @@ html {
   background: var(--ivory);
   color: var(--ink);
   scroll-behavior: smooth;
+  /* Anchor jumps and focus scrolling stop below the sticky header. Vendor
+     Studio and admin set --sticky-header-offset for their own top bars. */
+  scroll-padding-top: var(--sticky-header-offset, calc(var(--header-height) + 16px));
 }
 
 body {
