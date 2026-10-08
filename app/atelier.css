@@ -11,8 +11,12 @@
   --wine-deep: #5f182b;
   --wine-soft: #9e4f61;
   --gold: #c69b57;
+  /* Gold for small text: #c69b57 is decorative only (2.4:1 on ivory). */
+  --gold-ink: #94632c;
   --ink: #352a2d;
-  --muted: #766a67;
+  /* Secondary text. #766a67 fell to 4.4:1 on blush panels; this clears 4.5:1
+     on every kiosk, studio and admin surface. */
+  --muted: #706562;
   --line: #e8d8d1;
   --line-strong: #dcbfbc;
   --green: #1f6d43;
@@ -436,7 +440,7 @@ summary:focus-visible,
 }
 
 .header-search input::placeholder {
-  color: #958885;
+  color: var(--muted);
 }
 
 .header-search__aside {
@@ -1041,7 +1045,7 @@ summary:focus-visible,
 }
 
 .product-card__price del {
-  color: #9a8e8a;
+  color: var(--muted);
   font-family: var(--font-ui);
   font-size: 0.78rem;
   font-weight: 500;
@@ -1321,7 +1325,7 @@ summary:focus-visible,
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #9b8e8b;
+  color: var(--muted);
   text-align: center;
 }
 
@@ -3583,7 +3587,7 @@ summary:focus-visible,
 }
 
 .product-detail-price del {
-  color: #9a8e8a;
+  color: var(--muted);
   font-family: var(--font-ui);
   font-size: 0.88rem;
   font-weight: 500;

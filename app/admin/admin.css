@@ -144,7 +144,7 @@
 .admin-login-mobile-brand > span:last-child,
 .admin-sidebar__brand > span:last-child,
 .admin-topbar__mobile-brand > span:last-child {
-  color: var(--gold, #c89b5b);
+  color: var(--gold-ink, #94632c);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.22em;
