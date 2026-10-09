@@ -30,7 +30,23 @@
   --red-line: #c46a73;
 
   --font-ui: var(--font-dm-sans), "Segoe UI", sans-serif;
+  /* Playfair is the Chapega wordmark only. Every heading, number and label
+     uses --font-ui. */
   --font-display: var(--font-playfair), Georgia, serif;
+
+  /* One type scale for kiosk, Studio and admin. Nothing is set below 12px. */
+  --fs-xs: 0.75rem; /* 12px: table headers, badges, help text */
+  --fs-sm: 0.8125rem; /* 13px: secondary text */
+  --fs-base: 0.875rem; /* 14px: Studio and admin body */
+  --fs-md: 1rem; /* 16px: kiosk body, item titles */
+  --fs-lg: 1.125rem; /* 18px: panel headings, prices */
+  --fs-xl: 1.375rem; /* 22px: page headings in Studio and admin */
+  --fs-2xl: 1.75rem; /* 28px: kiosk screen headings on phones, stats */
+  --fs-3xl: 2.25rem; /* 36px: kiosk screen headings */
+  --fs-4xl: 3rem; /* 48px: kiosk welcome headline */
+  /* Headings are 600-700 with slightly tight tracking. */
+  --tracking-tight: -0.015em;
+
   --page-gutter: clamp(20px, 4vw, 64px);
   --content-max: 1456px;
   --header-height: 80px;
@@ -452,11 +468,11 @@ summary:focus-visible,
 
 .screen-heading,
 .transaction-intro h1 {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 4vw, 4rem);
-  font-weight: 500;
-  letter-spacing: -0.045em;
-  line-height: 1.02;
+  font-family: var(--font-ui);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
 }
 
 .screen-subtitle,
@@ -635,7 +651,7 @@ summary:focus-visible,
   min-width: 0;
   align-items: center;
   gap: 14px;
-  color: var(--text-accent-strong);
+  color: var(--text-accent);
 }
 
 .brand-logo__mark {
@@ -680,7 +696,7 @@ summary:focus-visible,
 .brand-logo__strapline {
   max-width: 112px;
   color: var(--text-muted);
-  font-size: 0.67rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1.25;
@@ -832,8 +848,9 @@ summary:focus-visible,
   border-radius: 99px;
   background: var(--accent);
   color: var(--text-on-accent);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
 .cart-header-button__label {
@@ -926,17 +943,17 @@ summary:focus-visible,
 .kiosk-store-identity strong,
 .kiosk-header__store-name {
   overflow: hidden;
-  color: var(--text-accent);
+  color: var(--text);
   font-size: 0.78rem;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .kiosk-store-identity small {
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -979,11 +996,11 @@ summary:focus-visible,
 .welcome-title {
   max-width: 650px;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: clamp(4.15rem, 6.8vw, 7.1rem);
-  font-weight: 500;
-  letter-spacing: -0.06em;
-  line-height: 0.89;
+  font-family: var(--font-ui);
+  font-size: var(--fs-4xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 .welcome-title span {
@@ -1097,8 +1114,8 @@ summary:focus-visible,
   grid-row: 1 / 3;
   align-self: center;
   color: var(--text-accent-soft);
-  font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
@@ -1133,11 +1150,11 @@ summary:focus-visible,
 
 .catalogue-intro__copy h1 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: clamp(3rem, 3.6vw, 3.65rem);
-  font-weight: 500;
-  letter-spacing: -0.055em;
-  line-height: 0.98;
+  font-family: var(--font-ui);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
 }
 
 .catalogue-intro__copy p {
@@ -1239,11 +1256,11 @@ summary:focus-visible,
   align-items: center;
   gap: 10px;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: clamp(1.85rem, 3vw, 2.75rem);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.08;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
 }
 
 .capacity-inline {
@@ -1315,11 +1332,11 @@ summary:focus-visible,
 .product-card__body h3 {
   overflow: hidden;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.22rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
   font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.25;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1351,9 +1368,10 @@ summary:focus-visible,
   gap: 9px;
   margin-top: 0;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .product-card__purchase-row {
@@ -1420,8 +1438,10 @@ summary:focus-visible,
 .how-it-works h2 {
   margin-top: 5px;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 2.1rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .how-it-works p {
@@ -1456,8 +1476,10 @@ summary:focus-visible,
   border-radius: 50%;
   background: var(--surface);
   color: var(--text);
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-weight: 700;
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
 }
 
 /* Floating selection concierge */
@@ -1504,10 +1526,11 @@ summary:focus-visible,
 
 .cart-rail__identity h2 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.15rem;
-  font-weight: 650;
-  line-height: 1.1;
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-tight);
 }
 
 .cart-rail__identity p,
@@ -1577,6 +1600,7 @@ summary:focus-visible,
   color: var(--text-muted);
   font-size: 0.75rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .capacity-meter__track {
@@ -1609,13 +1633,15 @@ summary:focus-visible,
 
 .cart-rail__total span {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
 }
 
 .cart-rail__total strong {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.28rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .cart-rail__footer .primary-button {
@@ -1708,7 +1734,7 @@ summary:focus-visible,
 
 .checkout-step__detail {
   color: var(--text-muted);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
 }
 
 .transaction-intro {
@@ -1815,10 +1841,10 @@ summary:focus-visible,
 .transaction-summary__header h2,
 .keepsake-receipt__heading h2 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .transaction-summary__header span,
@@ -1882,8 +1908,10 @@ summary:focus-visible,
 .transaction-summary__item b,
 .keepsake-receipt__items b {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   white-space: nowrap;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .transaction-summary__totals,
@@ -1900,6 +1928,7 @@ summary:focus-visible,
   padding: 7px 0;
   color: var(--text-muted);
   font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .totals-row strong,
@@ -1923,8 +1952,10 @@ summary:focus-visible,
 .keepsake-receipt__total strong,
 .keepsake-receipt__total b {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.5rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .transaction-summary__actions {
@@ -1985,10 +2016,10 @@ summary:focus-visible,
 .cart-line h3,
 .review-item h3 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.12rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--tracking-tight);
 }
 
 .cart-line p,
@@ -2015,9 +2046,11 @@ summary:focus-visible,
 .cart-line__price {
   align-self: center;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.13rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
   white-space: nowrap;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .quantity-control {
@@ -2169,7 +2202,7 @@ summary:focus-visible,
   right: 12px;
   bottom: 8px;
   color: var(--text-muted);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
 }
 
 .field input:focus,
@@ -2223,8 +2256,10 @@ summary:focus-visible,
 
 .payment-card h3 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .payment-card p {
@@ -2284,8 +2319,10 @@ summary:focus-visible,
 
 .review-item > strong {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   white-space: nowrap;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .summary-list {
@@ -2344,11 +2381,11 @@ summary:focus-visible,
 
 .order-ready-title {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: clamp(2.8rem, 4.4vw, 4.25rem);
-  font-weight: 500;
-  letter-spacing: -0.05em;
-  line-height: 1;
+  font-family: var(--font-ui);
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.15;
 }
 
 .order-ready-title br {
@@ -2488,9 +2525,10 @@ summary:focus-visible,
   border-radius: 50%;
   background: var(--accent);
   color: var(--text-on-accent);
-  font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-md);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .instruction-list strong {
@@ -2558,9 +2596,10 @@ summary:focus-visible,
 
 .countdown-ring {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.25rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .qr-actions {
@@ -2682,8 +2721,10 @@ summary:focus-visible,
 }
 
 .empty-state h2 {
-  font-family: var(--font-display);
-  font-size: 2rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .empty-state p {
@@ -2833,8 +2874,9 @@ summary:focus-visible,
   align-items: center;
   gap: 13px;
   color: var(--text);
-  font-family: var(--font-display);
-  font-size: 1.2rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
+  font-weight: 600;
 }
 
 /* Status icons (previously hard-coded hex colours in components). */
@@ -2856,7 +2898,7 @@ summary:focus-visible,
 
 .theme-control__label {
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -2884,7 +2926,7 @@ summary:focus-visible,
   padding: 4px 2px;
   border-radius: 7px;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--fs-xs);
   font-weight: 750;
   line-height: 1.1;
   cursor: pointer;
@@ -3010,10 +3052,10 @@ summary:focus-visible,
 
 .confirm-dialog h2 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
   line-height: 1.2;
 }
 
@@ -3111,11 +3153,11 @@ summary:focus-visible,
 .kiosk-idle-panel h2 {
   margin-top: 12px;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: clamp(2.2rem, 6vw, 3.3rem);
-  font-weight: 500;
-  letter-spacing: -0.045em;
-  line-height: 1.02;
+  font-family: var(--font-ui);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
 }
 
 .kiosk-idle-panel > p:last-of-type {
@@ -3170,11 +3212,11 @@ summary:focus-visible,
 .product-detail-copy h2 {
   margin-top: 16px;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 3.3vw, 3.2rem);
-  font-weight: 600;
-  letter-spacing: -0.04em;
-  line-height: 1.04;
+  font-family: var(--font-ui);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
 }
 
 .setup-modal__content > p,
@@ -3195,9 +3237,10 @@ summary:focus-visible,
 .product-detail-price {
   margin: 18px 0 24px;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 2rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-2xl);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .choice-row {
@@ -3316,6 +3359,7 @@ summary:focus-visible,
   min-width: 720px;
   border-collapse: collapse;
   font-size: 0.81rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .history-table th,
@@ -3398,7 +3442,7 @@ summary:focus-visible,
   }
 
   .welcome-title {
-    font-size: clamp(4rem, 7vw, 6rem);
+    font-size: var(--fs-4xl);
   }
 
   .welcome-visual {
@@ -3511,16 +3555,19 @@ summary:focus-visible,
 
   .mobile-cart-button__copy strong {
     color: var(--text-accent-strong);
-    font-family: var(--font-display);
-    font-size: 1rem;
+    font-family: var(--font-ui);
+    font-size: var(--fs-md);
+    font-weight: 700;
+    letter-spacing: var(--tracking-tight);
   }
 
   .mobile-cart-button__copy small {
     overflow: hidden;
     color: var(--text-muted);
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 
   .mobile-cart-button__action {
@@ -3683,7 +3730,7 @@ summary:focus-visible,
   }
 
   .welcome-title {
-    font-size: clamp(3.3rem, 16vw, 5rem);
+    font-size: var(--fs-3xl);
   }
 
   .welcome-lede {
@@ -3725,7 +3772,7 @@ summary:focus-visible,
   }
 
   .catalogue-intro__copy h1 {
-    font-size: clamp(2.7rem, 13vw, 4rem);
+    font-size: var(--fs-2xl);
   }
 
   .category-rail {
@@ -3784,7 +3831,7 @@ summary:focus-visible,
 
   .transaction-intro h1,
   .screen-heading {
-    font-size: clamp(2.35rem, 12vw, 3.3rem);
+    font-size: var(--fs-2xl);
   }
 
   .form-grid {
@@ -3846,7 +3893,7 @@ summary:focus-visible,
   }
 
   .order-ready-title {
-    font-size: clamp(2.7rem, 13vw, 3.7rem);
+    font-size: var(--fs-2xl);
   }
 
   .order-ready-lede {
@@ -4115,10 +4162,10 @@ summary:focus-visible,
   gap: 14px;
   margin-bottom: 13px;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: clamp(1.45rem, 2vw, 1.85rem);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .checkout-form-section__heading::after {
@@ -4258,7 +4305,7 @@ summary:focus-visible,
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 64%, transparent);
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -4280,8 +4327,10 @@ summary:focus-visible,
 
 .product-detail-total strong {
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.65rem;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .product-detail-total small,
@@ -4383,7 +4432,7 @@ summary:focus-visible,
   .checkout-form-section__heading {
     grid-template-columns: auto auto minmax(18px, 1fr);
     gap: 10px;
-    font-size: 1.42rem;
+    font-size: var(--fs-lg);
   }
 
   .checkout-form-section + .checkout-form-section {
@@ -4442,10 +4491,10 @@ summary:focus-visible,
   grid-column: 1;
   grid-row: 1;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: clamp(1.55rem, 2.3vw, 2.1rem);
-  font-weight: 600;
-  letter-spacing: -0.04em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
   line-height: 1;
   white-space: nowrap;
 }
@@ -4561,7 +4610,7 @@ summary:focus-visible,
   border-radius: 12px;
   background: var(--surface);
   color: var(--text-muted);
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   font-weight: 650;
 }
 
@@ -4661,7 +4710,7 @@ summary:focus-visible,
   background: var(--accent);
   box-shadow: 0 8px 20px color-mix(in srgb, var(--shadow-color) 20%, transparent);
   color: var(--text-on-accent);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 800;
 }
 
@@ -4832,9 +4881,9 @@ summary:focus-visible,
 .cart-rail__items .mini-cart-line:first-child h3 {
   overflow: hidden;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 0.85rem;
-  font-weight: 650;
+  font-family: var(--font-ui);
+  font-size: var(--fs-sm);
+  font-weight: 600;
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4853,7 +4902,7 @@ summary:focus-visible,
 }
 
 .cart-rail__items .mini-cart-line:first-child .quantity-control > span {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
 }
 
 .cart-rail__items .mini-cart-line:first-child > .remove-icon {
@@ -4956,10 +5005,10 @@ summary:focus-visible,
   gap: 13px;
   margin-bottom: 12px;
   color: var(--text-accent-strong);
-  font-family: var(--font-display);
-  font-size: 1.7rem;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .checkout-form-section__heading::after {
@@ -5106,7 +5155,7 @@ summary:focus-visible,
   border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 68%, transparent);
   color: var(--text);
-  font-size: 0.74rem;
+  font-size: var(--fs-xs);
   font-weight: 750;
 }
 
@@ -5323,11 +5372,11 @@ summary:focus-visible,
   }
 
   .checkout-form-section__heading {
-    font-size: 1.45rem;
+    font-size: var(--fs-lg);
   }
 
   .checkout-summary__edit {
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
   }
 
   .checkout-trust-row {
@@ -5579,7 +5628,7 @@ select:focus-visible {
 
   .welcome-title {
     max-width: 840px;
-    font-size: clamp(4.4rem, 9vw, 6rem);
+    font-size: var(--fs-4xl);
   }
 
   .welcome-lede {
@@ -5657,8 +5706,10 @@ select:focus-visible {
 
   .mobile-cart-button__copy strong {
     color: var(--text-accent-strong);
-    font-family: var(--font-display);
-    font-size: 1.08rem;
+    font-family: var(--font-ui);
+    font-size: var(--fs-md);
+    font-weight: 700;
+    letter-spacing: var(--tracking-tight);
   }
 
   .mobile-cart-button__copy small {
@@ -5734,8 +5785,8 @@ select:focus-visible {
   }
 
   .welcome-title {
-    font-size: clamp(3.65rem, 5.5vw, 5rem);
-    line-height: 0.9;
+    font-size: var(--fs-4xl);
+    line-height: 1.1;
   }
 
   .welcome-lede {
@@ -5776,7 +5827,7 @@ select:focus-visible {
   }
 
   .catalogue-intro__copy h1 {
-    font-size: clamp(2.45rem, 3.2vw, 3rem);
+    font-size: var(--fs-2xl);
   }
 
   .catalogue-intro__copy p {
@@ -5796,7 +5847,7 @@ select:focus-visible {
   }
 
   .moment-filter__heading h2 {
-    font-size: 1.55rem;
+    font-size: var(--fs-lg);
   }
 
   .catalogue-section {
@@ -5809,7 +5860,7 @@ select:focus-visible {
 
   .section-heading-row h1,
   .section-heading-row h2 {
-    font-size: clamp(2rem, 2.7vw, 2.45rem);
+    font-size: var(--fs-xl);
   }
 
   .product-grid {
@@ -5849,7 +5900,7 @@ select:focus-visible {
 
   .transaction-intro h1,
   .screen-heading {
-    font-size: clamp(2.35rem, 3.8vw, 3.35rem);
+    font-size: var(--fs-2xl);
   }
 
   .checkout-form-section + .checkout-form-section {
@@ -5875,7 +5926,7 @@ select:focus-visible {
   }
 
   .order-ready-title {
-    font-size: clamp(2.45rem, 4vw, 3.35rem);
+    font-size: var(--fs-2xl);
   }
 
   .order-ready-lede {
@@ -6246,7 +6297,7 @@ select:focus-visible {
   }
 
   .review-page .transaction-summary__header h2 {
-    font-size: 1.65rem;
+    font-size: var(--fs-xl);
   }
 
   .review-page .transaction-summary__body {
@@ -6281,7 +6332,7 @@ select:focus-visible {
 
   .review-page .transaction-summary__details dd {
     max-width: none;
-    font-size: 0.72rem;
+    font-size: var(--fs-xs);
     line-height: 1.25;
     text-align: left;
   }

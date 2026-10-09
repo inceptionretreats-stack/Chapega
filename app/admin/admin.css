@@ -183,11 +183,11 @@
 
 .admin-login-art__copy h2 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(38px, 3.8vw, 60px);
-  font-weight: 550;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.35;
 }
 
 .admin-login-art__copy p {
@@ -227,11 +227,11 @@
 
 .admin-login-card header h1 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(48px, 4.5vw, 64px);
-  font-weight: 550;
-  letter-spacing: -0.05em;
-  line-height: 1;
+  font-family: var(--font-ui);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
 }
 
 .admin-login-card header p {
@@ -575,9 +575,8 @@ html:has(.admin-shell) {
 
 .admin-sidebar__motif p {
   color: var(--text-15);
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-ui);
   font-size: 15px;
-  font-style: italic;
   line-height: 1.35;
 }
 
@@ -699,7 +698,7 @@ html:has(.admin-shell) {
 .admin-account__menu .theme-control__label {
   overflow: visible;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: var(--fs-xs);
 }
 
 .admin-account__menu .theme-control__option span {
@@ -746,11 +745,11 @@ html:has(.admin-shell) {
 
 .admin-overview-heading h1 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(52px, 4.3vw, 64px);
-  font-weight: 550;
-  letter-spacing: -0.05em;
-  line-height: 1;
+  font-family: var(--font-ui);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.2;
 }
 
 .admin-overview-heading p {
@@ -819,10 +818,12 @@ html:has(.admin-shell) {
 
 .admin-metric strong {
   color: var(--text-accent-strong);
-  font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(32px, 2.6vw, 42px);
-  font-weight: 600;
+  font-family: var(--font-ui);
+  font-size: var(--fs-2xl);
+  font-weight: 700;
   line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--tracking-tight);
 }
 
 .admin-metric strong i {
@@ -874,11 +875,11 @@ html:has(.admin-shell) {
 .admin-vendors__header h2,
 .admin-activity h2 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(28px, 2.5vw, 36px);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  line-height: 1.1;
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.25;
 }
 
 .admin-vendors__header p {
@@ -949,6 +950,7 @@ html:has(.admin-shell) {
   border-collapse: collapse;
   color: var(--text-2);
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }
 
 .admin-vendor-table thead {
@@ -1043,9 +1045,9 @@ html:has(.admin-shell) {
   border-radius: 50%;
   background: var(--surface-subtle);
   color: var(--text);
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-ui);
   font-size: 20px;
-  font-weight: 650;
+  font-weight: 700;
   display: grid;
   place-items: center;
 }
@@ -1122,7 +1124,7 @@ html:has(.admin-shell) {
 }
 
 .admin-activity h2 {
-  font-size: 28px;
+  font-size: var(--fs-lg);
 }
 
 .admin-activity ol {
@@ -1237,10 +1239,10 @@ html:has(.admin-shell) {
 
 .admin-dialog__header h2 {
   color: var(--text-accent-strong);
-  font-family: var(--font-display), Georgia, serif;
-  font-size: 32px;
-  font-weight: 600;
-  letter-spacing: -0.035em;
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
 }
 
 .admin-dialog__header p {
@@ -1528,7 +1530,7 @@ html:has(.admin-shell) {
   }
 
   .admin-topbar__mobile-brand > span:last-child {
-    font-size: 9px;
+    font-size: var(--fs-xs);
   }
 
   .admin-refresh {
@@ -1571,7 +1573,7 @@ html:has(.admin-shell) {
   }
 
   .admin-overview-heading h1 {
-    font-size: clamp(42px, 12.5vw, 48px);
+    font-size: var(--fs-2xl);
   }
 
   .admin-overview-heading p {
@@ -1630,7 +1632,7 @@ html:has(.admin-shell) {
   }
 
   .admin-metric strong {
-    font-size: 38px;
+    font-size: var(--fs-2xl);
   }
 
   .admin-content-grid {
@@ -1654,7 +1656,7 @@ html:has(.admin-shell) {
 
   .admin-vendors__header h2,
   .admin-activity h2 {
-    font-size: 36px;
+    font-size: var(--fs-xl);
   }
 
   .admin-vendors__header p {
@@ -1723,11 +1725,12 @@ html:has(.admin-shell) {
   .admin-vendor-list__body > strong {
     overflow: hidden;
     color: var(--text-accent-strong);
-    font-family: var(--font-display), Georgia, serif;
-    font-size: 21px;
-    font-weight: 600;
+    font-family: var(--font-ui);
+    font-size: var(--fs-md);
+    font-weight: 700;
     text-overflow: ellipsis;
     white-space: nowrap;
+    letter-spacing: var(--tracking-tight);
   }
 
   .admin-vendor-list__body > span:not(.admin-status) {
@@ -1791,7 +1794,7 @@ html:has(.admin-shell) {
     place-items: center;
     align-content: center;
     gap: 3px;
-    font-size: 10px;
+    font-size: var(--fs-xs);
     font-weight: 750;
     position: relative;
   }
@@ -1826,7 +1829,7 @@ html:has(.admin-shell) {
   }
 
   .admin-login-card header h1 {
-    font-size: 46px;
+    font-size: var(--fs-2xl);
   }
 
   .admin-main {
@@ -1864,7 +1867,7 @@ html:has(.admin-shell) {
   }
 
   .admin-dialog__header h2 {
-    font-size: 29px;
+    font-size: var(--fs-xl);
   }
 
   .admin-vendor-form {
