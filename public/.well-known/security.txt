@@ -1,0 +1,5 @@
+Contact: mailto:inceptionretreats@gmail.com
+Contact: https://github.com/inceptionretreats-stack/Chapega/security/advisories/new
+Expires: 2027-10-09T00:00:00.000Z
+Preferred-Languages: en
+Policy: https://github.com/inceptionretreats-stack/Chapega/security/policy
