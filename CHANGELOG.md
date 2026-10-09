@@ -15,8 +15,11 @@ the findings of the 2026-10-08 project audit.
 - Dependencies: React 19.3, Vitest 5 (with its coverage plugin), Supabase
   CLI 2.119, Node types matched to the Node 22 runtime, and the GitHub
   checkout, setup-node and upload-artifact actions at v7. ESLint stays on 9
-  because the React lint plugin does not support ESLint 10 yet; Dependabot
-  now groups packages that must move together and skips those two majors.
+  because the React lint plugin does not support ESLint 10 yet, and
+  TypeScript stays below 6.1 for typescript-eslint. Dependabot now groups
+  packages that must move together, batches small dev-tool updates into one
+  PR, and skips those majors. Also tsx 4.23.15, lint-staged 17.6, jsdom
+  30.1.1 and Testing Library React 16.3.3.
 - The Content Security Policy is now enforced instead of report-only. Every
   kiosk, Studio and admin screen loaded with no violation first, locally and
   on the live site.

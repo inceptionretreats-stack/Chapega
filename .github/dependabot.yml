@@ -15,6 +15,10 @@ updates:
         patterns: ["vitest", "@vitest/*"]
       next:
         patterns: ["next", "eslint-config-next"]
+      # Small dev-tool updates arrive as one PR, so one CI run covers them.
+      dev-tools:
+        dependency-type: development
+        update-types: ["minor", "patch"]
     ignore:
       # Node types follow the runtime in .nvmrc, not the newest Node release.
       - dependency-name: "@types/node"
@@ -22,6 +26,9 @@ updates:
       # eslint-plugin-react (via eslint-config-next) supports ESLint 9 only.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
+      # typescript-eslint supports TypeScript >=4.8.4 <6.1.0.
+      - dependency-name: "typescript"
+        versions: [">=6.1.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
