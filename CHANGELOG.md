@@ -6,6 +6,15 @@ the findings of the 2026-10-08 project audit.
 
 ## [Unreleased]
 
+### Changed
+
+- Server functions run in Vercel's Seoul region (`icn1`), next to the Supabase
+  database, instead of the default US East. Each render makes several
+  database round trips, which made the kiosk home page answer in about
+  2.4 s (AUD-24).
+
+## [0.2.0] - 2026-10-08
+
 ### Before you deploy
 
 - **Deploy the app first, then apply the migrations straight away.** The

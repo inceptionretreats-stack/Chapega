@@ -62,6 +62,13 @@ On 8 October 2026, measured against a local production build:
 If the live figure goes over 3 s, check for new requests made while the
 page first loads, and for JavaScript added to the welcome screen.
 
+**Function region.** Every page render runs several database round trips,
+so the server functions must run next to the database. `vercel.json` pins
+them to `icn1` (Seoul), the same region as the Supabase project
+(`ap-northeast-2`). If the database ever moves, move the functions with
+it. The `X-Vercel-Id` response header shows the region a request ran in;
+for example, `bom1::icn1::…` is the Mumbai edge and a Seoul function.
+
 ## Health and logs
 
 - Liveness: `/api/healthz`. Readiness (the database answers): `/api/readyz`.
