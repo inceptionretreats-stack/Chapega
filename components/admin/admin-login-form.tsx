@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  LoaderCircle,
-  LockKeyhole,
-  Mail,
-  ShieldCheck,
-  Store,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, LoaderCircle, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -96,12 +88,9 @@ export function AdminLoginForm({
             <span className="admin-wordmark">Chapega.com</span>
             <span>Platform admin</span>
           </div>
-          <div className="admin-login-art__mark" aria-hidden="true">
-            <Store size={74} strokeWidth={1.05} />
-          </div>
           <div className="admin-login-art__copy">
-            <h2>Every storefront, beautifully in view.</h2>
-            <p>A private operations space for Chapega platform administrators.</p>
+            <h2>Vendors, shops and orders across Chapega.</h2>
+            <p>For Chapega platform administrators only.</p>
           </div>
         </section>
 
@@ -129,7 +118,6 @@ export function AdminLoginForm({
               <label className="admin-field">
                 <span>Email address</span>
                 <span className="admin-login-input">
-                  <Mail size={19} aria-hidden="true" />
                   <input
                     id="admin-email"
                     name="email"
@@ -164,7 +152,6 @@ export function AdminLoginForm({
               <div className="admin-field">
                 <label htmlFor="admin-password">Password</label>
                 <span className="admin-login-input">
-                  <LockKeyhole size={19} aria-hidden="true" />
                   <input
                     id="admin-password"
                     name="password"
@@ -243,9 +230,7 @@ export function AdminLoginForm({
               </aside>
             ) : null}
 
-            <p className="admin-secure-note">
-              <LockKeyhole size={15} /> Separate, private platform session.
-            </p>
+            <p className="admin-secure-note">Separate, private platform session.</p>
           </div>
         </section>
       </main>

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Boxes,
   ChevronDown,
   Home,
   LoaderCircle,
@@ -200,14 +199,6 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
             </button>
           ))}
         </nav>
-        <div className="admin-sidebar__motif" aria-hidden="true">
-          <Boxes size={26} strokeWidth={1.5} />
-          <p>
-            Thoughtful gifting,
-            <br />
-            better together.
-          </p>
-        </div>
       </aside>
 
       <div className="admin-page">
@@ -268,7 +259,7 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
           >
             <div>
               <h1 id="platform-overview-title">Platform overview</h1>
-              <p>Monitor every vendor, storefront, and order from one place.</p>
+              <p>Vendors, shop status and orders across Chapega.</p>
             </div>
             <button
               className="admin-primary admin-heading-add"

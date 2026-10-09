@@ -41,7 +41,7 @@ export function AdminVendorCollection({
       <header className="admin-vendors__header">
         <div>
           <h2 id="admin-vendors-title">Vendors</h2>
-          <p>Manage and view all registered vendors</p>
+          <p>Search, add or suspend a vendor.</p>
         </div>
         <button className="admin-primary" type="button" onClick={onAdd}>
           <Plus size={20} aria-hidden="true" /> Add vendor
@@ -167,7 +167,6 @@ export function AdminVendorCollection({
         </div>
       ) : (
         <div className="admin-empty-state">
-          <Search size={25} aria-hidden="true" />
           <div>
             <strong>No vendors match</strong>
             <p>Clear the search or choose another status.</p>
