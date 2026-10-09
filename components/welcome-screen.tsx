@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronRight, LogIn, Wifi, WifiOff } from "lucide-react";
-import { BrandLogo } from "./brand-logo";
+import { BrandLogo, isBrandName } from "./brand-logo";
 
 type WelcomeScreenProps = {
   shopName: string;
@@ -32,7 +32,7 @@ export function WelcomeScreen({
         <div className="welcome-brand">
           <BrandLogo />
           <span className="kiosk-store-identity">
-            <strong>{shopName}</strong>
+            {isBrandName(shopName) ? null : <strong>{shopName}</strong>}
             <small>{kioskName}</small>
           </span>
         </div>

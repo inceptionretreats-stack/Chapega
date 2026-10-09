@@ -218,7 +218,7 @@ export function CatalogueScreen({
                           type="button"
                           onClick={() => onOpenProduct(product)}
                         >
-                          {product.name}
+                          <span className="product-card__title-text">{product.name}</span>
                         </button>
                       </h3>
                       <span className="product-card__category">{product.category}</span>

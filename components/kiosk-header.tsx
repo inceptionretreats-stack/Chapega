@@ -1,5 +1,5 @@
 import { ArrowLeft, LogIn, Search, ShoppingBag, X } from "lucide-react";
-import { BrandLogo } from "./brand-logo";
+import { BrandLogo, isBrandName } from "./brand-logo";
 
 type HeaderProps = {
   shopName: string;
@@ -35,7 +35,9 @@ export function KioskHeader({
           </button>
         ) : null}
         <BrandLogo compact />
-        <span className="kiosk-header__store-name">{shopName}</span>
+        {isBrandName(shopName) ? null : (
+          <span className="kiosk-header__store-name">{shopName}</span>
+        )}
       </div>
 
       {showSearch ? (

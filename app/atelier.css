@@ -1278,15 +1278,12 @@ summary:focus-visible,
 }
 
 .product-card__body h3 {
-  overflow: hidden;
   color: var(--text-accent-strong);
   font-family: var(--font-ui);
   font-size: var(--fs-md);
   font-weight: 600;
   letter-spacing: var(--tracking-tight);
   line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .product-card__category {
@@ -2058,6 +2055,9 @@ summary:focus-visible,
 .field {
   display: grid;
   min-width: 0;
+  /* Rows keep their natural height, so a field beside one with a hint or
+     error region isn't stretched taller than its neighbour. */
+  align-content: start;
   gap: 8px;
 }
 
@@ -3681,10 +3681,6 @@ summary:focus-visible,
     aspect-ratio: 1.12 / 1;
   }
 
-  .product-card__body h3 {
-    white-space: normal;
-  }
-
   .how-it-works {
     margin-top: 56px;
     padding: 28px 22px;
@@ -4474,25 +4470,27 @@ summary:focus-visible,
   padding-top: 12px;
 }
 
-.product-card__body h3 {
-  display: -webkit-box;
-  min-height: 1.5em;
-  overflow: hidden;
-  text-overflow: initial;
-  white-space: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
+/* Names wrap to at most two lines at every width, with an ellipsis after
+   that. The clamp sits on the text: a flex button can't carry one itself.
+   Two lines are always reserved so prices line up across a row. */
 .product-card__title-button {
-  min-height: 44px;
+  width: 100%;
+  min-height: max(44px, 2.6em);
   padding: 0;
   background: transparent;
   color: inherit;
   display: inline-flex;
-  align-items: center;
+  /* Top-aligned, so one-line and two-line names start on the same line. */
+  align-items: flex-start;
   font: inherit;
   text-align: left;
+}
+
+.product-card__title-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -4564,14 +4562,6 @@ summary:focus-visible,
 }
 
 @media (min-width: 901px) {
-  .product-card__body h3 {
-    display: block;
-    min-height: 0;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    -webkit-line-clamp: initial;
-  }
-
   .catalogue-layout > .catalogue-reassurance {
     position: fixed;
     z-index: 69;
@@ -5123,8 +5113,15 @@ summary:focus-visible,
     font-size: var(--fs-xs);
   }
 
+  /* Stack the assurances on phones: a wrapped "·" would start a line. */
   .checkout-trust-row {
     margin-top: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .checkout-trust-row li + li::before {
+    content: none;
   }
 
   .handoff-status__track {
@@ -5390,15 +5387,6 @@ select:focus-visible {
     max-height: 860px;
     margin: 0;
     border-radius: var(--radius-dialog);
-  }
-
-  .product-card__body h3 {
-    display: -webkit-box;
-    min-height: 2.5em;
-    overflow: hidden;
-    white-space: normal;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
   }
 
   .cart-rail,
@@ -5863,14 +5851,6 @@ select:focus-visible {
   .product-card__actions .detail-button,
   .product-card__actions .quick-button {
     min-height: 52px;
-  }
-
-  .product-card__body h3 {
-    display: -webkit-box;
-    min-height: 2.45em;
-    white-space: normal;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
   }
 
   .product-card__image-wrap {
