@@ -23,9 +23,8 @@
   width: min(100%, 680px);
   padding: clamp(28px, 6vw, 56px);
   border: 1px solid var(--border);
-  border-radius: 22px;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  box-shadow: 0 30px 80px color-mix(in srgb, var(--shadow-color) 10%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .vendor-select-kicker {
@@ -63,7 +62,7 @@
   min-height: 76px;
   padding: 14px 18px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-card);
   background: var(--surface-2);
   color: var(--text-accent-strong);
   display: flex;
@@ -73,21 +72,19 @@
 
 .vendor-select-list a:focus-visible {
   border-color: var(--border-accent-3);
-  box-shadow: 0 12px 30px color-mix(in srgb, var(--shadow-color) 9%, transparent);
 }
 
 /* Hover styles apply only with a real hovering pointer (no sticky hover on touch). */
 @media (hover: hover) and (pointer: fine) {
   .vendor-select-list a:hover {
     border-color: var(--border-accent-3);
-    box-shadow: 0 12px 30px color-mix(in srgb, var(--shadow-color) 9%, transparent);
   }
 }
 
 .vendor-select-list a > span:first-child {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--surface-tint-strong);
   display: grid;
   place-items: center;
@@ -120,7 +117,7 @@
   min-height: 46px;
   padding: 0 20px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -136,14 +133,11 @@
 
 .vendor-primary {
   background: var(--accent);
-  box-shadow: 0 11px 26px color-mix(in srgb, var(--shadow-color) 16%, transparent);
   color: var(--text-on-accent);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .vendor-primary:not(:disabled):hover {
-    box-shadow: 0 14px 30px color-mix(in srgb, var(--shadow-color) 22%, transparent);
-    transform: translateY(-1px);
     background: var(--accent-strong);
   }
 }
@@ -177,7 +171,7 @@
   height: 44px;
   padding: 0;
   border: 1px solid var(--border-control);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   display: inline-grid;
@@ -217,7 +211,7 @@
   content: "";
   position: absolute;
   border: 1px solid color-mix(in srgb, var(--border-gold) 55%, transparent);
-  border-radius: 50%;
+  border-radius: var(--radius-control);
 }
 
 .vendor-login-art::before {
@@ -277,7 +271,7 @@
   min-height: 44px;
   padding: 0 11px;
   border: 1px solid var(--border-control);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   display: flex;
@@ -304,7 +298,7 @@
   position: absolute;
   inset: 10%;
   border: 1px solid color-mix(in srgb, var(--border-gold) 32%, transparent);
-  border-radius: 50%;
+  border-radius: var(--radius-control);
 }
 
 .vendor-login-gift svg {
@@ -356,7 +350,7 @@
   margin-bottom: 28px;
   padding: 0 12px;
   border: 1px solid var(--border-control);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   display: inline-flex;
@@ -429,9 +423,9 @@
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--border-3);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   outline: none;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: var(--surface);
   color: var(--text);
   font-size: 14px;
   font-weight: 500;
@@ -457,7 +451,7 @@
 .vendor-search-field input:focus,
 .vendor-select-field select:focus {
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-accent) 10%, transparent);
+  box-shadow: 0 0 0 1px var(--border-accent);
 }
 
 .vendor-field small,
@@ -476,7 +470,7 @@
 .vendor-input-with-icon {
   min-height: 52px;
   border: 1px solid var(--border-3);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   display: grid;
   grid-template-columns: 46px minmax(0, 1fr) auto;
@@ -487,7 +481,7 @@
 
 .vendor-input-with-icon:focus-within {
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-accent) 10%, transparent);
+  box-shadow: 0 0 0 1px var(--border-accent);
 }
 
 .vendor-input-with-icon > svg {
@@ -516,7 +510,7 @@
   width: 100%;
   min-height: 54px;
   margin-top: 5px;
-  border-radius: 28px;
+  border-radius: var(--radius-control);
   font-family: var(--font-ui);
   font-size: var(--fs-md);
   font-weight: 700;
@@ -529,7 +523,7 @@
 .vendor-form-error,
 .vendor-inline-error {
   border: 1px solid var(--border-accent-2);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   background: var(--surface-danger);
   color: var(--text-accent-2);
   font-size: 13px;
@@ -552,8 +546,8 @@
   margin-top: 24px;
   padding: 17px 18px;
   border: 1px solid var(--border);
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--surface) 68%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .vendor-preview-access > div {
@@ -657,13 +651,13 @@
 
 .vendor-skeleton__metric {
   height: 112px;
-  border-radius: 14px;
+  border-radius: var(--radius-card);
 }
 
 .vendor-skeleton__panel {
   padding: 22px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-card);
   display: grid;
   gap: 14px;
 }
@@ -738,7 +732,7 @@ html:has(.vendor-app-shell) {
   height: 100vh;
   padding: 30px 16px 24px;
   border-right: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-2) 96%, transparent);
+  background: var(--surface);
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 30;
@@ -771,7 +765,7 @@ html:has(.vendor-app-shell) {
 .vendor-sidebar nav button {
   min-height: 51px;
   padding: 0 14px;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-3);
   display: grid;
@@ -815,7 +809,7 @@ html:has(.vendor-app-shell) {
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--accent);
   color: var(--text-on-accent);
   display: grid;
@@ -846,7 +840,7 @@ html:has(.vendor-app-shell) {
 .vendor-signout {
   min-height: 47px;
   padding: 0 13px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-11);
   display: flex;
@@ -874,7 +868,7 @@ html:has(.vendor-app-shell) {
 
 .vendor-skip-link {
   padding: 10px 16px;
-  border-radius: 0 0 9px 0;
+  border-radius: 0 0 var(--radius-control) 0;
   background: var(--accent);
   color: var(--text-on-accent);
   position: fixed;
@@ -897,8 +891,7 @@ html:has(.vendor-app-shell) {
   min-height: 94px;
   padding: 20px clamp(24px, 3.1vw, 50px);
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-2) 91%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
   display: flex;
   align-items: center;
   gap: 24px;
@@ -940,7 +933,7 @@ html:has(.vendor-app-shell) {
   min-height: 44px;
   padding: 0 13px;
   border: 1px solid var(--border-3);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text-4);
   display: inline-flex;
@@ -969,14 +962,12 @@ html:has(.vendor-app-shell) {
   height: 10px;
   border-radius: 50%;
   background: var(--accent-4);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-4) 10%, transparent);
 }
 
 .vendor-store-state i.is-open,
 .vendor-shop-status-line > span.is-open,
 .vendor-kiosk-preview i.is-online {
   background: var(--success-3);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--success-3) 10%, transparent);
 }
 
 .vendor-mobile-menu,
@@ -993,9 +984,8 @@ html:has(.vendor-app-shell) {
 
 .vendor-panel {
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  box-shadow: 0 14px 42px color-mix(in srgb, var(--shadow-color) 5.5%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .vendor-panel-header {
@@ -1052,9 +1042,8 @@ html:has(.vendor-app-shell) {
   min-height: 180px;
   padding: 28px 30px;
   border: 1px solid var(--border-5);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: 0 16px 46px color-mix(in srgb, var(--shadow-color) 5.5%, transparent);
   display: grid;
   grid-template-columns: 0.72fr 0.92fr 1.3fr 1px 0.95fr 0.85fr minmax(120px, 0.7fr);
   align-items: center;
@@ -1100,7 +1089,7 @@ html:has(.vendor-app-shell) {
 .vendor-summary-icon {
   width: 46px;
   height: 46px;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface-tint-strong);
   color: var(--text-accent);
   display: grid;
@@ -1204,7 +1193,7 @@ html:has(.vendor-app-shell) {
 }
 @media (hover: hover) and (pointer: fine) {
   .vendor-table tbody tr:hover {
-    background: color-mix(in srgb, var(--surface-page) 78%, transparent);
+    background: var(--surface-hover);
   }
 }
 
@@ -1237,7 +1226,7 @@ html:has(.vendor-app-shell) {
 .vendor-status {
   min-height: 30px;
   padding: 0 10px;
-  border-radius: 16px;
+  border-radius: var(--radius-control);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1284,7 +1273,7 @@ html:has(.vendor-app-shell) {
 .vendor-panel-empty > span {
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface-11);
   color: var(--text-muted);
   display: grid;
@@ -1325,7 +1314,7 @@ html:has(.vendor-app-shell) {
 .vendor-stock-list img {
   width: 50px;
   height: 50px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   object-fit: cover;
 }
 .vendor-stock-list div {
@@ -1353,7 +1342,7 @@ html:has(.vendor-app-shell) {
   min-height: 36px;
   padding: 0 9px;
   border: 1px solid var(--border-control);
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   font-size: var(--fs-xs);
@@ -1431,7 +1420,7 @@ html:has(.vendor-app-shell) {
   margin-top: 18px;
   padding: 19px 27px;
   border: 1px solid var(--border-14);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   display: grid;
   grid-template-columns: 50px minmax(0, 1fr) auto;
@@ -1442,7 +1431,7 @@ html:has(.vendor-app-shell) {
 .vendor-curation-callout > span {
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text-accent);
   display: grid;
@@ -1472,8 +1461,8 @@ html:has(.vendor-app-shell) {
 .vendor-select-field {
   min-height: 48px;
   border: 1px solid var(--border-3);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-radius: var(--radius-control);
+  background: var(--surface);
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);
   align-items: center;
@@ -1505,7 +1494,7 @@ html:has(.vendor-app-shell) {
 .vendor-result-count {
   min-height: 31px;
   padding: 0 11px;
-  border-radius: 15px;
+  border-radius: var(--radius-control);
   background: var(--surface-tint);
   color: var(--text-accent-10);
   display: inline-flex;
@@ -1524,7 +1513,7 @@ html:has(.vendor-app-shell) {
   width: 58px;
   height: 58px;
   border: 1px solid var(--border-2);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   object-fit: cover;
 }
 .vendor-product-cell div {
@@ -1605,7 +1594,6 @@ html:has(.vendor-app-shell) {
   height: 18px;
   border-radius: 50%;
   background: var(--text-on-accent);
-  box-shadow: 0 2px 5px color-mix(in srgb, var(--shadow-ink) 22%, transparent);
   position: absolute;
   left: 2px;
   top: 2px;
@@ -1632,8 +1620,7 @@ html:has(.vendor-app-shell) {
   position: fixed;
   inset: 0;
   z-index: 80;
-  background: color-mix(in srgb, var(--scrim-1) 22%, transparent);
-  backdrop-filter: blur(2px);
+  background: color-mix(in srgb, var(--scrim) 40%, transparent);
   display: flex;
   justify-content: flex-end;
 }
@@ -1643,7 +1630,7 @@ html:has(.vendor-app-shell) {
   height: 100%;
   border-left: 1px solid var(--border-5);
   background: var(--surface-2);
-  box-shadow: -24px 0 70px color-mix(in srgb, var(--shadow-color) 17%, transparent);
+  box-shadow: var(--shadow-overlay);
   display: flex;
   flex-direction: column;
   animation: vendor-drawer-in 220ms ease-out;
@@ -1710,7 +1697,7 @@ html:has(.vendor-app-shell) {
 .vendor-image-upload {
   min-height: 190px;
   border: 1px dashed var(--border-15);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--surface-3);
   display: grid;
   place-items: center;
@@ -1753,7 +1740,7 @@ html:has(.vendor-app-shell) {
   margin: auto;
   padding: 0 15px;
   border: 1px solid var(--border-6);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   display: inline-flex;
@@ -1791,7 +1778,7 @@ html:has(.vendor-app-shell) {
   min-height: 92px;
   padding: 17px 18px;
   border: 1px solid var(--border);
-  border-radius: 11px;
+  border-radius: var(--radius-card);
   background: var(--surface-subtle);
   display: flex;
   align-items: center;
@@ -1832,9 +1819,8 @@ html:has(.vendor-app-shell) {
   min-height: 44px;
   padding: 0 14px;
   border: 1px solid var(--border-16);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--surface);
-  box-shadow: 0 7px 18px color-mix(in srgb, var(--shadow-color) 6%, transparent);
   color: var(--text);
   display: inline-flex;
   flex: 0 0 auto;
@@ -1852,8 +1838,6 @@ html:has(.vendor-app-shell) {
 @media (hover: hover) and (pointer: fine) {
   .vendor-option-add:not(:disabled):hover {
     border-color: var(--border-accent-6);
-    box-shadow: 0 10px 23px color-mix(in srgb, var(--shadow-color) 11%, transparent);
-    transform: translateY(-1px);
   }
 }
 
@@ -1872,8 +1856,8 @@ html:has(.vendor-app-shell) {
   min-height: 82px;
   padding: 16px 18px;
   border: 1px dashed var(--border-4);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
   display: flex;
   align-items: center;
   gap: 13px;
@@ -1882,7 +1866,7 @@ html:has(.vendor-app-shell) {
 .vendor-options-empty > span {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface-11);
   color: var(--text-muted);
   display: inline-grid;
@@ -1910,9 +1894,8 @@ html:has(.vendor-app-shell) {
 .vendor-option-card {
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--surface) 83%, transparent);
-  box-shadow: 0 9px 24px color-mix(in srgb, var(--shadow-accent-2) 4.5%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
   transition:
     border-color 150ms ease,
     box-shadow 150ms ease;
@@ -1920,7 +1903,6 @@ html:has(.vendor-app-shell) {
 
 .vendor-option-card:focus-within {
   border-color: var(--border-accent-7);
-  box-shadow: 0 11px 27px color-mix(in srgb, var(--shadow-accent-2) 7.5%, transparent);
 }
 
 .vendor-option-card.has-error {
@@ -1968,7 +1950,7 @@ html:has(.vendor-app-shell) {
   width: 34px;
   height: 34px;
   border: 1px solid var(--border-5);
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   display: inline-grid;
@@ -1985,7 +1967,7 @@ html:has(.vendor-app-shell) {
   height: 44px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-accent-12);
   display: inline-grid;
@@ -2012,7 +1994,7 @@ html:has(.vendor-app-shell) {
 .vendor-option-row-error {
   margin: 11px 14px 0;
   padding: 9px 11px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   background: var(--surface-danger);
   color: var(--text-accent-2);
   font-size: var(--fs-xs);
@@ -2042,7 +2024,7 @@ html:has(.vendor-app-shell) {
 }
 .vendor-option-fields .vendor-field input[aria-invalid="true"] {
   border-color: var(--border-accent-8);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text-accent-2) 8%, transparent);
+  box-shadow: 0 0 0 1px var(--danger);
 }
 .vendor-option-fields .vendor-field small {
   font-size: var(--fs-xs);
@@ -2117,7 +2099,7 @@ html:has(.vendor-app-shell) {
 .vendor-archive-zone {
   padding: 17px;
   border: 1px solid var(--border-5);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--surface-20);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -2141,7 +2123,7 @@ html:has(.vendor-app-shell) {
   min-height: 82px;
   padding: 14px 25px;
   border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-2) 96%, transparent);
+  background: var(--surface);
   display: grid;
   grid-template-columns: minmax(120px, 0.65fr) minmax(170px, 1fr);
   gap: 12px;
@@ -2166,8 +2148,8 @@ html:has(.vendor-app-shell) {
   min-height: 48px;
   padding: 4px;
   border: 1px solid var(--border-3);
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border-radius: var(--radius-control);
+  background: var(--surface);
   display: flex;
 }
 
@@ -2175,7 +2157,7 @@ html:has(.vendor-app-shell) {
   min-width: 122px;
   min-height: 44px;
   padding: 0 12px;
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   color: var(--text-muted);
   font-size: var(--fs-xs);
@@ -2316,7 +2298,7 @@ html:has(.vendor-app-shell) {
   margin: 16px 20px 0;
   padding: 12px 14px;
   border: 1px solid var(--border-gold-3);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   background: var(--surface-12);
   color: var(--text-gold-2);
   display: flex;
@@ -2375,7 +2357,7 @@ html:has(.vendor-app-shell) {
 .vendor-order-items li img {
   width: 52px;
   height: 52px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   object-fit: cover;
 }
 .vendor-order-items li div {
@@ -2511,7 +2493,7 @@ html:has(.vendor-app-shell) {
 .vendor-settings-icon {
   width: 42px;
   height: 42px;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface-tint-strong);
   color: var(--text-muted);
   display: grid;
@@ -2538,7 +2520,7 @@ html:has(.vendor-app-shell) {
 }
 .vendor-country-input {
   border: 1px solid var(--border-3);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   display: grid;
   grid-template-columns: 33px minmax(0, 1fr);
@@ -2625,9 +2607,9 @@ html:has(.vendor-app-shell) {
 .vendor-toast {
   padding: 14px 17px;
   border: 1px solid var(--border-9);
-  border-radius: 9px;
+  border-radius: var(--radius-card);
   background: var(--surface-9);
-  box-shadow: 0 18px 48px color-mix(in srgb, var(--shadow-1) 16%, transparent);
+  box-shadow: var(--shadow-overlay);
   color: var(--text-success-2);
   font-size: 12px;
   font-weight: 750;
@@ -2661,7 +2643,7 @@ html:has(.vendor-app-shell) {
     width: 48px;
     height: 48px;
     border: 1px solid var(--border-6);
-    border-radius: 50%;
+    border-radius: var(--radius-control);
     display: grid;
     place-items: center;
     font-size: 0;
@@ -2833,8 +2815,7 @@ html:has(.vendor-app-shell) {
     position: fixed;
     inset: 0;
     z-index: 65;
-    background: color-mix(in srgb, var(--scrim-3) 24%, transparent);
-    backdrop-filter: blur(2px);
+    background: color-mix(in srgb, var(--scrim) 40%, transparent);
   }
 
   .vendor-topbar {
@@ -2880,8 +2861,7 @@ html:has(.vendor-app-shell) {
   .vendor-bottom-nav {
     height: 68px;
     border-top: 1px solid var(--border);
-    background: color-mix(in srgb, var(--surface-2) 97%, transparent);
-    box-shadow: 0 -10px 34px color-mix(in srgb, var(--shadow-color) 8%, transparent);
+    background: var(--surface);
     display: grid;
     grid-auto-columns: minmax(0, 1fr);
     grid-auto-flow: column;

@@ -26,7 +26,7 @@
   min-height: 46px;
   padding: 0 20px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -42,7 +42,6 @@
 
 .admin-primary {
   background: var(--accent);
-  box-shadow: 0 11px 26px color-mix(in srgb, var(--shadow-color) 16%, transparent);
   color: var(--text-on-accent);
 }
 
@@ -50,8 +49,6 @@
 @media (hover: hover) and (pointer: fine) {
   .admin-primary:not(:disabled):hover {
     background: var(--accent-strong);
-    box-shadow: 0 14px 30px color-mix(in srgb, var(--shadow-color) 22%, transparent);
-    transform: translateY(-1px);
   }
 }
 
@@ -77,7 +74,6 @@
 @media (hover: hover) and (pointer: fine) {
   .admin-danger:not(:disabled):hover {
     background: color-mix(in srgb, var(--danger) 12%, var(--surface));
-    transform: translateY(-1px);
   }
 }
 
@@ -88,7 +84,7 @@
   flex: 0 0 auto;
   padding: 0;
   border: 1px solid var(--border-control);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   display: inline-grid;
@@ -138,7 +134,7 @@
   width: 360px;
   height: 360px;
   border: 1px solid color-mix(in srgb, var(--border-gold) 32%, transparent);
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   position: absolute;
   right: -140px;
   bottom: -130px;
@@ -167,9 +163,8 @@
   aspect-ratio: 1;
   margin: auto;
   border: 1px solid color-mix(in srgb, var(--border-accent) 12%, transparent);
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--surface) 48%, transparent);
-  box-shadow: 0 28px 70px color-mix(in srgb, var(--shadow-color) 10%, transparent);
   color: var(--text-accent);
   display: grid;
   place-items: center;
@@ -200,7 +195,7 @@
 .admin-login-panel {
   min-height: 100vh;
   padding: clamp(38px, 6vw, 92px);
-  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  background: var(--surface);
   display: grid;
   place-items: center;
 }
@@ -267,7 +262,7 @@
   width: 100%;
   min-height: 48px;
   border: 1px solid var(--border-control);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   padding: 0 13px;
   outline: 0;
@@ -281,7 +276,7 @@
 .admin-select-field:focus-within,
 .admin-login-input:focus-within {
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--border-accent) 8%, transparent);
+  box-shadow: 0 0 0 1px var(--border-accent);
 }
 
 .admin-field small {
@@ -294,7 +289,7 @@
 .admin-login-input {
   min-height: 52px;
   border: 1px solid var(--border-control);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text-muted);
   display: grid;
@@ -336,7 +331,7 @@
 .admin-form-error {
   margin: 0;
   border: 1px solid var(--border-accent-2);
-  border-radius: 9px;
+  border-radius: var(--radius-card);
   background: var(--surface-danger);
   padding: 12px 14px;
   color: var(--text-accent-2);
@@ -352,7 +347,7 @@
 .admin-preview-access {
   margin-top: 22px;
   border: 1px solid var(--border-warning);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--surface-12);
   padding: 14px;
   font-size: 12px;
@@ -435,7 +430,7 @@
 .admin-skeleton__band {
   height: 118px;
   margin-top: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius-card);
 }
 
 .admin-skeleton__grid {
@@ -447,7 +442,7 @@
 .admin-skeleton__panel {
   padding: 22px;
   border: 1px solid var(--border-10);
-  border-radius: 14px;
+  border-radius: var(--radius-card);
   display: grid;
   gap: 14px;
 }
@@ -457,7 +452,7 @@
 }
 .admin-skeleton__rail {
   min-height: 280px;
-  border-radius: 14px;
+  border-radius: var(--radius-card);
 }
 
 @media (max-width: 900px) {
@@ -491,7 +486,7 @@ html:has(.admin-shell) {
 
 .admin-skip-link {
   padding: 10px 16px;
-  border-radius: 0 0 9px 0;
+  border-radius: 0 0 var(--radius-control) 0;
   background: var(--accent);
   color: var(--text-on-accent);
   position: fixed;
@@ -540,7 +535,7 @@ html:has(.admin-shell) {
   width: 100%;
   min-height: 54px;
   padding: 0 18px;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-8);
   display: grid;
@@ -590,8 +585,7 @@ html:has(.admin-shell) {
   min-height: 70px;
   padding: 10px clamp(25px, 3vw, 52px);
   border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface-2) 94%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -609,7 +603,7 @@ html:has(.admin-shell) {
   min-height: 44px;
   padding: 0 13px;
   border: 1px solid var(--border-control);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--text);
   display: inline-flex;
@@ -627,7 +621,7 @@ html:has(.admin-shell) {
   min-height: 48px;
   padding: 0 12px 0 7px;
   border: 1px solid transparent;
-  border-radius: 24px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: var(--text-2);
   display: inline-flex;
@@ -663,9 +657,9 @@ html:has(.admin-shell) {
   width: 248px;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: 0 18px 48px color-mix(in srgb, var(--shadow-color) 14%, transparent);
+  box-shadow: var(--shadow-overlay);
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
@@ -766,7 +760,7 @@ html:has(.admin-shell) {
   min-height: 118px;
   margin-top: 27px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-card);
   background: var(--surface);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -795,7 +789,7 @@ html:has(.admin-shell) {
   width: 48px;
   height: 48px;
   flex: 0 0 auto;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--surface) 45%, transparent);
   color: var(--text-gold-7);
   display: grid;
@@ -854,9 +848,8 @@ html:has(.admin-shell) {
 .admin-vendors,
 .admin-activity {
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--surface) 86%, transparent);
-  box-shadow: 0 14px 42px color-mix(in srgb, var(--shadow-color) 5%, transparent);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .admin-vendors {
@@ -900,7 +893,7 @@ html:has(.admin-shell) {
 .admin-select-field {
   min-height: 46px;
   border: 1px solid var(--border-control);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   display: grid;
   align-items: center;
@@ -973,11 +966,11 @@ html:has(.admin-shell) {
 }
 
 .admin-vendor-table thead th:first-child {
-  border-radius: 8px 0 0 8px;
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
 }
 
 .admin-vendor-table thead th:last-child {
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
 }
 
 .admin-vendor-table tbody tr {
@@ -1042,7 +1035,7 @@ html:has(.admin-shell) {
   width: 58px;
   height: 58px;
   flex: 0 0 auto;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface-subtle);
   color: var(--text);
   font-family: var(--font-ui);
@@ -1062,7 +1055,7 @@ html:has(.admin-shell) {
   width: fit-content;
   min-height: 28px;
   padding: 0 10px;
-  border-radius: 15px;
+  border-radius: var(--radius-control);
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -1149,7 +1142,7 @@ html:has(.admin-shell) {
 .admin-activity__icon {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface-tint);
   color: var(--text-muted);
   display: grid;
@@ -1204,8 +1197,7 @@ html:has(.admin-shell) {
 
 .admin-dialog-backdrop {
   padding: 24px;
-  background: color-mix(in srgb, var(--scrim-4) 28%, transparent);
-  backdrop-filter: blur(3px);
+  background: color-mix(in srgb, var(--scrim) 40%, transparent);
   display: grid;
   place-items: center;
   position: fixed;
@@ -1218,9 +1210,9 @@ html:has(.admin-shell) {
   max-height: calc(100dvh - 48px);
   overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-dialog);
   background: var(--surface-5);
-  box-shadow: 0 28px 80px color-mix(in srgb, var(--shadow-color) 18%, transparent);
+  box-shadow: var(--shadow-overlay);
 }
 
 .admin-dialog--compact {
@@ -1292,7 +1284,7 @@ html:has(.admin-shell) {
   min-height: 48px;
   overflow: hidden;
   border: 1px solid var(--border-control);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -1301,7 +1293,7 @@ html:has(.admin-shell) {
 
 .admin-slug-field:focus-within {
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--border-accent) 8%, transparent);
+  box-shadow: 0 0 0 1px var(--border-accent);
 }
 
 .admin-slug-field b {
@@ -1320,7 +1312,7 @@ html:has(.admin-shell) {
   min-height: 48px;
   overflow: hidden;
   border: 1px solid var(--border-control);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1329,7 +1321,7 @@ html:has(.admin-shell) {
 
 .admin-password-field:focus-within {
   border-color: var(--border-accent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--border-accent) 8%, transparent);
+  box-shadow: 0 0 0 1px var(--border-accent);
 }
 
 .admin-password-field input,
@@ -1365,7 +1357,7 @@ html:has(.admin-shell) {
 .admin-confirm-dialog__icon {
   width: 62px;
   height: 62px;
-  border-radius: 50%;
+  border-radius: var(--radius-control);
   background: var(--surface-6);
   color: var(--text-success);
   display: grid;
@@ -1400,9 +1392,9 @@ html:has(.admin-shell) {
   max-width: min(390px, calc(100vw - 44px));
   padding: 14px 17px;
   border: 1px solid var(--border-9);
-  border-radius: 9px;
+  border-radius: var(--radius-card);
   background: var(--surface-9);
-  box-shadow: 0 18px 48px color-mix(in srgb, var(--shadow-1) 14%, transparent);
+  box-shadow: var(--shadow-overlay);
   color: var(--text-success-2);
   font-size: 13px;
   font-weight: 750;
@@ -1452,7 +1444,7 @@ html:has(.admin-shell) {
     width: 48px;
     height: 48px;
     border: 1px solid var(--border-6);
-    border-radius: 50%;
+    border-radius: var(--radius-control);
     font-size: 0;
     display: grid;
     place-items: center;
@@ -1514,7 +1506,7 @@ html:has(.admin-shell) {
   .admin-topbar {
     min-height: 104px;
     padding: 18px 20px 13px;
-    background: color-mix(in srgb, var(--surface-page) 97%, transparent);
+    background: var(--surface);
     align-items: flex-start;
   }
 
@@ -1708,7 +1700,7 @@ html:has(.admin-shell) {
     min-height: 142px;
     padding: 18px;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: var(--radius-card);
     background: var(--surface);
     display: grid;
     grid-template-columns: 62px minmax(0, 1fr) 44px;
@@ -1776,8 +1768,7 @@ html:has(.admin-shell) {
     height: 72px;
     padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid var(--border);
-    background: color-mix(in srgb, var(--surface-2) 98%, transparent);
-    box-shadow: 0 -10px 34px color-mix(in srgb, var(--shadow-color) 8%, transparent);
+    background: var(--surface);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     position: fixed;
@@ -1859,7 +1850,7 @@ html:has(.admin-shell) {
 
   .admin-dialog {
     max-height: calc(100dvh - 20px);
-    border-radius: 16px 16px 8px 8px;
+    border-radius: var(--radius-dialog);
   }
 
   .admin-dialog__header {
