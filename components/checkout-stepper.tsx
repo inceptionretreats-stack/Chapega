@@ -4,7 +4,7 @@ const steps = ["Cart", "Details", "Review", "Send on WhatsApp"] as const;
 
 const handoffSteps = [
   { label: "Prepared", detail: "Order details checked" },
-  { label: "Scan / Open WhatsApp", detail: "Open the prepared message" },
+  { label: "Open WhatsApp", detail: "Scan the QR code or tap Open WhatsApp" },
   { label: "Tap Send", detail: "You choose when to send" },
   { label: "Shop confirms", detail: "Confirmation happens in WhatsApp" },
 ] as const;

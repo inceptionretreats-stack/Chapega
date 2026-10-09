@@ -138,7 +138,7 @@ export function VendorSettings({
             <header className="vendor-panel-header">
               <div>
                 <h2 id="store-profile-title">Store profile</h2>
-                <p>The public identity shown throughout the kiosk and WhatsApp handoff.</p>
+                <p>Shown on the kiosk and in every WhatsApp order.</p>
               </div>
             </header>
             <div className="vendor-form-grid vendor-settings-fields">
@@ -182,7 +182,7 @@ export function VendorSettings({
             <header className="vendor-panel-header">
               <div>
                 <h2 id="whatsapp-title">WhatsApp handoff</h2>
-                <p>Every kiosk order prepares a message to this destination.</p>
+                <p>Kiosk orders open a WhatsApp chat with this number.</p>
               </div>
             </header>
             <div className="vendor-form-grid vendor-settings-fields">
@@ -215,8 +215,8 @@ export function VendorSettings({
               </label>
               <div className="vendor-settings-note vendor-field--full">
                 <p>
-                  The kiosk prepares the exact message, but the customer still reviews and taps Send
-                  in WhatsApp. A QR scan alone is never reported as delivered.
+                  Customers still check the message and tap Send themselves. Scanning the QR code
+                  doesn&apos;t send anything.
                 </p>
               </div>
               <div className="vendor-field--full">
@@ -240,7 +240,7 @@ export function VendorSettings({
             <header className="vendor-panel-header">
               <div>
                 <h2 id="ordering-rules-title">Ordering rules</h2>
-                <p>Server-enforced limits used when the kiosk prepares an order.</p>
+                <p>Limits that apply to every kiosk order.</p>
               </div>
             </header>
             <div className="vendor-form-grid vendor-settings-fields">
@@ -255,7 +255,7 @@ export function VendorSettings({
                   onChange={(event) => update("maxCartQuantity", Number(event.target.value))}
                   required
                 />
-                <small>Hard limit: one to five.</small>
+                <small>Between 1 and 5.</small>
               </label>
               <label className="vendor-field">
                 <span>Gift-wrap fee (₹)</span>
@@ -347,10 +347,7 @@ export function VendorSettings({
               <strong>{draft.kioskName || "Unnamed kiosk"}</strong>
             </div>
             <span>{draft.storeOpen ? "Accepting new orders" : "Ordering paused"}</span>
-            <small>
-              Catalogue and settings are refreshed on load, focus, and every 30 seconds while
-              online.
-            </small>
+            <small>The kiosk picks up changes within 30 seconds.</small>
           </section>
         </aside>
       </div>

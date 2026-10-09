@@ -341,6 +341,9 @@
 .vendor-field {
   min-width: 0;
   display: grid;
+  /* Rows keep their natural height, so a field beside one with a hint
+     isn't stretched taller than its neighbour. */
+  align-content: start;
   gap: 8px;
   color: var(--text-2);
   font-size: 13px;
@@ -1964,6 +1967,8 @@ html:has(.vendor-app-shell) {
 }
 .vendor-order-controls .vendor-select-field select {
   padding-left: 14px;
+  /* The field draws its own chevron; the native arrow made two. */
+  appearance: none;
 }
 
 .vendor-segmented {
@@ -2089,6 +2094,11 @@ html:has(.vendor-app-shell) {
   display: flex;
   justify-content: space-between;
   gap: 18px;
+}
+
+/* A badge, not a column: keep its own height instead of the header's. */
+.vendor-order-detail-header > .vendor-status {
+  align-self: flex-start;
 }
 .vendor-order-detail-header > div > p,
 .vendor-order-items > p,

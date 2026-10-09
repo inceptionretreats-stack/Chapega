@@ -891,7 +891,9 @@ html:has(.admin-shell) {
 
 .admin-vendor-table {
   width: 100%;
-  min-width: 830px;
+  /* Fits the vendors panel beside the activity rail; it still scrolls
+     sideways below this. */
+  min-width: 680px;
   border-collapse: collapse;
   color: var(--text-2);
   font-size: 13px;
