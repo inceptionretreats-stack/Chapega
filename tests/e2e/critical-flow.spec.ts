@@ -91,6 +91,9 @@ test("customer completes the kiosk WhatsApp QR handoff and starts a clean order"
 
   for (let unit = 1; unit <= 5; unit += 1) {
     await quickAdd.click();
+    // Let each add land before the next tap, as a person would; a slow
+    // WebKit run could otherwise tap mid-render.
+    await expect(quickAdd).toHaveAccessibleName(new RegExp(`\\. ${unit} currently selected$`));
   }
 
   // At <= 900px (see app/atelier.css) the desktop cart rail is hidden and
