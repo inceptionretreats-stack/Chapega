@@ -1205,9 +1205,12 @@ html:has(.admin-shell) {
   border: 0;
 }
 
+/* Divider on the previous section: a top border would run through the legend. */
+.admin-vendor-form fieldset:has(+ fieldset) {
+  border-bottom: 1px solid var(--border-2);
+}
 .admin-vendor-form fieldset + fieldset {
-  padding-top: 22px;
-  border-top: 1px solid var(--border-2);
+  margin-top: 22px;
 }
 
 .admin-vendor-form legend {

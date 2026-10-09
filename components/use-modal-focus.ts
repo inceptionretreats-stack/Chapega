@@ -52,6 +52,9 @@ export function useModalFocus<TContainer extends HTMLElement, TInitial extends H
     const previouslyFocused =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusFrame = window.requestAnimationFrame(() => {
+      // A field reached before this frame keeps focus: moving it would send
+      // the next keystrokes somewhere else.
+      if (container.contains(document.activeElement)) return;
       const preferredFocus = initialFocusRef.current;
       const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
       const preferredFocusOpensKeyboard = preferredFocus?.matches(
