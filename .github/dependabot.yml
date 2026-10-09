@@ -7,6 +7,21 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 5
+    groups:
+      # These packages must move together or `npm ci` fails on peer ranges.
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
+      next:
+        patterns: ["next", "eslint-config-next"]
+    ignore:
+      # Node types follow the runtime in .nvmrc, not the newest Node release.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # eslint-plugin-react (via eslint-config-next) supports ESLint 9 only.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -12,6 +12,11 @@ the findings of the 2026-10-08 project audit.
   database, instead of the default US East. Each render makes several
   database round trips, which made the kiosk home page answer in about
   2.4 s (AUD-24).
+- Dependencies: React 19.3, Vitest 5 (with its coverage plugin), Supabase
+  CLI 2.119, Node types matched to the Node 22 runtime, and the GitHub
+  checkout, setup-node and upload-artifact actions at v7. ESLint stays on 9
+  because the React lint plugin does not support ESLint 10 yet; Dependabot
+  now groups packages that must move together and skips those two majors.
 
 ## [0.2.0] - 2026-10-08
 
