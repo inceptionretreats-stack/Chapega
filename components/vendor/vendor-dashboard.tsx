@@ -1,15 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {
-  ArrowRight,
-  Box,
-  CircleDollarSign,
-  ExternalLink,
-  PackagePlus,
-  ShoppingBag,
-  Store,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { formatInr } from "@/domain/money";
 import type { VendorBootstrap, VendorOrder } from "@/types/vendor";
 import { relativeVendorTime, VendorOrderStatusBadge } from "./vendor-shared";
@@ -19,7 +11,6 @@ type DashboardProps = {
   canManageCatalogue?: boolean;
   onViewOrders: () => void;
   onViewProducts: () => void;
-  onAddProduct: () => void;
   onOpenOrder: (order: VendorOrder) => void;
 };
 
@@ -38,7 +29,6 @@ export function VendorDashboard({
   canManageCatalogue = true,
   onViewOrders,
   onViewProducts,
-  onAddProduct,
   onOpenOrder,
 }: DashboardProps) {
   const todayOrders = data.orders.filter((order) => isToday(order.createdAt));
@@ -67,48 +57,23 @@ export function VendorDashboard({
             }).format(new Date())}
           </span>
         </div>
+        {/* Value first in the DOM ("6 Low stock"); CSS shows the label above it. */}
         <div className="vendor-summary-stat">
-          <span className="vendor-summary-icon">
-            <ShoppingBag size={21} />
-          </span>
-          <div>
-            <strong>{todayOrders.length}</strong>
-            <span>Orders</span>
-          </div>
-        </div>
-        <div className="vendor-summary-stat vendor-summary-stat--wide">
-          <span className="vendor-summary-icon">
-            <CircleDollarSign size={21} />
-          </span>
-          <div>
-            <strong>{formatInr(todayRevenue)}</strong>
-            <span>Order value</span>
-          </div>
-        </div>
-        <div className="vendor-summary-divider" aria-hidden="true" />
-        <div className="vendor-summary-stat">
-          <span className="vendor-summary-icon">
-            <Box size={21} />
-          </span>
-          <div>
-            <strong>{visibleProducts.length}</strong>
-            <span>Products live</span>
-          </div>
+          <strong>{todayOrders.length}</strong>
+          <span>Orders</span>
         </div>
         <div className="vendor-summary-stat">
-          <span className="vendor-summary-icon">
-            <PackagePlus size={21} />
-          </span>
-          <div>
-            <strong>{lowStock.length}</strong>
-            <span>Low stock</span>
-          </div>
+          <strong>{formatInr(todayRevenue)}</strong>
+          <span>Order value</span>
         </div>
-        <p className="vendor-summary-quote">
-          Small moments.
-          <br />
-          Big meaning.
-        </p>
+        <div className="vendor-summary-stat">
+          <strong>{visibleProducts.length}</strong>
+          <span>Products live</span>
+        </div>
+        <div className="vendor-summary-stat">
+          <strong>{lowStock.length}</strong>
+          <span>Low stock</span>
+        </div>
       </section>
 
       <div className="vendor-dashboard-grid">
@@ -179,9 +144,6 @@ export function VendorDashboard({
             </div>
           ) : (
             <div className="vendor-panel-empty">
-              <span>
-                <ShoppingBag size={27} />
-              </span>
               <div>
                 <strong>No active orders</strong>
                 <p>New kiosk orders will appear here as soon as they are prepared.</p>
@@ -224,7 +186,6 @@ export function VendorDashboard({
               </ul>
             ) : (
               <div className="vendor-compact-empty">
-                <Box size={22} />
                 <div>
                   <strong>Stock looks healthy</strong>
                   <p>No product is below the alert level.</p>
@@ -248,36 +209,17 @@ export function VendorDashboard({
             </div>
             <dl>
               <div>
-                <dt>
-                  <Store size={17} /> Kiosk
-                </dt>
+                <dt>Kiosk</dt>
                 <dd>{data.settings.kioskName}</dd>
               </div>
               <div>
-                <dt>
-                  <ExternalLink size={17} /> Catalogue revision
-                </dt>
+                <dt>Catalogue revision</dt>
                 <dd>#{data.revision}</dd>
               </div>
             </dl>
           </section>
         </aside>
       </div>
-
-      <section className="vendor-curation-callout">
-        <span>
-          <PackagePlus size={24} />
-        </span>
-        <div>
-          <h2>Curate more joy</h2>
-          <p>Add a fresh product and it will become available to the kiosk after publishing.</p>
-        </div>
-        {canManageCatalogue ? (
-          <button className="vendor-primary" type="button" onClick={onAddProduct}>
-            <PackagePlus size={18} /> Add product
-          </button>
-        ) : null}
-      </section>
     </div>
   );
 }

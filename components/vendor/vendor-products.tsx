@@ -231,9 +231,6 @@ export function VendorProducts({
           </div>
         ) : (
           <div className="vendor-panel-empty">
-            <span>
-              <Search size={25} />
-            </span>
             <div>
               <strong>No products match</strong>
               <p>Try a different search or category, or add a new product.</p>

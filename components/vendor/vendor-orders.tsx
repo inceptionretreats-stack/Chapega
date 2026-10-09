@@ -10,7 +10,6 @@ import {
   LoaderCircle,
   MessageCircle,
   Search,
-  ShoppingBag,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -240,9 +239,6 @@ export function VendorOrders({
             </ul>
           ) : (
             <div className="vendor-panel-empty">
-              <span>
-                <ShoppingBag size={26} />
-              </span>
               <div>
                 <strong>No orders here yet</strong>
                 <p>Adjust the filters, or prepare a test order on the kiosk.</p>

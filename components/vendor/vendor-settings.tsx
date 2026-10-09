@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, LoaderCircle, MessageCircle, Save, ShieldCheck, Store } from "lucide-react";
+import { ExternalLink, LoaderCircle, MessageCircle, Save } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { VendorSettings as VendorSettingsType } from "@/types/vendor";
 import { buildWhatsAppUrl } from "@/domain/whatsapp";
@@ -122,7 +122,6 @@ export function VendorSettings({
       ) : null}
       {newerSettingsAvailable ? (
         <div className="vendor-settings-note" role="status">
-          <ShieldCheck size={18} />
           <p>A newer settings revision is available. Your unsaved draft is still here.</p>
           <button className="vendor-text-action" type="button" onClick={loadLatestSettings}>
             Load latest settings
@@ -141,9 +140,6 @@ export function VendorSettings({
                 <h2 id="store-profile-title">Store profile</h2>
                 <p>The public identity shown throughout the kiosk and WhatsApp handoff.</p>
               </div>
-              <span className="vendor-settings-icon">
-                <Store size={20} />
-              </span>
             </header>
             <div className="vendor-form-grid vendor-settings-fields">
               <label className="vendor-field">
@@ -188,9 +184,6 @@ export function VendorSettings({
                 <h2 id="whatsapp-title">WhatsApp handoff</h2>
                 <p>Every kiosk order prepares a message to this destination.</p>
               </div>
-              <span className="vendor-settings-icon">
-                <MessageCircle size={20} />
-              </span>
             </header>
             <div className="vendor-form-grid vendor-settings-fields">
               <label className="vendor-field">
@@ -221,7 +214,6 @@ export function VendorSettings({
                 />
               </label>
               <div className="vendor-settings-note vendor-field--full">
-                <ShieldCheck size={18} />
                 <p>
                   The kiosk prepares the exact message, but the customer still reviews and taps Send
                   in WhatsApp. A QR scan alone is never reported as delivered.
