@@ -17,6 +17,28 @@ the findings of the 2026-10-08 project audit.
   checkout, setup-node and upload-artifact actions at v7. ESLint stays on 9
   because the React lint plugin does not support ESLint 10 yet; Dependabot
   now groups packages that must move together and skips those two majors.
+- The Content Security Policy is now enforced instead of report-only. Every
+  kiosk, Studio and admin screen loaded with no violation first, locally and
+  on the live site.
+- Expired Studio and admin sessions are deleted daily at 03:15 UTC by a
+  pg_cron job (migration `20261009120000`). Apply it after deploying; it is
+  independent of the app code.
+
+### Added
+
+- `/.well-known/security.txt` and `SECURITY.md` with a private way to
+  report vulnerabilities. GitHub private vulnerability reporting is on.
+
+### Fixed
+
+- Product editor and admin "Add vendor" dialog: the divider line ran
+  through each section heading, and a heading sat 24 px further from its
+  fields than the first one did. The divider now sits between sections.
+- Product editor: the drawer was an `<aside>` with `role="dialog"`, which
+  is invalid ARIA. It is a `<div>` now; nothing changes visually.
+- Dialogs no longer move focus to their first control a frame after opening
+  if focus is already inside them. On a slow device that could send the
+  first keystrokes to the Close button and lose an edit.
 
 ## [0.2.0] - 2026-10-08
 
