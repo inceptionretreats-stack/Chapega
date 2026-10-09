@@ -404,7 +404,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
     if (generating) return;
     if (!online) {
       showToast(
-        "Live ordering is temporarily unavailable. Your cart is safe—reconnect and try again.",
+        "Live ordering is temporarily unavailable. Your cart is safe. Reconnect and try again.",
         "error",
       );
       return;

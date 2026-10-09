@@ -42,7 +42,7 @@ export function CartScreen({
             <h2 data-screen-heading tabIndex={-1}>
               Your cart is empty
             </h2>
-            <p>Add at least one thoughtful gift before continuing to Pay Later.</p>
+            <p>Add at least one gift before continuing to Pay Later.</p>
             <button className="primary-button" onClick={onContinueShopping}>
               Browse gifts
             </button>
