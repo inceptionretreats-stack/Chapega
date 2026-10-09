@@ -313,7 +313,7 @@ export function VendorProductEditor({
   const [variantErrors, setVariantErrors] = useState<Record<string, VariantDraftErrors>>({});
   const [fieldErrors, setFieldErrors] = useState<ProductFieldErrors>({});
   const [failureCount, setFailureCount] = useState(0);
-  const drawerRef = useRef<HTMLElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const errorRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -544,7 +544,7 @@ export function VendorProductEditor({
           if (event.currentTarget === event.target && !pending && !archiving) onClose();
         }}
       >
-        <aside
+        <div
           ref={drawerRef}
           className="vendor-product-drawer"
           role="dialog"
@@ -1036,7 +1036,7 @@ export function VendorProductEditor({
               </button>
             </footer>
           </form>
-        </aside>
+        </div>
       </div>
       {confirmArchive && product ? (
         <ConfirmDialog

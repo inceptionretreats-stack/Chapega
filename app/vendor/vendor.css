@@ -1521,9 +1521,14 @@ html:has(.vendor-app-shell) {
   border: 0;
 }
 
+/* A legend sits on its fieldset's top border, so a top border would run
+   through it and top padding would land below it. The divider is the
+   previous section's bottom border instead. */
+.vendor-fieldset:has(+ .vendor-fieldset) {
+  border-bottom: 1px solid var(--border-2);
+}
 .vendor-fieldset + .vendor-fieldset {
-  padding-top: 24px;
-  border-top: 1px solid var(--border-2);
+  margin-top: 24px;
 }
 .vendor-fieldset legend {
   margin-bottom: 12px;
@@ -1604,10 +1609,6 @@ html:has(.vendor-app-shell) {
 .vendor-options-editor {
   display: grid;
   gap: 14px;
-}
-
-.vendor-options-editor > legend {
-  margin-bottom: 0;
 }
 
 .vendor-options-intro {

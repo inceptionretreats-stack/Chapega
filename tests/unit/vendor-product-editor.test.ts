@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -167,5 +167,31 @@ describe("VendorProductEditor product options", () => {
       screen.getByText("Use a whole number from 0 to 100,000, or leave this blank."),
     ).toBeInTheDocument();
     expect(vendorRequestMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("VendorProductEditor dialog semantics", () => {
+  it("is a modal dialog on an element that allows the dialog role", () => {
+    renderEditor();
+    const dialog = screen.getByRole("dialog", { name: "Edit product" });
+    expect(dialog).toHaveAttribute("aria-modal", "true");
+    // <aside> only permits landmark-like roles, so role="dialog" on it is
+    // invalid ARIA (axe: aria-allowed-role).
+    expect(dialog.tagName).toBe("DIV");
+  });
+
+  it("focuses the close button once the editor has painted", async () => {
+    renderEditor();
+    await act(() => new Promise((resolve) => window.setTimeout(resolve, 20)));
+    expect(screen.getByRole("button", { name: "Close product editor" })).toHaveFocus();
+  });
+
+  it("keeps focus on a field reached before that first frame", async () => {
+    renderEditor();
+    const compareAtPrice = screen.getByLabelText("Compare-at price (₹)");
+    compareAtPrice.focus();
+    await act(() => new Promise((resolve) => window.setTimeout(resolve, 20)));
+    // Moving focus here would send the next keystrokes to the Close button.
+    expect(compareAtPrice).toHaveFocus();
   });
 });

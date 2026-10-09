@@ -77,26 +77,35 @@ for example, `bom1::icn1::…` is the Mumbai edge and a Seoul function.
   response has an `X-Request-Id` header, and the same `requestId` appears
   in the log line, so a user-reported failure can be found by that ID.
 - Error tracking (Sentry or similar) is not set up (**TO DECIDE**).
-- The Content Security Policy is report-only. Browser consoles show any
-  violations. After one clean release, change
-  `Content-Security-Policy-Report-Only` to `Content-Security-Policy` in
-  `next.config.ts`.
+- The Content Security Policy is enforced (`next.config.ts`). A blocked
+  script, image or request shows as a CSP error in the browser console. If
+  a new feature needs another origin, add it to the matching directive
+  there; to debug, rename the header to
+  `Content-Security-Policy-Report-Only` for one release.
 
 ## Scheduled maintenance
 
-Run these as the database owner, for example with Supabase's `pg_cron`
-extension. Nothing schedules them yet.
+- **Expired sessions** are deleted every day at 03:15 UTC by the
+  `chapega-purge-sessions` pg_cron job, which migration `20261009120000`
+  creates. Check it (as the database owner):
 
-```sql
--- Daily: delete sessions that expired more than a day ago.
-select cron.schedule('chapega-purge-sessions', '15 3 * * *',
-  $$select private.purge_expired_records()$$);
+  ```sql
+  select jobname, schedule, active from cron.job;
+  select status, return_message, start_time
+  from cron.job_run_details order by start_time desc limit 5;
+  ```
 
--- Daily: blank customer details on finished orders older than the
--- retention period (TO DECIDE; at least 30 days, and state it in /privacy).
-select cron.schedule('chapega-redact-orders', '30 3 * * *',
-  $$select private.redact_order_personal_data(interval '90 days')$$);
-```
+  On a Postgres without pg_cron the migration skips the job; run
+  `select private.purge_expired_records();` on another schedule.
+
+- **Customer details on finished orders** are not removed yet. The
+  retention period is the owner's decision (**TO DECIDE**; at least 30 days,
+  and state it in `/privacy`). Then schedule it as the database owner:
+
+  ```sql
+  select cron.schedule('chapega-redact-orders', '30 3 * * *',
+    $select private.redact_order_personal_data(interval '90 days')$);
+  ```
 
 ## Backups and recovery
 

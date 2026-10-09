@@ -22,7 +22,7 @@ async function loadConfig(env: Record<string, string> = {}) {
   const headers = new Map(
     (global?.headers ?? []).map((header) => [header.key.toLowerCase(), header.value]),
   );
-  return { config, headers };
+  return { config, headers, list: global?.headers ?? [] };
 }
 
 function directives(policy: string | undefined): Map<string, string[]> {
@@ -45,16 +45,18 @@ describe("security headers", () => {
     const { headers } = await loadConfig();
 
     expect(headers.get("x-frame-options")).toBe("DENY");
-    expect(headers.get("content-security-policy")).toBe("frame-ancestors 'none'");
     expect(headers.get("referrer-policy")).toBe("strict-origin-when-cross-origin");
     expect(headers.get("x-content-type-options")).toBe("nosniff");
     expect(headers.get("permissions-policy")).toBe("camera=(), microphone=(), geolocation=()");
     expect(headers.get("strict-transport-security")).toBe("max-age=31536000; includeSubDomains");
   });
 
-  it("reports (without enforcing) a Next.js-compatible content security policy", async () => {
-    const { headers } = await loadConfig();
-    const policy = directives(headers.get("content-security-policy-report-only"));
+  it("enforces a single Next.js-compatible content security policy", async () => {
+    const { headers, list } = await loadConfig();
+    const policy = directives(headers.get("content-security-policy"));
+
+    expect(list.filter((header) => /^content-security-policy/i.test(header.key))).toHaveLength(1);
+    expect(headers.has("content-security-policy-report-only")).toBe(false);
 
     expect(policy.get("default-src")).toEqual(["'self'"]);
     expect(policy.get("script-src")).toEqual(["'self'", "'unsafe-inline'"]);
@@ -73,14 +75,14 @@ describe("security headers", () => {
       NEXT_PUBLIC_SUPABASE_URL: "https://ref.supabase.co/",
       SUPABASE_SECRET_KEY: "sb_secret",
     });
-    expect(directives(headers.get("content-security-policy-report-only")).get("img-src")).toContain(
+    expect(directives(headers.get("content-security-policy")).get("img-src")).toContain(
       "https://ref.supabase.co",
     );
   });
 
   it("allows development tooling only in development and never sends HSTS there", async () => {
     const { headers } = await loadConfig({ NODE_ENV: "development" });
-    const policy = directives(headers.get("content-security-policy-report-only"));
+    const policy = directives(headers.get("content-security-policy"));
 
     expect(policy.get("script-src")).toContain("'unsafe-eval'");
     expect(policy.get("connect-src")).toContain("ws:");

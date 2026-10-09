@@ -9,13 +9,13 @@ const supabaseOrigin = dataBackend === "supabase" ? supabaseProjectOrigin(proces
 const isDevelopment = process.env.NODE_ENV === "development";
 
 /**
- * Content Security Policy, sent as Report-Only first: violations are logged
- * in the browser console without blocking anything. Without per-request
- * nonces (which would force dynamic rendering of every page) Next.js needs
- * inline scripts for its bootstrap data and inline styles for style props.
- * Once a release shows no reports, move it to the enforced header.
+ * Content Security Policy, enforced. It ran report-only first and every
+ * kiosk, Studio and admin screen loaded without a violation. Without
+ * per-request nonces (which would force dynamic rendering of every page)
+ * Next.js needs inline scripts for its bootstrap data and inline styles for
+ * style props.
  */
-function reportOnlyContentSecurityPolicy(): string {
+function contentSecurityPolicy(): string {
   const imageSources = ["'self'", "data:", "blob:", supabaseOrigin].filter(Boolean);
   return [
     "default-src 'self'",
@@ -37,11 +37,7 @@ function reportOnlyContentSecurityPolicy(): string {
 const securityHeaders = [
   // Clickjacking: Studio and admin must never be framed.
   { key: "X-Frame-Options", value: "DENY" },
-  { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
-  {
-    key: "Content-Security-Policy-Report-Only",
-    value: reportOnlyContentSecurityPolicy(),
-  },
+  { key: "Content-Security-Policy", value: contentSecurityPolicy() },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
