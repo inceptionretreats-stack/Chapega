@@ -621,8 +621,7 @@ export function VendorProductEditor({
                 </label>
                 {fieldError("image")}
                 <p className="vendor-field-help">
-                  Use a clear square or 4:3 photograph. Location metadata is removed from JPEG
-                  uploads.
+                  A clear square or 4:3 photo works best. Location data is removed from uploads.
                 </p>
               </fieldset>
 
