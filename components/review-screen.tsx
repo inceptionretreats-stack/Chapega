@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { AlertCircle, LoaderCircle, MessageCircle, ShieldCheck } from "lucide-react";
+import { AlertCircle, LoaderCircle, MessageCircle } from "lucide-react";
 import { formatInr } from "@/domain/money";
 import { maskWhatsAppNumber } from "@/domain/whatsapp";
 import type { CartLine, CartTotals, CustomerDetails, PresenterSettings } from "@/types/kiosk";
@@ -131,7 +131,6 @@ export function ReviewScreen({
               </div>
             </dl>
             <div className="notice transaction-summary__notice">
-              <MessageCircle size={18} />
               <span>
                 <strong>Nothing has been sent yet.</strong> Preparing the QR only creates the exact
                 message for you to review and send in WhatsApp.
@@ -139,7 +138,6 @@ export function ReviewScreen({
             </div>
             {numberConfigured ? (
               <div className="success-notice transaction-summary__notice">
-                <ShieldCheck size={18} />
                 <span>The QR and Open WhatsApp button will use the same prepared order link.</span>
               </div>
             ) : (

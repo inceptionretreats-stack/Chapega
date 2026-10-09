@@ -2,21 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import {
-  Check,
-  ChevronDown,
-  ChevronRight,
-  CreditCard,
-  Eye,
-  Gift,
-  Info,
-  MessageCircle,
-  NotebookPen,
-  PencilLine,
-  Phone,
-  ShieldCheck,
-  UserRound,
-} from "lucide-react";
+import { Check, ChevronDown, ChevronRight, PencilLine } from "lucide-react";
 import { useRef, useState } from "react";
 import type { CartLine, CartTotals, CustomerDetails } from "@/types/kiosk";
 import { optionalCustomerPhoneError } from "@/domain/customer";
@@ -56,7 +42,6 @@ export function CheckoutScreen({
             A few optional details
           </h1>
           <div className="checkout-optional-cue">
-            <Check size={17} aria-hidden="true" />
             <span>Nothing here is required</span>
           </div>
         </div>
@@ -152,7 +137,6 @@ export function CheckoutScreen({
             </legend>
             {/* One line, so the primary action stays on a 768 px kiosk screen. */}
             <p className="checkout-form-section__helper">
-              <ShieldCheck size={17} aria-hidden="true" />
               <span>
                 Share only what you’re comfortable sending; we use it only to prepare this order on
                 WhatsApp (<Link href="/privacy">privacy notice</Link>).
@@ -162,7 +146,6 @@ export function CheckoutScreen({
               <label className="field">
                 <span>First name</span>
                 <span className="field-control">
-                  <UserRound size={18} aria-hidden="true" />
                   <input
                     value={customer.customerName}
                     onChange={(event) =>
@@ -177,7 +160,6 @@ export function CheckoutScreen({
               <label className="field">
                 <span>Mobile number</span>
                 <span className="field-control">
-                  <Phone size={18} aria-hidden="true" />
                   <input
                     ref={phoneInputRef}
                     value={customer.customerPhone}
@@ -217,7 +199,6 @@ export function CheckoutScreen({
               <label className="field full">
                 <span>Gift note</span>
                 <span className="field-control field-control--area">
-                  <Gift size={18} aria-hidden="true" />
                   <textarea
                     value={customer.giftNote}
                     onChange={(event) => onChange({ giftNote: event.target.value.slice(0, 120) })}
@@ -231,7 +212,6 @@ export function CheckoutScreen({
               <label className="field full">
                 <span>Order note</span>
                 <span className="field-control field-control--area">
-                  <NotebookPen size={18} aria-hidden="true" />
                   <textarea
                     value={customer.orderNote}
                     onChange={(event) => onChange({ orderNote: event.target.value.slice(0, 140) })}
@@ -250,9 +230,6 @@ export function CheckoutScreen({
             role="group"
             aria-label="Payment method: Pay Later or Pay at Counter"
           >
-            <span className="payment-card__icon">
-              <CreditCard size={25} aria-hidden="true" />
-            </span>
             <div>
               <h3>Pay Later / Pay at Counter</h3>
               <p>No online payment is collected. Pay when the shop confirms your order.</p>
@@ -267,23 +244,12 @@ export function CheckoutScreen({
               <button type="submit" className="primary-button">
                 Review Order <ChevronRight size={19} />
               </button>
-              <p>
-                <Info size={16} /> You’ll check everything next before sending it to WhatsApp.
-              </p>
+              <p>You’ll check everything next before sending it to WhatsApp.</p>
             </div>
             <ul className="checkout-trust-row" aria-label="Order assurances">
-              <li>
-                <CreditCard size={18} aria-hidden="true" />
-                <span>No online payment</span>
-              </li>
-              <li>
-                <Eye size={18} aria-hidden="true" />
-                <span>Review before sending</span>
-              </li>
-              <li>
-                <MessageCircle size={18} aria-hidden="true" />
-                <span>You tap Send in WhatsApp</span>
-              </li>
+              <li>No online payment</li>
+              <li>Review before sending</li>
+              <li>You tap Send in WhatsApp</li>
             </ul>
           </div>
         </form>

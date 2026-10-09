@@ -10,7 +10,6 @@ import {
   MessageCircle,
   Pause,
   RefreshCcw,
-  ShieldCheck,
 } from "lucide-react";
 import { useState } from "react";
 import { formatInr } from "@/domain/money";
@@ -73,9 +72,7 @@ export function OrderReadyScreen({
         </h1>
         <div className="order-ready-meta" aria-label="Prepared order status">
           <span className="order-number">Order {order.orderNumber}</span>
-          <span className="order-ready-meta__status">
-            <ShieldCheck size={16} aria-hidden="true" /> Prepared · not sent
-          </span>
+          <span className="order-ready-meta__status">Prepared · not sent</span>
         </div>
         <p className="order-ready-lede">
           Your message is prepared. Scan the QR code to open WhatsApp and send your order to{" "}
@@ -127,7 +124,6 @@ export function OrderReadyScreen({
               <strong>Scanning tip:</strong> Keep the full code in view and hold your phone steady.
             </p>
             <div className="order-status">
-              <ShieldCheck size={22} aria-hidden="true" />
               <span>
                 <strong>Message prepared</strong>
                 <small>Nothing is sent until you tap Send in WhatsApp</small>

@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  ArrowLeft,
-  ArrowRight,
-  Gift,
-  LoaderCircle,
-  LockKeyhole,
-  Mail,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, LoaderCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
@@ -109,14 +101,11 @@ export function VendorLoginForm({
       <section className="vendor-login-art" aria-label="Chapega.com Vendor Studio">
         <div className="vendor-login-brand">
           <span className="vendor-wordmark">Chapega.com</span>
-          <span>Vendor studio</span>
-        </div>
-        <div className="vendor-login-gift" aria-hidden="true">
-          <Gift strokeWidth={1.15} />
+          <span>Vendor Studio</span>
         </div>
         <div className="vendor-login-art-copy">
-          <p>Thoughtful operations</p>
-          <strong>Every gift, order, and customer moment—kept beautifully in view.</strong>
+          <p>For shop staff</p>
+          <strong>Confirm kiosk orders, update stock, and open or pause the kiosk.</strong>
         </div>
       </section>
 
@@ -130,7 +119,7 @@ export function VendorLoginForm({
           </Link>
           <div className="vendor-login-mobile-brand">
             <span className="vendor-wordmark">Chapega.com</span>
-            <span>Vendor studio</span>
+            <span>Vendor Studio</span>
           </div>
           <header>
             <h1>Welcome back</h1>
@@ -147,7 +136,6 @@ export function VendorLoginForm({
             <div className="vendor-field">
               <label htmlFor="vendor-email">Email address</label>
               <span className="vendor-input-with-icon">
-                <Mail size={19} aria-hidden="true" />
                 <input
                   id="vendor-email"
                   name="email"
@@ -183,7 +171,6 @@ export function VendorLoginForm({
             <div className="vendor-field">
               <label htmlFor="vendor-password">Password</label>
               <span className="vendor-input-with-icon">
-                <LockKeyhole size={19} aria-hidden="true" />
                 <input
                   id="vendor-password"
                   name="password"
@@ -257,7 +244,6 @@ export function VendorLoginForm({
           {previewCredentials ? (
             <aside className="vendor-preview-access">
               <div>
-                <ShieldCheck size={18} />
                 <strong>Local preview access</strong>
               </div>
               <p>
@@ -272,9 +258,7 @@ export function VendorLoginForm({
             </aside>
           ) : null}
 
-          <p className="vendor-secure-note">
-            <LockKeyhole size={15} /> Secure, private vendor session.
-          </p>
+          <p className="vendor-secure-note">Secure, private vendor session.</p>
         </div>
       </section>
     </main>

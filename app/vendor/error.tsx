@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowLeft, RefreshCw, Store } from "lucide-react";
+import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 type VendorErrorProps = {
@@ -14,10 +14,7 @@ export default function VendorError({ retry }: VendorErrorProps) {
       <section className="vendor-login-art" aria-label="Chapega.com Vendor Studio">
         <div className="vendor-login-brand">
           <span className="vendor-wordmark">Chapega.com</span>
-          <span>Vendor studio</span>
-        </div>
-        <div className="vendor-login-gift" aria-hidden="true">
-          <Store strokeWidth={1.15} />
+          <span>Vendor Studio</span>
         </div>
         <div className="vendor-login-art-copy">
           <p>Studio connection</p>
@@ -32,7 +29,7 @@ export default function VendorError({ retry }: VendorErrorProps) {
           </Link>
           <div className="vendor-login-mobile-brand">
             <span className="vendor-wordmark">Chapega.com</span>
-            <span>Vendor studio</span>
+            <span>Vendor Studio</span>
           </div>
           <AlertTriangle size={34} className="icon-danger" aria-hidden="true" />
           <header>

@@ -1,17 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ChevronRight,
-  Gift,
-  LogIn,
-  MessageCircle,
-  QrCode,
-  ShieldCheck,
-  ShoppingBag,
-  Sparkles,
-  Wifi,
-  WifiOff,
-} from "lucide-react";
+import { ChevronRight, LogIn, Wifi, WifiOff } from "lucide-react";
 import { BrandLogo } from "./brand-logo";
 
 type WelcomeScreenProps = {
@@ -26,6 +15,8 @@ type WelcomeScreenProps = {
   vendorLoginHref: string;
 };
 
+const steps = ["Choose gifts", "Review your cart", "Scan the QR code", "Tap Send in WhatsApp"];
+
 export function WelcomeScreen({
   shopName,
   kioskName,
@@ -35,13 +26,6 @@ export function WelcomeScreen({
   vendorLoginHref,
   ready = true,
 }: WelcomeScreenProps) {
-  const steps = [
-    { icon: Gift, label: "Choose gifts" },
-    { icon: ShoppingBag, label: "Review cart" },
-    { icon: QrCode, label: "Scan QR" },
-    { icon: MessageCircle, label: "Send on WhatsApp" },
-  ];
-
   return (
     <main className="welcome-screen">
       <header className="welcome-header">
@@ -61,17 +45,6 @@ export function WelcomeScreen({
             )}
             <span>{online ? "Online" : "Offline"}</span>
           </div>
-          {/* No prefetch: staff rarely use it, and on the public kiosk it would
-              compete with the first paint (AUD-24). */}
-          <Link
-            className="kiosk-vendor-access welcome-settings"
-            href={vendorLoginHref}
-            prefetch={false}
-            aria-label="Vendor login"
-          >
-            <LogIn size={19} aria-hidden="true" />
-            <span>Vendor login</span>
-          </Link>
         </div>
       </header>
 
@@ -79,25 +52,28 @@ export function WelcomeScreen({
         <section className="welcome-copy">
           {showPreviewLabel ? <span className="preview-chip">Approval preview</span> : null}
           <h1 className="welcome-title" data-screen-heading tabIndex={-1}>
-            Find the <span>Perfect Gift</span>
+            Choose a gift. Send the order on WhatsApp.
           </h1>
           <p className="welcome-lede">
-            Choose your gifts from {shopName} and prepare the order on WhatsApp.
+            Gifts from {shopName}. Personalisation is confirmed on WhatsApp, and you pay at the
+            counter.
           </p>
           <div className="welcome-actions">
             <button className="primary-button" onClick={onStart} disabled={!ready}>
               Start Shopping <ChevronRight size={20} aria-hidden="true" />
             </button>
-            <Link className="secondary-button" href={vendorLoginHref} prefetch={false}>
-              <LogIn size={18} aria-hidden="true" /> Vendor login
+            {/* No prefetch: staff rarely use it, and on the public kiosk it would
+                compete with the first paint (AUD-24). */}
+            <Link className="welcome-vendor-link" href={vendorLoginHref} prefetch={false}>
+              <LogIn size={16} aria-hidden="true" /> Vendor login
             </Link>
           </div>
         </section>
 
-        <section className="welcome-visual" aria-label="Premium gift selection">
+        <section className="welcome-visual" aria-label="Gifts on display">
           <Image
             src="/art/gift-atelier-hero.png"
-            alt="A curated gift display with a flower keepsake frame, acrylic lamp, gift box, and wooden clock"
+            alt="A gift display with a flower keepsake frame, acrylic lamp, gift box, and wooden clock"
             width={1448}
             height={1086}
             sizes="(max-width: 900px) 100vw, 56vw"
@@ -107,36 +83,17 @@ export function WelcomeScreen({
         </section>
       </div>
 
-      <ul className="welcome-assurance" aria-label="Ordering assurances">
-        <li>
-          <Sparkles size={18} aria-hidden="true" />
-          <span>Personalisation confirmed on WhatsApp</span>
-        </li>
-        <li>
-          <ShieldCheck size={18} aria-hidden="true" />
-          <span>No online payment</span>
-        </li>
-        <li>
-          <MessageCircle size={18} aria-hidden="true" />
-          <span>Nothing is sent until you tap Send</span>
-        </li>
-      </ul>
-
-      <nav className="welcome-footer" aria-label="How ordering works">
-        <ol className="steps-row">
-          {steps.map(({ icon: Icon, label }, index) => (
-            <li className={`step-item step-item--${index + 1}`} key={label}>
-              <span className="step-item__number" aria-hidden="true">
-                {index + 1}
-              </span>
-              <span className="step-item__icon" aria-hidden="true">
-                <Icon size={24} />
-              </span>
-              <span className="step-item__label">{label}</span>
-            </li>
-          ))}
-        </ol>
-      </nav>
+      {/* One compact line: the four steps, then the one promise that matters. */}
+      <div className="welcome-strip">
+        <nav className="welcome-footer" aria-label="How ordering works">
+          <ol className="steps-row">
+            {steps.map((label) => (
+              <li key={label}>{label}</li>
+            ))}
+          </ol>
+        </nav>
+        <p className="welcome-assurance">Nothing is sent until you tap Send.</p>
+      </div>
       <Link className="welcome-privacy-link" href="/privacy">
         Privacy notice
       </Link>

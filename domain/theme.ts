@@ -30,7 +30,7 @@ export function themeCookieString(choice: ThemeChoice, secure: boolean): string 
 export const THEMEABLE_VIEWPORT = {
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fff9f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#231a1f" },
+    { media: "(prefers-color-scheme: light)", color: "#f6f5f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#151213" },
   ],
 } as const;

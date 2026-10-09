@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle, Plus, Store } from "lucide-react";
+import { LoaderCircle, Plus } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { AdminVendorMutationResult, CreateAdminVendorInput } from "@/types/admin";
 import { PasswordToggle } from "../password-toggle";
@@ -127,9 +127,7 @@ export function AddVendorDialog({ onClose, onCreated }: AddVendorDialogProps) {
         ) : null}
 
         <fieldset>
-          <legend>
-            <Store size={18} aria-hidden="true" /> Storefront
-          </legend>
+          <legend>Storefront</legend>
           <div className="admin-form-grid">
             <label className="admin-field admin-field--full">
               <span>Vendor name</span>

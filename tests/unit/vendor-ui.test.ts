@@ -170,7 +170,6 @@ describe("Vendor Studio state safeguards", () => {
         data,
         onViewOrders: vi.fn(),
         onViewProducts: vi.fn(),
-        onAddProduct: vi.fn(),
         onOpenOrder: vi.fn(),
       }),
     );

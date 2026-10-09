@@ -1,17 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import {
-  Check,
-  Clock3,
-  Gift,
-  MessageCircle,
-  Minus,
-  PackageCheck,
-  Plus,
-  ShoppingBag,
-  X,
-} from "lucide-react";
+import { Check, Gift, Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { formatInr } from "@/domain/money";
 import type { Product } from "@/types/kiosk";
@@ -127,15 +117,11 @@ export function ProductDetailModal({
 
             <div className="detail-meta">
               <div>
-                <strong>
-                  <Clock3 size={16} /> Preparation
-                </strong>
+                <strong>Preparation</strong>
                 {product.preparationTime}
               </div>
               <div>
-                <strong>
-                  <PackageCheck size={16} /> Availability
-                </strong>
+                <strong>Availability</strong>
                 {unavailable ? "Currently unavailable" : "Available to order"}
               </div>
             </div>
@@ -195,7 +181,6 @@ export function ProductDetailModal({
             </div>
 
             <div className="product-detail-guidance">
-              <MessageCircle size={17} aria-hidden="true" />
               <span>
                 Names, photos, and final personalisation details are confirmed with the shop on
                 WhatsApp.

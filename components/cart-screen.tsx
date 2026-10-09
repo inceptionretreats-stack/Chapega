@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Gift, Minus, PackageOpen, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { Gift, Minus, Plus, Trash2 } from "lucide-react";
 import { formatInr } from "@/domain/money";
 import type { CartLine, CartTotals, Product } from "@/types/kiosk";
 import { CheckoutStepper } from "./checkout-stepper";
@@ -38,12 +38,11 @@ export function CartScreen({
       <main className="screen-page narrow cart-page">
         <CheckoutStepper active={1} />
         <div className="empty-state">
-          <PackageOpen size={46} />
           <div>
             <h2 data-screen-heading tabIndex={-1}>
               Your cart is empty
             </h2>
-            <p>Add at least one thoughtful gift before continuing to Pay Later.</p>
+            <p>Add at least one gift before continuing to Pay Later.</p>
             <button className="primary-button" onClick={onContinueShopping}>
               Browse gifts
             </button>
@@ -171,9 +170,6 @@ export function CartScreen({
                 {unitCount} gift {unitCount === 1 ? "unit" : "units"} in this order
               </p>
             </div>
-            <span className="transaction-summary__icon" aria-hidden="true">
-              <ShoppingBag size={20} />
-            </span>
           </header>
           <div className="transaction-summary__body">
             <div className="transaction-summary__totals">
@@ -191,7 +187,6 @@ export function CartScreen({
               </div>
             </div>
             <div className="notice transaction-summary__notice">
-              <ShoppingBag size={18} />
               <span>You can select up to {maxUnits} total gift units in this kiosk order.</span>
             </div>
           </div>

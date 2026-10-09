@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowLeft, RefreshCw, Store } from "lucide-react";
+import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 type AdminErrorProps = {
@@ -15,9 +15,6 @@ export default function AdminError({ retry }: AdminErrorProps) {
         <div className="admin-login-brand">
           <span className="admin-wordmark">Chapega.com</span>
           <span>Platform admin</span>
-        </div>
-        <div className="admin-login-art__mark" aria-hidden="true">
-          <Store size={74} strokeWidth={1.05} />
         </div>
         <div className="admin-login-art__copy">
           <h2>Platform data is temporarily out of reach.</h2>

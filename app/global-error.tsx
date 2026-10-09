@@ -25,8 +25,8 @@ export default function GlobalError({
           padding: "24px",
           fontFamily:
             "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-          background: "#faf7f2",
-          color: "#2b2420",
+          background: "#f6f5f4",
+          color: "#1e1a1b",
         }}
       >
         <title>Chapega.com is temporarily unavailable</title>
@@ -42,9 +42,9 @@ export default function GlobalError({
             style={{
               font: "inherit",
               padding: "0.75rem 1.5rem",
-              borderRadius: "999px",
+              borderRadius: "6px",
               border: "none",
-              background: "#2b2420",
+              background: "#7a263a",
               color: "#ffffff",
               cursor: "pointer",
             }}

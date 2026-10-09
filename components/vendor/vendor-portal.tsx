@@ -49,19 +49,19 @@ type SyncStatus = "synced" | "syncing" | "error";
 const viewCopy: Readonly<Record<VendorView, { title: string; description: string }>> = {
   dashboard: {
     title: "Studio overview",
-    description: "Orders, stock, and kiosk activity in one calm view.",
+    description: "Today’s orders, stock and kiosk status.",
   },
   products: {
     title: "Products",
-    description: "Manage your inventory, availability, and kiosk catalogue.",
+    description: "Prices, stock and what shows on the kiosk.",
   },
   orders: {
     title: "Orders",
-    description: "Confirm and fulfil each customer request with a clear next step.",
+    description: "Confirm each order once its WhatsApp message reaches the shop.",
   },
   settings: {
     title: "Shop settings",
-    description: "Control the kiosk identity, WhatsApp handoff, and ordering rules.",
+    description: "Kiosk name, WhatsApp number and ordering rules.",
   },
 };
 
@@ -361,6 +361,14 @@ export function VendorPortal({ initialData }: PortalProps) {
   };
 
   const copy = viewCopy[view];
+  // The shop name lives in the page header (the sidebar shows the brand once).
+  const subtitle = `${data.vendor.displayName} · ${
+    view === "dashboard"
+      ? data.settings.storeOpen
+        ? "Kiosk open and taking orders."
+        : "Ordering is paused."
+      : copy.description
+  }`;
   const activeOrders = data.orders.filter(
     (order) => order.status !== "completed" && order.status !== "cancelled",
   ).length;
@@ -401,8 +409,7 @@ export function VendorPortal({ initialData }: PortalProps) {
       >
         <div className="vendor-sidebar-brand">
           <span className="vendor-wordmark">Chapega.com</span>
-          <span>Vendor studio</span>
-          <strong className="vendor-workspace-name">{data.vendor.displayName}</strong>
+          <span>Vendor Studio</span>
           <button
             ref={mobileMenuCloseRef}
             className="vendor-sidebar-close"
@@ -447,14 +454,6 @@ export function VendorPortal({ initialData }: PortalProps) {
             );
           })}
         </nav>
-        <div className="vendor-sidebar-note" aria-hidden="true">
-          <Store size={23} />
-          <p>
-            Beautiful gifts.
-            <br />
-            Brighter days.
-          </p>
-        </div>
         <ThemeControl className="vendor-theme-control" />
         <button
           className="vendor-signout"
@@ -494,15 +493,12 @@ export function VendorPortal({ initialData }: PortalProps) {
             {view === "dashboard" ? (
               <>
                 <h1>Welcome back, {data.user.name}</h1>
-                <p>
-                  Your kiosk is{" "}
-                  {data.settings.storeOpen ? "open and ready for customers" : "paused"}.
-                </p>
+                <p>{subtitle}</p>
               </>
             ) : (
               <>
                 <h1>{copy.title}</h1>
-                <p>{copy.description}</p>
+                <p>{subtitle}</p>
               </>
             )}
           </div>
@@ -587,12 +583,12 @@ export function VendorPortal({ initialData }: PortalProps) {
             {view === "dashboard" ? (
               <>
                 <h1>Welcome back, {data.user.name}</h1>
-                <p>{copy.description}</p>
+                <p>{subtitle}</p>
               </>
             ) : (
               <>
                 <h1>{copy.title}</h1>
-                <p>{copy.description}</p>
+                <p>{subtitle}</p>
               </>
             )}
           </div>
@@ -603,7 +599,6 @@ export function VendorPortal({ initialData }: PortalProps) {
               canManageCatalogue={canManageCatalogue}
               onViewOrders={() => selectView("orders")}
               onViewProducts={() => selectView("products")}
-              onAddProduct={addProduct}
               onOpenOrder={openOrder}
             />
           ) : null}

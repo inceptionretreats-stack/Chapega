@@ -18,7 +18,7 @@ export default async function VendorSelectPage() {
     <main className="vendor-select-shell">
       <section className="vendor-select-card" aria-labelledby="vendor-select-title">
         <span className="vendor-wordmark">Chapega.com</span>
-        <p className="vendor-select-kicker">Vendor studio</p>
+        <p className="vendor-select-kicker">Vendor Studio</p>
         <h1 id="vendor-select-title">Choose a workspace</h1>
         <p>
           Select the shop you want to manage. Your role and permissions are checked again for every

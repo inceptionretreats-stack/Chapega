@@ -1,15 +1,6 @@
 "use client";
 
-import {
-  Archive,
-  ImagePlus,
-  Layers3,
-  LoaderCircle,
-  PackageCheck,
-  Plus,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Archive, ImagePlus, LoaderCircle, PackageCheck, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { formatInr } from "@/domain/money";
 import type { ProductVariant } from "@/types/kiosk";
@@ -800,9 +791,6 @@ export function VendorProductEditor({
 
                 {draft.variants.length === 0 ? (
                   <div className="vendor-options-empty">
-                    <span aria-hidden="true">
-                      <Layers3 size={21} />
-                    </span>
                     <div>
                       <strong>No options added</strong>
                       <p>Customers will order this product using its main price and stock.</p>
