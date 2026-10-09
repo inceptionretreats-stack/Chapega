@@ -58,7 +58,9 @@ test("stale kiosk sessions discard customer details before rendering", async ({ 
   );
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Find the Perfect Gift" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Choose a gift. Send the order on WhatsApp." }),
+  ).toBeVisible();
   await expect(page.getByText("Private Customer")).toHaveCount(0);
   await expect
     .poll(() => page.evaluate((key) => sessionStorage.getItem(key), ACTIVE_SESSION_KEY))
@@ -71,7 +73,9 @@ test("customer completes the kiosk WhatsApp QR handoff and starts a clean order"
 }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Find the Perfect Gift" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Choose a gift. Send the order on WhatsApp." }),
+  ).toBeVisible();
   await page.getByRole("button", { name: /Start Shopping/i }).click();
   await expect(page.getByRole("heading", { name: /Our products/i })).toBeVisible();
 
@@ -237,7 +241,9 @@ test("customer completes the kiosk WhatsApp QR handoff and starts a clean order"
   const startOver = page.getByRole("alertdialog", { name: "Start a new order?" });
   await expect(startOver.getByRole("button", { name: "Keep this QR" })).toBeFocused();
   await startOver.getByRole("button", { name: "Start new order" }).click();
-  await expect(page.getByRole("heading", { name: "Find the Perfect Gift" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Choose a gift. Send the order on WhatsApp." }),
+  ).toBeVisible();
   expect(
     await page.evaluate((sessionKey) => sessionStorage.getItem(sessionKey), ACTIVE_SESSION_KEY),
   ).toBeNull();

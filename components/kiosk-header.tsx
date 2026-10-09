@@ -34,7 +34,7 @@ export function KioskHeader({
             <ArrowLeft size={22} />
           </button>
         ) : null}
-        <BrandLogo compact strapline />
+        <BrandLogo compact />
         <span className="kiosk-header__store-name">{shopName}</span>
       </div>
 

@@ -310,11 +310,11 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
     await test.step("show the published product in the customer kiosk", async () => {
       const kioskPage = await context.newPage();
       await kioskPage.goto("/");
-      await expect(kioskPage.getByRole("heading", { name: "Find the Perfect Gift" })).toBeVisible();
-      await kioskPage.getByRole("button", { name: /Start Shopping/i }).click();
       await expect(
-        kioskPage.getByRole("heading", { name: "Find a gift worth keeping" }),
+        kioskPage.getByRole("heading", { name: "Choose a gift. Send the order on WhatsApp." }),
       ).toBeVisible();
+      await kioskPage.getByRole("button", { name: /Start Shopping/i }).click();
+      await expect(kioskPage.getByRole("heading", { name: "Choose your gifts" })).toBeVisible();
       await kioskPage.getByRole("searchbox", { name: "Search gifts" }).fill(productName);
       const kioskCard = kioskPage.locator("article.product-card").filter({
         has: kioskPage.getByRole("heading", { name: productName }),

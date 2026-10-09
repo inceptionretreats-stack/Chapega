@@ -1,56 +1,24 @@
 "use client";
 
 import Image from "next/image";
-import {
-  Boxes,
-  Check,
-  ChevronRight,
-  CircleHelp,
-  CreditCard,
-  Eye,
-  Flower2,
-  Frame,
-  Gift,
-  Grid2X2,
-  Heart,
-  Images,
-  MessageCircle,
-  Minus,
-  PackageOpen,
-  Plus,
-  ShieldCheck,
-  ShoppingBag,
-  Trash2,
-} from "lucide-react";
+import { Check, ChevronRight, CircleHelp, Minus, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { formatInr } from "@/domain/money";
 import type { CartLine, CartTotals, CategoryFilter, Product, ProductCategory } from "@/types/kiosk";
 
 const MOMENT_FILTERS = [
-  { value: "all", label: "All moments", Icon: Grid2X2 },
-  { value: "Birthday", label: "Birthday", Icon: Gift },
-  { value: "Wedding", label: "Wedding", Icon: Heart },
-  { value: "Anniversary", label: "Anniversary", Icon: Flower2 },
-  { value: "For Home", label: "For Home", Icon: Frame },
+  { value: "all", label: "All occasions" },
+  { value: "Birthday", label: "Birthday" },
+  { value: "Wedding", label: "Wedding" },
+  { value: "Anniversary", label: "Anniversary" },
+  { value: "For Home", label: "For Home" },
 ] as const;
 
 type MomentFilter = (typeof MOMENT_FILTERS)[number]["value"];
 type SortOption = "featured" | "price-ascending" | "price-descending";
 
-function categoryPresentation(category: CategoryFilter) {
-  if (category === "all") {
-    return { Icon: Grid2X2, label: "All Products" };
-  }
-
-  const normalized = category.toLowerCase();
-  if (normalized.includes("hamper")) return { Icon: Boxes, label: category };
-  if (normalized.includes("varmala") || normalized.includes("wedding"))
-    return { Icon: Heart, label: category };
-  if (normalized.includes("resin") || normalized.includes("flower"))
-    return { Icon: Flower2, label: category };
-  if (normalized.includes("frame")) return { Icon: Frame, label: category };
-  if (normalized.includes("personal")) return { Icon: Images, label: category };
-  return { Icon: Gift, label: category };
+function categoryLabel(category: CategoryFilter) {
+  return category === "all" ? "All Products" : category;
 }
 
 type CatalogueScreenProps = {
@@ -128,36 +96,32 @@ export function CatalogueScreen({
         <header className="catalogue-intro">
           <div className="catalogue-intro__copy">
             <h1 data-screen-heading tabIndex={-1}>
-              Find a gift worth keeping
+              Choose your gifts
             </h1>
-            <p>Thoughtful creations for the people who make life special.</p>
+            <p>Add up to {maxUnits} gifts, then review your cart.</p>
           </div>
         </header>
 
         <nav className="category-rail" aria-label="Gift categories">
-          {(["all", ...categories] as const).map((category) => {
-            const { Icon, label } = categoryPresentation(category);
-            return (
-              <button
-                key={category}
-                className={`category-button ${selectedCategory === category ? "active" : ""}`}
-                onClick={() => onCategoryChange(category)}
-                aria-pressed={selectedCategory === category}
-              >
-                <Icon size={17} strokeWidth={1.8} />
-                {label}
-              </button>
-            );
-          })}
+          {(["all", ...categories] as const).map((category) => (
+            <button
+              key={category}
+              className={`category-button ${selectedCategory === category ? "active" : ""}`}
+              onClick={() => onCategoryChange(category)}
+              aria-pressed={selectedCategory === category}
+            >
+              {categoryLabel(category)}
+            </button>
+          ))}
         </nav>
 
         <section className="moment-filter" aria-labelledby="moment-filter-heading">
           <div className="moment-filter__heading">
-            <h2 id="moment-filter-heading">Shop by moment</h2>
-            <p>Choose the feeling first—we’ll help narrow the gifts.</p>
+            <h2 id="moment-filter-heading">Shop by occasion</h2>
+            <p>Show gifts for one occasion.</p>
           </div>
-          <div className="moment-filter__options" role="group" aria-label="Filter by moment">
-            {MOMENT_FILTERS.map(({ value, label, Icon }) => (
+          <div className="moment-filter__options" role="group" aria-label="Filter by occasion">
+            {MOMENT_FILTERS.map(({ value, label }) => (
               <button
                 key={value}
                 className={`moment-filter__button ${selectedMoment === value ? "active" : ""}`}
@@ -165,7 +129,6 @@ export function CatalogueScreen({
                 onClick={() => setSelectedMoment(value)}
                 aria-pressed={selectedMoment === value}
               >
-                <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
                 {label}
               </button>
             ))}
@@ -176,9 +139,7 @@ export function CatalogueScreen({
           <div className="section-heading-row">
             <div>
               <h2>
-                {selectedCategory === "all"
-                  ? "Our products"
-                  : categoryPresentation(selectedCategory).label}
+                {selectedCategory === "all" ? "Our products" : categoryLabel(selectedCategory)}
               </h2>
               <span
                 className="catalogue-results"
@@ -243,9 +204,6 @@ export function CatalogueScreen({
                           sizes="(max-width: 560px) calc(100vw - 32px), (max-width: 900px) 50vw, (max-width: 1120px) 33vw, 25vw"
                           loading={index < 4 ? "eager" : "lazy"}
                         />
-                        <span className="product-card__view-overlay" aria-hidden="true">
-                          <Eye size={17} /> View gift
-                        </span>
                       </button>
                       {selectedQuantity > 0 ? (
                         <span className="product-card__selected-badge">
@@ -286,7 +244,7 @@ export function CatalogueScreen({
                           onClick={() => onOpenProduct(product)}
                           aria-label={`View details for ${product.name}`}
                         >
-                          <Eye size={16} /> View details
+                          View details
                         </button>
                         <button
                           className={`quick-button ${selectedQuantity > 0 ? "selected" : ""}`}
@@ -315,10 +273,9 @@ export function CatalogueScreen({
             </div>
           ) : (
             <div className="empty-state">
-              <PackageOpen size={42} />
               <div>
                 <h2>No gifts match that search</h2>
-                <p>Try another product name, category, or moment.</p>
+                <p>Try another product name, category, or occasion.</p>
                 <button className="secondary-button" onClick={clearFilters}>
                   Clear search and filters
                 </button>
@@ -355,26 +312,17 @@ export function CatalogueScreen({
       {cart.length ? (
         <>
           <div className="catalogue-reassurance" aria-label="Ordering reassurance">
-            <span>
-              <Gift size={17} aria-hidden="true" /> Personalised with care
-            </span>
-            <span>
-              <CreditCard size={17} aria-hidden="true" /> No online payment
-            </span>
-            <span>
-              <MessageCircle size={17} aria-hidden="true" /> Send on WhatsApp
-            </span>
+            <span>Pay at the counter</span>
+            <span>You send the order on WhatsApp</span>
             <span className="catalogue-reassurance__detail">
-              <ShieldCheck size={17} aria-hidden="true" /> Nothing is sent until you tap Send
+              Nothing is sent until you tap Send
             </span>
           </div>
           <aside className="cart-rail" aria-label="Cart summary">
             <div className="cart-rail__inner">
               <div className="cart-rail__identity">
-                <ShoppingBag size={30} aria-hidden="true" />
                 <div>
-                  <h2>Your Selection</h2>
-                  <p className="cart-rail__lead-item">Add your favourite gifts</p>
+                  <h2>Your cart</h2>
                   <span className="cart-rail__count">
                     {unitCount} of {maxUnits} gifts selected
                   </span>
@@ -421,11 +369,6 @@ export function CatalogueScreen({
                     </button>
                   </div>
                 ))}
-                {unitCount < maxUnits ? (
-                  <div className="cart-rail__add-slot" aria-hidden="true">
-                    <Plus size={24} />
-                  </div>
-                ) : null}
               </div>
 
               <div className="capacity-meter">
@@ -433,7 +376,6 @@ export function CatalogueScreen({
                   <span>
                     {unitCount} / {maxUnits} items
                   </span>
-                  <span>Capacity&nbsp; {maxUnits}</span>
                 </div>
                 <div
                   className="capacity-meter__track"
@@ -457,7 +399,7 @@ export function CatalogueScreen({
                   {formatInr(totals.giftWrapPaise)}.
                 </span>
                 <button className="primary-button" onClick={onOpenCart} aria-label="Review cart">
-                  Review Selection <ChevronRight size={19} />
+                  Review cart <ChevronRight size={19} />
                 </button>
               </div>
             </div>
@@ -471,11 +413,8 @@ export function CatalogueScreen({
           onClick={onOpenCart}
           aria-label={`Cart · ${unitCount} / ${maxUnits} · ${formatInr(totals.totalPaise)} · ${cart.map((line) => `${line.productName}, quantity ${line.quantity}`).join("; ")}`}
         >
-          <span className="mobile-cart-button__icon">
-            <ShoppingBag size={20} />
-          </span>
           <span className="mobile-cart-button__copy">
-            <strong>Your Selection</strong>
+            <strong>Your cart</strong>
             <small>
               {unitCount} / {maxUnits} gifts · {formatInr(totals.totalPaise)}
             </small>

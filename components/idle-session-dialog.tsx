@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock3, RotateCcw, ShieldCheck } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 import { useRef } from "react";
 import { useModalFocus } from "./use-modal-focus";
 
@@ -30,12 +30,7 @@ export function IdleSessionDialog({
         aria-describedby="kiosk-idle-description"
         tabIndex={-1}
       >
-        <span className="kiosk-idle-icon" aria-hidden="true">
-          <Clock3 size={30} />
-        </span>
-        <p className="kiosk-idle-eyebrow">
-          <ShieldCheck size={15} /> Privacy check
-        </p>
+        <p className="kiosk-idle-eyebrow">Privacy check</p>
         <h2 id="kiosk-idle-title">Are you still choosing?</h2>
         <p id="kiosk-idle-description">
           This kiosk will clear the cart and customer details in {secondsRemaining}{" "}
