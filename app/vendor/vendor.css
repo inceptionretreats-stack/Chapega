@@ -1,12 +1,6 @@
 .vendor-route {
   min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at 88% 0%,
-      color-mix(in srgb, var(--surface-rose) 22%, transparent),
-      transparent 26rem
-    ),
-    var(--surface-page);
+  background: var(--surface-page);
   color: var(--text);
   font-family: var(--font-ui);
 }
@@ -141,7 +135,7 @@
 }
 
 .vendor-primary {
-  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  background: var(--accent);
   box-shadow: 0 11px 26px color-mix(in srgb, var(--shadow-color) 16%, transparent);
   color: var(--text-on-accent);
 }
@@ -150,21 +144,22 @@
   .vendor-primary:not(:disabled):hover {
     box-shadow: 0 14px 30px color-mix(in srgb, var(--shadow-color) 22%, transparent);
     transform: translateY(-1px);
+    background: var(--accent-strong);
   }
 }
 
 .vendor-secondary,
 .vendor-quiet {
   border-color: var(--border-4);
-  background: color-mix(in srgb, var(--surface) 76%, transparent);
-  color: var(--text-accent-3);
+  background: var(--surface);
+  color: var(--text);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .vendor-secondary:not(:disabled):hover,
   .vendor-quiet:not(:disabled):hover {
     border-color: var(--border-accent-3);
-    background: var(--surface);
+    background: var(--surface-subtle);
   }
 }
 
@@ -181,10 +176,10 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 9px;
   background: var(--surface);
-  color: var(--text-accent-3);
+  color: var(--text);
   display: inline-grid;
   place-items: center;
 }
@@ -214,13 +209,7 @@
   position: relative;
   overflow: hidden;
   border-right: 1px solid var(--border);
-  background:
-    linear-gradient(
-      155deg,
-      color-mix(in srgb, var(--surface) 78%, transparent),
-      color-mix(in srgb, var(--surface-tint-strong) 54%, transparent)
-    ),
-    var(--surface-page);
+  background: var(--surface-subtle);
 }
 
 .vendor-login-art::before,
@@ -287,10 +276,10 @@
 .vendor-workspace-links a {
   min-height: 44px;
   padding: 0 11px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 9px;
-  background: color-mix(in srgb, var(--surface) 62%, transparent);
-  color: var(--text-accent-3);
+  background: var(--surface);
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -365,10 +354,10 @@
   min-height: 44px;
   margin-bottom: 28px;
   padding: 0 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface) 70%, transparent);
-  color: var(--text-accent-3);
+  background: var(--surface);
+  color: var(--text);
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -466,7 +455,7 @@
 .vendor-field select:focus,
 .vendor-search-field input:focus,
 .vendor-select-field select:focus {
-  border-color: var(--border-accent-soft);
+  border-color: var(--border-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-accent) 10%, transparent);
 }
 
@@ -491,12 +480,12 @@
   display: grid;
   grid-template-columns: 46px minmax(0, 1fr) auto;
   align-items: center;
-  color: var(--text-6);
+  color: var(--text-muted);
   overflow: hidden;
 }
 
 .vendor-input-with-icon:focus-within {
-  border-color: var(--border-accent-soft);
+  border-color: var(--border-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-accent) 10%, transparent);
 }
 
@@ -571,7 +560,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-accent-3);
+  color: var(--text);
   font-size: 13px;
 }
 
@@ -807,13 +796,13 @@ html:has(.vendor-app-shell) {
 
 @media (hover: hover) and (pointer: fine) {
   .vendor-sidebar nav button:hover {
-    background: color-mix(in srgb, var(--surface-tint-strong) 52%, transparent);
+    background: var(--surface-subtle);
   }
 }
 
 .vendor-sidebar nav button.is-selected {
-  background: linear-gradient(90deg, var(--surface-14), var(--surface-tint));
-  color: var(--text-accent-3);
+  background: var(--surface-selected);
+  color: var(--text-accent);
 }
 
 .vendor-sidebar nav button.is-selected::before {
@@ -1063,13 +1052,7 @@ html:has(.vendor-app-shell) {
   padding: 28px 30px;
   border: 1px solid var(--border-5);
   border-radius: 12px;
-  background:
-    linear-gradient(
-      100deg,
-      color-mix(in srgb, var(--surface) 90%, transparent),
-      color-mix(in srgb, var(--surface-tint) 90%, transparent)
-    ),
-    var(--surface);
+  background: var(--surface);
   box-shadow: 0 16px 46px color-mix(in srgb, var(--shadow-color) 5.5%, transparent);
   display: grid;
   grid-template-columns: 0.72fr 0.92fr 1.3fr 1px 0.95fr 0.85fr minmax(120px, 0.7fr);
@@ -1245,7 +1228,7 @@ html:has(.vendor-app-shell) {
 @media (hover: hover) and (pointer: fine) {
   .vendor-row-action:hover {
     border-color: var(--border-4);
-    background: var(--surface-tint);
+    background: var(--surface-subtle);
   }
 }
 
@@ -1301,7 +1284,7 @@ html:has(.vendor-app-shell) {
   height: 50px;
   border-radius: 50%;
   background: var(--surface-11);
-  color: var(--text-accent);
+  color: var(--text-muted);
   display: grid;
   place-items: center;
 }
@@ -1356,7 +1339,7 @@ html:has(.vendor-app-shell) {
   white-space: nowrap;
 }
 .vendor-stock-list span {
-  color: var(--text-gold);
+  color: var(--text-warning);
   font-size: 10px;
   font-weight: 800;
 }
@@ -1366,10 +1349,10 @@ html:has(.vendor-app-shell) {
 .vendor-stock-list button {
   min-height: 36px;
   padding: 0 9px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-control);
   border-radius: 7px;
   background: var(--surface);
-  color: var(--text-accent);
+  color: var(--text);
   font-size: 10px;
   font-weight: 800;
 }
@@ -1380,7 +1363,7 @@ html:has(.vendor-app-shell) {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--text-accent);
+  color: var(--text-muted);
 }
 
 .vendor-shop-status {
@@ -1444,7 +1427,7 @@ html:has(.vendor-app-shell) {
   padding: 19px 27px;
   border: 1px solid var(--border-14);
   border-radius: 12px;
-  background: linear-gradient(95deg, var(--surface-tint), var(--surface-18));
+  background: var(--surface);
   display: grid;
   grid-template-columns: 50px minmax(0, 1fr) auto;
   align-items: center;
@@ -1579,7 +1562,7 @@ html:has(.vendor-app-shell) {
   background: currentColor;
 }
 .vendor-stock-state.is-low {
-  color: var(--text-gold);
+  color: var(--text-warning);
 }
 .vendor-stock-state.is-out {
   color: var(--text-accent-11);
@@ -1616,7 +1599,7 @@ html:has(.vendor-app-shell) {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: var(--surface);
+  background: var(--text-on-accent);
   box-shadow: 0 2px 5px color-mix(in srgb, var(--shadow-ink) 22%, transparent);
   position: absolute;
   left: 2px;
@@ -1634,7 +1617,7 @@ html:has(.vendor-app-shell) {
 }
 .vendor-mini-toggle input:focus-visible + i,
 .vendor-toggle-row input:focus-visible + i {
-  outline: 3px solid color-mix(in srgb, var(--border-accent) 28%, transparent);
+  outline: 2px solid var(--border-accent);
   outline-offset: 3px;
 }
 
@@ -1744,7 +1727,7 @@ html:has(.vendor-app-shell) {
   display: grid;
   place-items: center;
   gap: 8px;
-  color: var(--text-accent);
+  color: var(--text-muted);
   text-align: center;
 }
 .vendor-image-placeholder strong {
@@ -1767,7 +1750,7 @@ html:has(.vendor-app-shell) {
   border: 1px solid var(--border-6);
   border-radius: 8px;
   background: var(--surface);
-  color: var(--text-accent);
+  color: var(--text);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1804,13 +1787,7 @@ html:has(.vendor-app-shell) {
   padding: 17px 18px;
   border: 1px solid var(--border);
   border-radius: 11px;
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      color-mix(in srgb, var(--gold-fill-4) 13%, transparent),
-      transparent 12rem
-    ),
-    linear-gradient(135deg, var(--surface-5), var(--surface-3));
+  background: var(--surface-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1853,7 +1830,7 @@ html:has(.vendor-app-shell) {
   border-radius: 8px;
   background: var(--surface);
   box-shadow: 0 7px 18px color-mix(in srgb, var(--shadow-color) 6%, transparent);
-  color: var(--text-accent-3);
+  color: var(--text);
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
@@ -1882,7 +1859,7 @@ html:has(.vendor-app-shell) {
 
 .vendor-option-add:focus-visible,
 .vendor-option-remove:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--border-accent) 20%, transparent);
+  outline: 2px solid var(--border-accent);
   outline-offset: 3px;
 }
 
@@ -1902,7 +1879,7 @@ html:has(.vendor-app-shell) {
   height: 40px;
   border-radius: 50%;
   background: var(--surface-11);
-  color: var(--text-accent);
+  color: var(--text-muted);
   display: inline-grid;
   flex: 0 0 auto;
   place-items: center;
@@ -1927,7 +1904,7 @@ html:has(.vendor-app-shell) {
 
 .vendor-option-card {
   overflow: hidden;
-  border: 1px solid var(--border-3);
+  border: 1px solid var(--border);
   border-radius: 11px;
   background: color-mix(in srgb, var(--surface) 83%, transparent);
   box-shadow: 0 9px 24px color-mix(in srgb, var(--shadow-accent-2) 4.5%, transparent);
@@ -1949,7 +1926,7 @@ html:has(.vendor-app-shell) {
   min-height: 62px;
   padding: 10px 12px 10px 14px;
   border-bottom: 1px solid var(--border-2);
-  background: linear-gradient(90deg, var(--surface-3), var(--surface-5));
+  background: var(--surface-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1988,7 +1965,7 @@ html:has(.vendor-app-shell) {
   border: 1px solid var(--border-5);
   border-radius: 50%;
   background: var(--surface);
-  color: var(--text-accent);
+  color: var(--text);
   display: inline-grid;
   flex: 0 0 auto;
   place-items: center;
@@ -2085,7 +2062,7 @@ html:has(.vendor-app-shell) {
 }
 
 .vendor-option-price strong {
-  color: var(--text-accent-3);
+  color: var(--text);
   font-family: var(--font-display);
   font-size: 17px;
   font-weight: 700;
@@ -2263,7 +2240,7 @@ html:has(.vendor-app-shell) {
   }
 }
 .vendor-order-list li > button.is-selected {
-  background: linear-gradient(90deg, var(--surface-21), var(--surface-2));
+  background: var(--surface-selected);
 }
 .vendor-order-list li > button.is-selected::before {
   opacity: 1;
@@ -2275,7 +2252,7 @@ html:has(.vendor-app-shell) {
   gap: 4px;
 }
 .vendor-order-list-main strong {
-  color: var(--text-accent-3);
+  color: var(--text);
   font-size: 12px;
 }
 .vendor-order-list-customer strong {
@@ -2526,7 +2503,7 @@ html:has(.vendor-app-shell) {
   height: 42px;
   border-radius: 50%;
   background: var(--surface-tint-strong);
-  color: var(--text-accent);
+  color: var(--text-muted);
   display: grid;
   place-items: center;
 }
@@ -2892,7 +2869,7 @@ html:has(.vendor-app-shell) {
   }
   .vendor-bottom-nav {
     height: 68px;
-    border-top: 1px solid var(--border-3);
+    border-top: 1px solid var(--border);
     background: color-mix(in srgb, var(--surface-2) 97%, transparent);
     box-shadow: 0 -10px 34px color-mix(in srgb, var(--shadow-color) 8%, transparent);
     display: grid;

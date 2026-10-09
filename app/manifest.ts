@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Browse personalized gifts and prepare a Pay at Counter order on WhatsApp.",
     start_url: "/",
     display: "standalone",
-    background_color: "#fff9f2",
+    background_color: "#f6f5f4",
     theme_color: "#7a263a",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

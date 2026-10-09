@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 // with THEMEABLE_VIEWPORT so a dark system gets a dark canvas there.
 export const viewport: Viewport = {
   colorScheme: "light",
-  themeColor: "#fff9f2",
+  themeColor: "#f6f5f4",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
