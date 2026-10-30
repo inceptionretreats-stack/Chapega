@@ -508,7 +508,7 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
       where vendor_id = ${CHAPEGA_ID} and id = ${draft.id}`;
     await admin`
       update private.orders
-      set status = 'preparing',
+      set status = 'preparing', inventory_committed = true,
           created_at = now() - interval '90 days', updated_at = now() - interval '90 days'
       where vendor_id = ${CHAPEGA_ID} and id = ${inProgress.id}`;
 
