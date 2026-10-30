@@ -6,6 +6,20 @@ the findings of the 2026-10-08 project audit.
 
 ## [Unreleased]
 
+### Security
+
+- Next.js 16.3.8 → 16.4.3 (and `eslint-config-next` with it) for
+  GHSA-2464-fhr4-w9xw (image optimizer RCE with SVG), GHSA-p3m5-59mp-jv5r
+  (Server Actions denial of service) and GHSA-673q-mjm6-r5xr (`use cache`
+  RCE). The app uses neither Server Actions nor `use cache`, and `sharp`
+  was already 0.35.5, so these were not reachable here.
+- zod 4.4.3 → 4.6.7 for GHSA-mrhx-c7xc-m3w5: zod parsed every element of an
+  array before checking `.max()`, so the public kiosk order endpoint could
+  be made to parse an oversized `items` array (bounded by the 128 KB body
+  cap).
+- Both advisories made CI's `npm audit --omit=dev --audit-level=high` step
+  fail, so every pull request was red. It passes again.
+
 ### Changed
 
 - Server functions run in Vercel's Seoul region (`icn1`), next to the Supabase
