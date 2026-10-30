@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { REQUEST_REDACTION_MESSAGE } from "@/domain/order-privacy";
 import type { VendorDatabase } from "@/server/vendor/database";
 import type {
   KioskOrderSubmission,
@@ -48,6 +49,7 @@ vi.mock("@/server/vendor/database", () => ({
     createdAt: new Date().toISOString(),
   }),
   readVendorDatabase: async () => structuredClone(memory.database),
+  redactedFingerprint: (orderId: string) => `redacted:${orderId}`,
   updateVendorDatabase: async <T>(mutation: (draft: VendorDatabase) => T | Promise<T>) => {
     const draft = structuredClone(memory.database) as VendorDatabase;
     memory.mutationActive = true;
@@ -66,8 +68,10 @@ import {
   getKioskBootstrap,
   getVendorBootstrap,
   recordKioskOrder,
+  removeOrderCustomerDetails,
   transitionVendorOrder,
   updateVendorProduct,
+  updateVendorSettings,
 } from "@/server/vendor/service";
 
 const vendor: VendorUser = {
@@ -101,6 +105,7 @@ const vendor: VendorUser = {
     manage_catalogue: true,
     manage_settings: true,
     manage_team: true,
+    erase_customer_data: true,
   },
 };
 
@@ -275,6 +280,7 @@ describe("vendor service persistence rules", () => {
         manage_catalogue: false,
         manage_settings: false,
         manage_team: false,
+        erase_customer_data: false,
       },
     };
     const before = structuredClone(currentDatabase());
@@ -589,5 +595,89 @@ describe("vendor service persistence rules", () => {
     expect(cancelled.inventoryCommitted).toBe(false);
     expect(currentDatabase().products[0].stock).toBe(100_000);
     expect(currentDatabase().products[0].variants[0].stock).toBe(100_000);
+  });
+});
+
+describe("customer details on request and shop renames", () => {
+  const detailed: KioskOrderSubmission = {
+    ...submission,
+    idempotencyKey: "erasure-request",
+    customer: {
+      customerName: "Asha",
+      customerPhone: "98765 43210",
+      giftNote: "Happy birthday",
+      orderNote: "Call first",
+    },
+  };
+
+  it("removes one order's customer details, keeps the order and audits it", async () => {
+    const order = await recordKioskOrder(detailed);
+    expect(order.whatsappUrl).toContain("?text=");
+
+    const removed = await removeOrderCustomerDetails(order.id, order.version, vendor);
+
+    expect(removed.customer).toEqual({
+      customerName: "",
+      customerPhone: "",
+      giftNote: "",
+      orderNote: "",
+    });
+    expect(removed.whatsappMessage).toBe(REQUEST_REDACTION_MESSAGE);
+    expect(removed.whatsappUrl).toMatch(/^https:\/\/wa\.me\/\d+$/);
+    expect(removed).toMatchObject({
+      status: order.status,
+      totalPaise: order.totalPaise,
+      items: order.items,
+      version: order.version + 1,
+    });
+    const stored = currentDatabase().orders.find((candidate) => candidate.id === order.id)!;
+    expect(stored.submissionFingerprint).toBe(`redacted:${order.id}`);
+    expect(currentDatabase().audit.at(-1)).toMatchObject({
+      action: "order.customer_details_removed",
+      entityType: "order",
+      entityId: order.id,
+      actorId: vendor.id,
+    });
+
+    const auditCount = currentDatabase().audit.length;
+    const again = await removeOrderCustomerDetails(order.id, removed.version, vendor);
+    expect(again.version).toBe(removed.version);
+    expect(currentDatabase().audit).toHaveLength(auditCount);
+  });
+
+  it("refuses staff, stale versions and unknown orders", async () => {
+    const order = await recordKioskOrder(detailed);
+    const staff: VendorUser = { ...vendor, role: "staff" };
+    await expect(removeOrderCustomerDetails(order.id, order.version, staff)).rejects.toMatchObject({
+      status: 403,
+    });
+    await expect(
+      removeOrderCustomerDetails(order.id, order.version + 1, vendor),
+    ).rejects.toMatchObject({ status: 409, code: "VERSION_CONFLICT" });
+    await expect(removeOrderCustomerDetails("missing", 1, vendor)).rejects.toMatchObject({
+      status: 404,
+    });
+    const stored = currentDatabase().orders.find((candidate) => candidate.id === order.id)!;
+    expect(stored.customer.customerName).toBe("Asha");
+  });
+
+  it("lets a manager remove details", async () => {
+    const order = await recordKioskOrder(detailed);
+    const manager: VendorUser = { ...vendor, role: "manager" };
+    await expect(
+      removeOrderCustomerDetails(order.id, order.version, manager),
+    ).resolves.toMatchObject({ customer: { customerName: "" } });
+  });
+
+  it("applies a shop rename to the vendor's display name", async () => {
+    const { settings } = await getVendorBootstrap(vendor);
+    await updateVendorSettings({ ...settings, shopName: "Rose Gifts" }, vendor);
+    expect(currentDatabase().vendors[0].displayName).toBe("Rose Gifts");
+
+    const renamed = (await getVendorBootstrap(vendor)).settings;
+    const before = currentDatabase().vendors[0];
+    await updateVendorSettings({ ...renamed, kioskName: "Side Desk" }, vendor);
+    expect(currentDatabase().vendors[0].displayName).toBe("Rose Gifts");
+    expect(currentDatabase().vendors[0].revision).toBe(before.revision + 1);
   });
 });

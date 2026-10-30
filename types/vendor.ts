@@ -13,7 +13,12 @@ export type PlatformRole = "super_admin";
 export type VendorStatus = "active" | "suspended";
 
 export type VendorCapability =
-  "view_dashboard" | "manage_orders" | "manage_catalogue" | "manage_settings" | "manage_team";
+  | "view_dashboard"
+  | "manage_orders"
+  | "manage_catalogue"
+  | "manage_settings"
+  | "manage_team"
+  | "erase_customer_data";
 
 export type VendorCapabilities = Readonly<Record<VendorCapability, boolean>>;
 

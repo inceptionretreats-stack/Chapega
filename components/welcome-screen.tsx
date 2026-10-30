@@ -13,6 +13,8 @@ type WelcomeScreenProps = {
   ready?: boolean;
   /** A real link, so it works even before the page has hydrated. */
   vendorLoginHref: string;
+  /** The privacy notice for this shop (`/privacy?shop=<slug>`). */
+  privacyHref?: string;
 };
 
 const steps = ["Choose gifts", "Review your cart", "Scan the QR code", "Tap Send in WhatsApp"];
@@ -24,6 +26,7 @@ export function WelcomeScreen({
   online,
   onStart,
   vendorLoginHref,
+  privacyHref = "/privacy",
   ready = true,
 }: WelcomeScreenProps) {
   return (
@@ -94,7 +97,8 @@ export function WelcomeScreen({
         </nav>
         <p className="welcome-assurance">Nothing is sent until you tap Send.</p>
       </div>
-      <Link className="welcome-privacy-link" href="/privacy">
+      {/* No prefetch: the notice is rendered per request and reads the shop. */}
+      <Link className="welcome-privacy-link" href={privacyHref} prefetch={false}>
         Privacy notice
       </Link>
     </main>

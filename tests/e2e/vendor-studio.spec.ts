@@ -22,6 +22,13 @@ type VendorProduct = {
 };
 
 type VendorOrder = {
+  customer: {
+    customerName: string;
+    customerPhone: string;
+    giftNote: string;
+    orderNote: string;
+  };
+  whatsappUrl: string;
   events: Array<{
     actorName: string;
     from: string | null;
@@ -476,6 +483,33 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
       await expect(timelineItems.nth(0)).toContainText(VENDOR_NAME);
       await expect(timelineItems.nth(1)).toContainText("Confirmed");
       await expect(timelineItems.nth(2)).toContainText("Prepared on kiosk");
+
+      // The customer asks for their details to be deleted: find the order by
+      // the number as WhatsApp shows it, then remove them.
+      await page.getByPlaceholder("Search number, customer, or gift").fill("+91 98765 43210");
+      await expect(orderDetail.getByRole("heading", { name: orderNumber })).toBeVisible();
+      await orderDetail.getByRole("button", { name: "Remove details" }).click();
+      const removeDialog = page.getByRole("alertdialog", {
+        name: `Remove customer details from ${orderNumber}?`,
+      });
+      await expect(removeDialog).toContainText("cannot be undone");
+      await expect(removeDialog.getByRole("button", { name: "Keep details" })).toBeFocused();
+      await removeDialog.getByRole("button", { name: "Remove details" }).click();
+      await expect(removeDialog).toBeHidden();
+      await expect(orderDetail.getByText("Details removed")).toBeVisible();
+
+      const afterRemoval = await vendorBootstrap(page);
+      const removedOrder = afterRemoval.orders.find(
+        (order) => order.idempotencyKey === idempotencyKey,
+      );
+      expect(removedOrder?.customer).toEqual({
+        customerName: "",
+        customerPhone: "",
+        giftNote: "",
+        orderNote: "",
+      });
+      expect(removedOrder?.whatsappUrl).toMatch(/^https:\/\/wa\.me\/\d+$/);
+      expect(removedOrder?.status).toBe("cancelled");
     });
 
     await test.step("open settings and archive the test product", async () => {

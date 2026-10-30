@@ -337,6 +337,8 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
     ? `/vendor/login?vendor=${encodeURIComponent(normalizedVendorSlug)}`
     : "/vendor/login";
   const openVendorStudio = () => router.push(vendorLoginHref);
+  // Names this shop and its WhatsApp number as the contact for data requests.
+  const privacyHref = `/privacy?shop=${encodeURIComponent(normalizedVendorSlug)}`;
 
   const openCart = () => {
     if (!store.cartItems.length) {
@@ -520,6 +522,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
             online
             onStart={() => undefined}
             vendorLoginHref={vendorLoginHref}
+            privacyHref={privacyHref}
             ready={false}
           />
         </div>
@@ -539,6 +542,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
           online={online}
           onStart={store.startShopping}
           vendorLoginHref={vendorLoginHref}
+          privacyHref={privacyHref}
         />
       );
     }
@@ -613,6 +617,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
           onChange={store.updateCustomer}
           onEditSelection={() => store.setScreen("cart")}
           onReview={() => store.setScreen("review")}
+          privacyHref={privacyHref}
         />
       );
     }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildWhatsAppMessage,
   buildWhatsAppUrl,
+  formatWhatsAppNumber,
   normalizeWhatsAppNumber,
   WhatsAppNumberError,
   type WhatsAppNumberErrorCode,
@@ -140,5 +141,16 @@ describe("WhatsApp text sanitising (AUD-36)", () => {
       message: "Order‮: x\uD83D",
     });
     expect(new URL(url).searchParams.get("text")).toBe("Order: x�");
+  });
+});
+
+describe("formatWhatsAppNumber", () => {
+  it("groups an Indian mobile as +91 XXXXX XXXXX", () => {
+    expect(formatWhatsAppNumber("919876543210")).toBe("+91 98765 43210");
+  });
+
+  it("prefixes other numbers with + and leaves the digits alone", () => {
+    expect(formatWhatsAppNumber("447700900123")).toBe("+447700900123");
+    expect(formatWhatsAppNumber("+1 (415) 555-0100")).toBe("+14155550100");
   });
 });

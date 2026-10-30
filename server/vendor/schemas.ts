@@ -202,6 +202,12 @@ export const orderTransitionSchema = z
   })
   .strict();
 
+export const orderCustomerRemovalSchema = z
+  .object({
+    version: z.number().int().positive(),
+  })
+  .strict();
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type VendorProductPayload = z.infer<typeof vendorProductSchema>;
 export type VendorSettingsPayload = z.infer<typeof vendorSettingsSchema>;

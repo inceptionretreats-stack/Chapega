@@ -2169,6 +2169,10 @@ html:has(.vendor-app-shell) {
   width: 48px;
   padding: 0;
 }
+.vendor-order-erase {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
 
 .vendor-order-items {
   padding: 19px 22px;

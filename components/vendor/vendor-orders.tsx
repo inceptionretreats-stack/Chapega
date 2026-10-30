@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   CircleAlert,
+  Eraser,
   ExternalLink,
   LoaderCircle,
   MessageCircle,
@@ -14,11 +15,17 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatInr } from "@/domain/money";
+import { customerDetailsRemoved, hasCustomerDetails } from "@/domain/order-privacy";
 import { getNextVendorOrderStatus, VENDOR_ORDER_LABELS } from "@/domain/vendor";
 import type { VendorOrder, VendorOrderStatus } from "@/types/vendor";
 import { ConfirmDialog } from "../confirm-dialog";
 import { vendorRequest } from "./vendor-client";
-import { formatVendorDate, relativeVendorTime, VendorOrderStatusBadge } from "./vendor-shared";
+import {
+  customerLabel,
+  formatVendorDate,
+  relativeVendorTime,
+  VendorOrderStatusBadge,
+} from "./vendor-shared";
 
 type OrdersProps = {
   apiBase?: string;
@@ -27,7 +34,19 @@ type OrdersProps = {
   /** Called once the requested order has been selected so the request is not replayed. */
   onFocusOrderHandled?: () => void;
   onOrderSaved: (order: VendorOrder, message: string) => void;
+  /** Owners and managers may remove a customer's details on request. */
+  canRemoveCustomerDetails?: boolean;
 };
+
+type Confirmation = Readonly<{ orderId: string; action: "cancel" | "remove" }>;
+
+/** Customers read their number back in any format ("+91 98765 43210"). */
+function phoneMatches(phone: string, query: string): boolean {
+  const queryDigits = query.replace(/\D/g, "");
+  const phoneDigits = phone.replace(/\D/g, "");
+  if (queryDigits.length < 4 || phoneDigits.length < 7) return false;
+  return phoneDigits.includes(queryDigits) || queryDigits.endsWith(phoneDigits);
+}
 
 export function VendorOrders({
   apiBase = "/api/vendor",
@@ -35,13 +54,14 @@ export function VendorOrders({
   focusOrderId,
   onFocusOrderHandled,
   onOrderSaved,
+  canRemoveCustomerDetails = false,
 }: OrdersProps) {
   const [scope, setScope] = useState<"active" | "all">("active");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | VendorOrderStatus>("all");
   const [selectedId, setSelectedId] = useState<string | null>(focusOrderId);
   const [pending, setPending] = useState(false);
-  const [confirmCancelOrderId, setConfirmCancelOrderId] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<Confirmation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [focusAfterSave, setFocusAfterSave] = useState(false);
   const detailHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -57,6 +77,7 @@ export function VendorOrders({
       if (statusFilter !== "all" && order.status !== statusFilter) return false;
       return (
         !normalized ||
+        phoneMatches(order.customer.customerPhone, normalized) ||
         [
           order.orderNumber,
           order.customer.customerName,
@@ -73,7 +94,8 @@ export function VendorOrders({
 
   const selected = filtered.find((order) => order.id === selectedId) ?? filtered[0] ?? null;
   const nextStatus = selected ? getNextVendorOrderStatus(selected.status) : null;
-  const confirmingSelectedCancellation = Boolean(selected && confirmCancelOrderId === selected.id);
+  const confirmation = selected && confirming?.orderId === selected.id ? confirming.action : null;
+  const detailsRemoved = selected ? customerDetailsRemoved(selected) : false;
 
   // The requested order is consumed by the initial selection above.
   useEffect(() => {
@@ -110,12 +132,39 @@ export function VendorOrders({
         result.order,
         `Order ${selected.orderNumber} is now ${VENDOR_ORDER_LABELS[status].toLowerCase()}.`,
       );
-      setConfirmCancelOrderId(null);
+      setConfirming(null);
       setFocusAfterSave(true);
     } catch (caught) {
       // Close any confirmation so the announced error can take focus.
-      setConfirmCancelOrderId(null);
+      setConfirming(null);
       setError(caught instanceof Error ? caught.message : "The order could not be updated.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const removeCustomerDetails = async () => {
+    if (!selected || pending) return;
+    setPending(true);
+    setError(null);
+    try {
+      const result = await vendorRequest<{ order: VendorOrder }>(
+        `${apiBase}/orders/${encodeURIComponent(selected.id)}/customer`,
+        { method: "DELETE", body: JSON.stringify({ version: selected.version }) },
+      );
+      ordersAtSaveRef.current = orders;
+      onOrderSaved(result.order, `Customer details removed from ${selected.orderNumber}.`);
+      // The search usually named the details just removed (a phone number), so
+      // it would no longer match and the detail would jump to another order.
+      setQuery("");
+      setSelectedId(selected.id);
+      setConfirming(null);
+      setFocusAfterSave(true);
+    } catch (caught) {
+      setConfirming(null);
+      setError(
+        caught instanceof Error ? caught.message : "The customer details could not be removed.",
+      );
     } finally {
       setPending(false);
     }
@@ -130,7 +179,7 @@ export function VendorOrders({
             className={scope === "active" ? "is-selected" : ""}
             onClick={() => {
               setScope("active");
-              setConfirmCancelOrderId(null);
+              setConfirming(null);
             }}
             aria-pressed={scope === "active"}
           >
@@ -148,7 +197,7 @@ export function VendorOrders({
             className={scope === "all" ? "is-selected" : ""}
             onClick={() => {
               setScope("all");
-              setConfirmCancelOrderId(null);
+              setConfirming(null);
             }}
             aria-pressed={scope === "all"}
           >
@@ -162,7 +211,7 @@ export function VendorOrders({
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
-              setConfirmCancelOrderId(null);
+              setConfirming(null);
             }}
             placeholder="Search number, customer, or gift"
           />
@@ -173,7 +222,7 @@ export function VendorOrders({
             value={statusFilter}
             onChange={(event) => {
               setStatusFilter(event.target.value as "all" | VendorOrderStatus);
-              setConfirmCancelOrderId(null);
+              setConfirming(null);
             }}
           >
             <option value="all">All statuses</option>
@@ -214,7 +263,7 @@ export function VendorOrders({
                     className={selected?.id === order.id ? "is-selected" : ""}
                     onClick={() => {
                       setSelectedId(order.id);
-                      setConfirmCancelOrderId(null);
+                      setConfirming(null);
                     }}
                     aria-pressed={selected?.id === order.id}
                   >
@@ -225,7 +274,7 @@ export function VendorOrders({
                       </small>
                     </span>
                     <span className="vendor-order-list-customer">
-                      <strong>{order.customer.customerName || "Walk-in customer"}</strong>
+                      <strong>{customerLabel(order)}</strong>
                       <small>
                         {order.items.reduce((total, item) => total + item.quantity, 0)} items ·{" "}
                         {formatInr(order.totalPaise)}
@@ -275,23 +324,38 @@ export function VendorOrders({
             <section className="vendor-order-customer" aria-labelledby="customer-title">
               <div>
                 <p id="customer-title">Customer</p>
-                <strong>{selected.customer.customerName || "Walk-in customer"}</strong>
-                {selected.customer.customerPhone ? (
+                <strong>{customerLabel(selected)}</strong>
+                {detailsRemoved ? (
+                  <span>Removed on request or after 30 days</span>
+                ) : selected.customer.customerPhone ? (
                   <span>{selected.customer.customerPhone}</span>
                 ) : (
                   <span>No phone supplied</span>
                 )}
               </div>
-              <a
-                className="vendor-secondary vendor-icon-action"
-                href={selected.whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Open prepared WhatsApp conversation"
-              >
-                <MessageCircle size={18} />
-                <ExternalLink size={15} />
-              </a>
+              {detailsRemoved ? null : (
+                <a
+                  className="vendor-secondary vendor-icon-action"
+                  href={selected.whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Open prepared WhatsApp conversation"
+                >
+                  <MessageCircle size={18} />
+                  <ExternalLink size={15} />
+                </a>
+              )}
+              {canRemoveCustomerDetails && hasCustomerDetails(selected) ? (
+                <button
+                  className="vendor-quiet vendor-order-erase"
+                  type="button"
+                  onClick={() => setConfirming({ orderId: selected.id, action: "remove" })}
+                  disabled={pending}
+                  aria-haspopup="dialog"
+                >
+                  <Eraser size={17} /> Remove details
+                </button>
+              ) : null}
             </section>
 
             <section className="vendor-order-items" aria-labelledby="order-items-title">
@@ -386,7 +450,7 @@ export function VendorOrders({
                 <button
                   className="vendor-quiet"
                   type="button"
-                  onClick={() => setConfirmCancelOrderId(selected.id)}
+                  onClick={() => setConfirming({ orderId: selected.id, action: "cancel" })}
                   disabled={pending}
                   aria-haspopup="dialog"
                 >
@@ -398,7 +462,24 @@ export function VendorOrders({
         ) : null}
       </div>
 
-      {confirmingSelectedCancellation && selected ? (
+      {confirmation === "remove" && selected ? (
+        <ConfirmDialog
+          title={`Remove customer details from ${selected.orderNumber}?`}
+          description={`The customer's name, phone number, gift note and order note are deleted from this order. Items, amounts and status stay. This cannot be undone, and it does not delete WhatsApp chats.${
+            selected.status === "completed" || selected.status === "cancelled"
+              ? ""
+              : " You will no longer see who placed this order."
+          }`}
+          confirmLabel="Remove details"
+          pendingLabel="Removing…"
+          cancelLabel="Keep details"
+          pending={pending}
+          onConfirm={() => void removeCustomerDetails()}
+          onCancel={() => setConfirming(null)}
+        />
+      ) : null}
+
+      {confirmation === "cancel" && selected ? (
         <ConfirmDialog
           title={`Cancel order ${selected.orderNumber}?`}
           description={
@@ -411,7 +492,7 @@ export function VendorOrders({
           cancelLabel="Keep order"
           pending={pending}
           onConfirm={() => void transition("cancelled")}
-          onCancel={() => setConfirmCancelOrderId(null)}
+          onCancel={() => setConfirming(null)}
         />
       ) : null}
     </div>

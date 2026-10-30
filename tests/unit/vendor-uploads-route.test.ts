@@ -42,6 +42,7 @@ const owner: VendorUser = {
     manage_catalogue: true,
     manage_settings: true,
     manage_team: true,
+    erase_customer_data: true,
   },
 };
 const hash = "b".repeat(64);
@@ -99,6 +100,7 @@ describe("DELETE /api/vendor/uploads", () => {
         manage_catalogue: false,
         manage_settings: false,
         manage_team: false,
+        erase_customer_data: false,
       },
     };
     mocks.getRequestVendorContext.mockResolvedValueOnce(access(staff));

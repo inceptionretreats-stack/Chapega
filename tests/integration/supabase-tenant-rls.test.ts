@@ -230,6 +230,17 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
           sql`update private.vendors set revision = revision + 1 where id = ${vendorB.id} returning id`,
       );
       expect(otherTenant).toHaveLength(0);
+      // A shop rename (migration 20261030121000): its own row only.
+      const renamed = await scoped(
+        (sql) =>
+          sql`update private.vendors set display_name = display_name where id = ${CHAPEGA_ID} returning id`,
+      );
+      expect(renamed).toHaveLength(1);
+      const otherRename = await scoped(
+        (sql) =>
+          sql`update private.vendors set display_name = 'Hijacked' where id = ${vendorB.id} returning id`,
+      );
+      expect(otherRename).toHaveLength(0);
     } finally {
       await app.end({ timeout: 5 });
     }
@@ -444,6 +455,121 @@ describe.skipIf(!ADMIN_URL)("Supabase tenant policies on a real Postgres", () =>
     } finally {
       await app.end({ timeout: 5 });
     }
+  });
+
+  async function placeDetailedOrder(customerName: string) {
+    const [product] = await admin<{ id: string }[]>`
+      select products.id from private.products products
+      where products.vendor_id = ${CHAPEGA_ID} and products.visible and products.stock > 0
+        and not exists (
+          select 1 from private.product_variants variants
+          where variants.vendor_id = products.vendor_id and variants.product_id = products.id
+        )
+      limit 1`;
+    return services.recordKioskOrder(
+      {
+        idempotencyKey: randomUUID(),
+        kioskName: "Integration Desk",
+        customer: { customerName, customerPhone: "98765 43210", giftNote: "", orderNote: "" },
+        items: [{ productId: product.id, quantity: 1, giftWrapped: false }],
+      },
+      "chapega",
+    );
+  }
+
+  type PrivacyRow = {
+    customer_name: string;
+    customer_phone: string;
+    whatsapp_message: string;
+    whatsapp_url: string;
+    submission_fingerprint: string;
+    status: string;
+    version: number;
+  };
+
+  async function privacyRow(orderId: string): Promise<PrivacyRow> {
+    const [row] = await admin<PrivacyRow[]>`
+      select customer_name, customer_phone, whatsapp_message, whatsapp_url,
+             submission_fingerprint, status, version::int as version
+      from private.orders where vendor_id = ${CHAPEGA_ID} and id = ${orderId}`;
+    return row;
+  }
+
+  const redactedFingerprint = (orderId: string) =>
+    createHash("sha256").update(`redacted:${orderId}`).digest("hex");
+
+  it("clears never-confirmed drafts after 30 days but keeps orders in progress", async () => {
+    const draft = await placeDetailedOrder("Old Draft");
+    const inProgress = await placeDetailedOrder("Still Preparing");
+    const fresh = await placeDetailedOrder("Fresh Draft");
+    await admin`
+      update private.orders
+      set created_at = now() - interval '31 days', updated_at = now() - interval '31 days'
+      where vendor_id = ${CHAPEGA_ID} and id = ${draft.id}`;
+    await admin`
+      update private.orders
+      set status = 'preparing',
+          created_at = now() - interval '90 days', updated_at = now() - interval '90 days'
+      where vendor_id = ${CHAPEGA_ID} and id = ${inProgress.id}`;
+
+    await admin`select * from private.redact_order_personal_data(interval '30 days')`;
+
+    const cleared = await privacyRow(draft.id);
+    expect(cleared).toMatchObject({
+      customer_name: "",
+      customer_phone: "",
+      whatsapp_message: "Customer details removed after the retention period.",
+      submission_fingerprint: redactedFingerprint(draft.id),
+      status: "prepared",
+      version: draft.version + 1,
+    });
+    expect(cleared.whatsapp_url).toMatch(/^https:\/\/wa\.me\/\d+$/);
+    expect((await privacyRow(inProgress.id)).customer_name).toBe("Still Preparing");
+    expect((await privacyRow(fresh.id)).customer_name).toBe("Fresh Draft");
+  });
+
+  it("removes one order's customer details on request and keeps them removed", async () => {
+    const order = await placeDetailedOrder("Erase Me");
+    const removed = await services.removeOrderCustomerDetails(order.id, order.version, context);
+    expect(removed.customer.customerName).toBe("");
+
+    const row = await privacyRow(order.id);
+    expect(row).toMatchObject({
+      customer_name: "",
+      customer_phone: "",
+      whatsapp_message: "Customer details removed at the customer's request.",
+      submission_fingerprint: redactedFingerprint(order.id),
+      version: removed.version,
+    });
+    expect(row.whatsapp_url).not.toContain("?");
+
+    // A later status change must not bring the details back.
+    await services.transitionVendorOrder(order.id, "confirmed", removed.version, context);
+    expect((await privacyRow(order.id)).customer_name).toBe("");
+    const [audit] = await admin<{ count: number }[]>`
+      select count(*)::int as count from private.audit_log
+      where action = 'order.customer_details_removed' and entity_id = ${order.id}`;
+    expect(audit.count).toBe(1);
+  });
+
+  it("applies a shop rename to the vendor's display name", async () => {
+    const bootstrap = await services.getVendorBootstrap(context);
+    await services.updateVendorSettings(
+      { ...bootstrap.settings, shopName: "Integration Gifts" },
+      context,
+    );
+    const [row] = await admin<{ display_name: string }[]>`
+      select display_name from private.vendors where id = ${CHAPEGA_ID}`;
+    expect(row.display_name).toBe("Integration Gifts");
+    await expect(services.getKioskBootstrap("chapega")).resolves.toMatchObject({
+      vendor: { displayName: "Integration Gifts" },
+    });
+
+    const renamed = await services.getVendorBootstrap(context);
+    await services.updateVendorSettings(
+      { ...renamed.settings, shopName: bootstrap.settings.shopName },
+      context,
+    );
   });
 
   it("refuses to bootstrap a second super administrator (AUD-3)", async () => {

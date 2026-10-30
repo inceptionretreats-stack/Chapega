@@ -1,6 +1,13 @@
 import { CheckCircle2, CircleAlert, Clock3, PackageCheck, XCircle } from "lucide-react";
+import { customerDetailsRemoved } from "@/domain/order-privacy";
 import { VENDOR_ORDER_LABELS } from "@/domain/vendor";
-import type { VendorOrderStatus } from "@/types/vendor";
+import type { VendorOrder, VendorOrderStatus } from "@/types/vendor";
+
+/** The customer's name, or why there is none. */
+export function customerLabel(order: Pick<VendorOrder, "customer" | "whatsappMessage">): string {
+  if (order.customer.customerName) return order.customer.customerName;
+  return customerDetailsRemoved(order) ? "Details removed" : "Walk-in customer";
+}
 
 export function VendorOrderStatusBadge({ status }: { status: VendorOrderStatus }) {
   const Icon =

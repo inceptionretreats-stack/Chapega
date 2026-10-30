@@ -1,6 +1,7 @@
 import "server-only";
 
 import type postgres from "postgres";
+import { customerDetailsRemoved, orderHasPersonalData } from "@/domain/order-privacy";
 import { getSupabasePostgres } from "@/server/supabase/postgres";
 import {
   DEFAULT_VENDOR_ID,
@@ -565,12 +566,14 @@ function changed<T>(left: T, right: T): boolean {
   return JSON.stringify(left) !== JSON.stringify(right);
 }
 
-/** Every vendor column except the revision bookkeeping a tenant may update. */
+/**
+ * Every vendor column except those a tenant may update: the revision
+ * bookkeeping and the display name (a shop rename; migration 20261030121000).
+ */
 function vendorIdentityFields(vendor: VendorRecord) {
   return {
     id: vendor.id,
     slug: vendor.slug,
-    displayName: vendor.displayName,
     status: vendor.status,
     createdAt: vendor.createdAt,
   };
@@ -609,11 +612,21 @@ async function persistVendorsAndIdentity(
     if (previous && !changed(vendorIdentityFields(previous), vendorIdentityFields(vendor))) {
       // Ordinary tenant writes only bump the revision. An upsert would need
       // INSERT permission, which tenant policies deliberately don't grant.
-      await sql`
-        update private.vendors
-        set revision = ${vendor.revision}, updated_at = ${vendor.updatedAt}
-        where id = ${vendor.id}
-      `;
+      if (previous.displayName === vendor.displayName) {
+        await sql`
+          update private.vendors
+          set revision = ${vendor.revision}, updated_at = ${vendor.updatedAt}
+          where id = ${vendor.id}
+        `;
+      } else {
+        await sql`
+          update private.vendors
+          set display_name = ${vendor.displayName},
+              revision = ${vendor.revision},
+              updated_at = ${vendor.updatedAt}
+          where id = ${vendor.id}
+        `;
+      }
       continue;
     }
     await sql`
@@ -811,6 +824,29 @@ async function persistOrders(
         inventory_committed = excluded.inventory_committed
       where private.orders.vendor_id = excluded.vendor_id
     `;
+    if (previous && orderHasPersonalData(previous) && !orderHasPersonalData(order)) {
+      // The upsert never rewrites customer columns, so a stale write cannot
+      // bring removed details back. This is the only path that changes them,
+      // and it can only blank them.
+      if (!customerDetailsRemoved(order)) {
+        throw new VendorServiceError(
+          500,
+          "ORDER_SNAPSHOT_IMMUTABLE",
+          "Order details can only be removed, not rewritten.",
+        );
+      }
+      await sql`
+        update private.orders
+        set customer_name = '',
+            customer_phone = '',
+            gift_note = '',
+            order_note = '',
+            whatsapp_message = ${order.whatsappMessage},
+            whatsapp_url = ${order.whatsappUrl},
+            submission_fingerprint = ${order.submissionFingerprint}
+        where vendor_id = ${order.vendorId} and id = ${order.id}
+      `;
+    }
     await sql`
       delete from private.order_items
       where vendor_id = ${order.vendorId} and order_id = ${order.id}

@@ -312,3 +312,27 @@ test("mobile screen changes return the next heading to the top of the viewport",
   await expect(page).toHaveURL(/\/vendor\/login$/);
   await expect(page.getByRole("heading", { name: "Welcome back" })).toBeVisible();
 });
+
+test("the privacy notice names the shop's WhatsApp contact and returns to its kiosk", async ({
+  page,
+  request,
+}) => {
+  const bootstrap = (await (await request.get("/api/kiosk/bootstrap")).json()) as {
+    settings: { shopName: string; ownerWhatsAppNumber: string };
+  };
+  const digits = bootstrap.settings.ownerWhatsAppNumber.replace(/\D/g, "");
+
+  await page.goto("/");
+  await page.getByRole("link", { name: "Privacy notice" }).click();
+  await expect(page).toHaveURL(/\/privacy\?shop=chapega$/);
+  await expect(page.getByRole("heading", { name: "Privacy notice", level: 1 })).toBeVisible();
+  await expect(page.getByText(/Chapega\.com runs this gift kiosk/)).toBeVisible();
+  await expect(page.getByText(/30 days after your order is completed or cancelled/)).toBeVisible();
+  await expect(page.locator(`a[href="https://wa.me/${digits}"]`)).toBeVisible();
+
+  await page.getByRole("link", { name: "Back to the kiosk" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(
+    page.getByRole("heading", { name: "Choose a gift. Send the order on WhatsApp." }),
+  ).toBeVisible();
+});

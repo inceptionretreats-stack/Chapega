@@ -55,6 +55,8 @@ export function capabilitiesForVendorRole(role: VendorRole): VendorCapabilities 
     manage_catalogue: role === "owner" || role === "manager",
     manage_settings: role === "owner",
     manage_team: role === "owner",
+    // Irreversible, so not for staff: removing details could hide who ordered.
+    erase_customer_data: role === "owner" || role === "manager",
   });
 }
 

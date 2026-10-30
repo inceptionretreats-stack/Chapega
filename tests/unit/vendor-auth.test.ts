@@ -76,6 +76,7 @@ describe("vendor access contexts", () => {
       manage_catalogue: true,
       manage_settings: false,
       manage_team: false,
+      erase_customer_data: true,
     });
     expect(publicUser?.memberships.map((membership) => membership.vendor.slug)).toEqual([
       "chapega",
@@ -95,6 +96,7 @@ describe("vendor access contexts", () => {
       manage_catalogue: false,
       manage_settings: false,
       manage_team: false,
+      erase_customer_data: false,
     });
   });
 });

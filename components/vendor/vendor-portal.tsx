@@ -94,6 +94,7 @@ export function VendorPortal({ initialData }: PortalProps) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [openAddRequested, setOpenAddRequested] = useState(false);
   const [focusOrderId, setFocusOrderId] = useState<string | null>(null);
+  const [editProductId, setEditProductId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const vendorSidebarRef = useRef<HTMLElement>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
@@ -260,6 +261,13 @@ export function VendorPortal({ initialData }: PortalProps) {
     selectView("orders");
   };
 
+  const restockProduct = (product: VendorProduct) => {
+    setEditProductId(product.id);
+    selectView("products");
+  };
+
+  const editRequestHandled = useCallback(() => setEditProductId(null), []);
+
   const commitProduct = useCallback(
     (product: VendorProduct, message: string) => {
       refreshSequenceRef.current += 1;
@@ -331,6 +339,8 @@ export function VendorPortal({ initialData }: PortalProps) {
         setData((current) => ({
           ...current,
           revision: current.revision + 1,
+          // The server writes the shop name to the vendor's display name too.
+          vendor: { ...current.vendor, displayName: settings.shopName },
           settings,
         }));
       });
@@ -600,6 +610,7 @@ export function VendorPortal({ initialData }: PortalProps) {
               onViewOrders={() => selectView("orders")}
               onViewProducts={() => selectView("products")}
               onOpenOrder={openOrder}
+              onRestockProduct={restockProduct}
             />
           ) : null}
           {view === "products" ? (
@@ -609,6 +620,8 @@ export function VendorPortal({ initialData }: PortalProps) {
               lowStockThreshold={data.settings.lowStockThreshold}
               openAddRequested={openAddRequested}
               onAddRequestHandled={() => setOpenAddRequested(false)}
+              openEditProductId={editProductId}
+              onEditRequestHandled={editRequestHandled}
               onProductSaved={commitProduct}
               onProductArchived={commitArchivedProduct}
             />
@@ -620,6 +633,7 @@ export function VendorPortal({ initialData }: PortalProps) {
               focusOrderId={focusOrderId}
               onFocusOrderHandled={() => setFocusOrderId(null)}
               onOrderSaved={commitOrder}
+              canRemoveCustomerDetails={data.capabilities.erase_customer_data}
             />
           ) : null}
           {view === "settings" ? (

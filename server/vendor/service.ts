@@ -3,6 +3,11 @@ import "server-only";
 import { randomInt, randomUUID } from "node:crypto";
 import { getEffectiveMaxCartUnits } from "@/domain/cart";
 import { calculateCartTotals } from "@/domain/money";
+import {
+  orderHasPersonalData,
+  REQUEST_REDACTION_MESSAGE,
+  withoutPersonalData,
+} from "@/domain/order-privacy";
 import { canTransitionVendorOrder } from "@/domain/vendor";
 import {
   buildWhatsAppMessage,
@@ -16,6 +21,7 @@ import {
   findVendorSettings,
   newAuditRecord,
   readVendorDatabase,
+  redactedFingerprint,
   updateVendorDatabase,
   type VendorDatabase,
   type VendorOrderRecord,
@@ -848,6 +854,64 @@ export async function transitionVendorOrder(
   );
 }
 
+/**
+ * Removes the customer's name, phone and notes from one order, for example
+ * when the customer asks the shop to delete their details. Items, amounts and
+ * status stay. Irreversible; owners and managers only.
+ */
+export async function removeOrderCustomerDetails(
+  orderId: string,
+  expectedVersion: number,
+  actor: VendorActor,
+): Promise<VendorOrder> {
+  const context = actorContext(actor);
+  requireCapability(
+    context,
+    "erase_customer_data",
+    "Only the shop owner or a manager can remove customer details.",
+  );
+  return updateVendorDatabase(
+    (database) => {
+      const { vendor } = activeTenantById(database, context.vendor.id);
+      const index = database.orders.findIndex(
+        (order) => order.vendorId === vendor.id && order.id === orderId,
+      );
+      if (index < 0) {
+        throw new VendorServiceError(404, "ORDER_NOT_FOUND", "Order not found.");
+      }
+      const current = database.orders[index];
+      if (current.version !== expectedVersion) {
+        throw new VendorServiceError(
+          409,
+          "VERSION_CONFLICT",
+          "This order changed in another session. Refresh before updating it.",
+        );
+      }
+      if (!orderHasPersonalData(current)) return orderDto(current);
+
+      const order: VendorOrderRecord = {
+        ...withoutPersonalData(current, REQUEST_REDACTION_MESSAGE),
+        submissionFingerprint: redactedFingerprint(current.id),
+        updatedAt: new Date().toISOString(),
+        version: current.version + 1,
+      };
+      database.orders[index] = order;
+      touchVendor(database, vendor.id);
+      database.audit.push(
+        newAuditRecord(
+          context.user.id,
+          "order.customer_details_removed",
+          "order",
+          order.id,
+          vendor.id,
+        ),
+      );
+      return orderDto(order);
+    },
+    { vendorId: context.vendor.id },
+  );
+}
+
 export async function updateVendorSettings(
   input: Omit<VendorSettings, "updatedAt">,
   actor: VendorActor,
@@ -885,6 +949,12 @@ export async function updateVendorSettings(
         (candidate) => candidate.vendorId === vendor.id,
       );
       database.settings[settingsIndex] = settings;
+      // The shop name is also the vendor's display name (page titles, Studio
+      // header, shop picker, admin). Written only when it changes.
+      if (vendor.displayName !== settings.shopName) {
+        const vendorIndex = database.vendors.findIndex((candidate) => candidate.id === vendor.id);
+        database.vendors[vendorIndex] = { ...vendor, displayName: settings.shopName };
+      }
       database.products = database.products.map((product) => ({
         ...product,
         availability:
