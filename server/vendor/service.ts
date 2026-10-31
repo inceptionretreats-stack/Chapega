@@ -508,10 +508,25 @@ function nextOrderNumber(
   );
 }
 
+export type PlacedKioskOrder = Readonly<{
+  order: VendorOrder;
+  vendor: Readonly<{ id: string; slug: string }>;
+  /** False when the idempotency key replayed an order placed earlier. */
+  created: boolean;
+}>;
+
+/** For callers that only need the order. */
 export async function recordKioskOrder(
   submission: KioskOrderSubmission,
   vendorSlug = DEFAULT_VENDOR_SLUG,
 ): Promise<VendorOrder> {
+  return (await placeKioskOrder(submission, vendorSlug)).order;
+}
+
+export async function placeKioskOrder(
+  submission: KioskOrderSubmission,
+  vendorSlug = DEFAULT_VENDOR_SLUG,
+): Promise<PlacedKioskOrder> {
   // Only what the customer chose identifies a retry. The kiosk's suggested
   // number and timestamp may legitimately change between attempts.
   const fingerprint = sha256(
@@ -524,6 +539,7 @@ export async function recordKioskOrder(
   return updateVendorDatabase(
     (database) => {
       const { vendor, settings } = activeTenantBySlug(database, vendorSlug);
+      const identity = { id: vendor.id, slug: vendor.slug };
       const duplicate = database.orders.find(
         (order) =>
           order.vendorId === vendor.id && order.idempotencyKey === submission.idempotencyKey,
@@ -536,7 +552,7 @@ export async function recordKioskOrder(
             "This order key was already used for different contents.",
           );
         }
-        return orderDto(duplicate);
+        return { order: orderDto(duplicate), vendor: identity, created: false };
       }
       if (!settings.storeOpen) {
         throw new VendorServiceError(409, "SHOP_PAUSED", "The shop has paused new kiosk orders.");
@@ -719,7 +735,7 @@ export async function recordKioskOrder(
       database.orders.push(order);
       touchVendor(database, vendor.id);
       database.audit.push(newAuditRecord("kiosk", "order.prepared", "order", order.id, vendor.id));
-      return orderDto(order);
+      return { order: orderDto(order), vendor: identity, created: true };
     },
     { vendorSlug },
   );

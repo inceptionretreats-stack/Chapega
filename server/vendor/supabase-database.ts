@@ -730,6 +730,9 @@ async function persistSessions(
   }
   const currentSessions = new Map(current.sessions.map((record) => [record.idHash, record]));
   for (const session of next.sessions) {
+    // Phone sessions are only ever created by the app sign-in, with their
+    // device columns; a snapshot never writes them (an imported phone signs in again).
+    if (session.scope === "vendor_app") continue;
     const previous = currentSessions.get(session.idHash);
     if (previous && !changed(previous, session)) continue;
     await sql`

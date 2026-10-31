@@ -242,6 +242,25 @@ export async function beginCredentialIssue(
   return { refund: () => refundRateLimit(bucket) };
 }
 
+export const PUSH_TOKEN_LIMIT = { maximum: 20, windowMs: 60 * MINUTE } as const;
+
+/**
+ * Registering a phone for notifications, per person. Keyed by user id, not
+ * session hash: rate-limit buckets are readable by the app's database role.
+ */
+export async function beginPushTokenRegistration(userId: string): Promise<void> {
+  rejectIfLimited(
+    await consumeRateLimit(
+      `push-token:${userId}`,
+      PUSH_TOKEN_LIMIT.maximum,
+      PUSH_TOKEN_LIMIT.windowMs,
+    ),
+    "push-token",
+    "user",
+    "Too many notification changes. Please wait and try again.",
+  );
+}
+
 const ORDER_MESSAGE = "Too many orders were prepared. Please wait a moment.";
 
 function kioskKey(kioskName: string): string {

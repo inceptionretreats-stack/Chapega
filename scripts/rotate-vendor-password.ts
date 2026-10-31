@@ -162,7 +162,7 @@ async function main(): Promise<void> {
     result = await rotateLocalPassword(email, credential);
   }
   console.log(
-    `Rotated the password for ${email}, re-enabled the account and signed out ${result.sessionsRevoked} session(s).`,
+    `Rotated the password for ${email}, re-enabled the account and signed out ${result.sessionsRevoked} session(s) (browsers and phones).`,
   );
 }
 

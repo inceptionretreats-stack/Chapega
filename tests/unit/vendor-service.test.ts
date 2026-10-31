@@ -67,6 +67,7 @@ import {
   createVendorProduct,
   getKioskBootstrap,
   getVendorBootstrap,
+  placeKioskOrder,
   recordKioskOrder,
   removeOrderCustomerDetails,
   transitionVendorOrder,
@@ -421,6 +422,15 @@ describe("vendor service persistence rules", () => {
 
     expect(retry).toEqual(first);
     expect(currentDatabase().orders).toHaveLength(1);
+  });
+
+  it("tells a new order from a replay, so only the new one is announced", async () => {
+    const placed = await placeKioskOrder(submission);
+    const replayed = await placeKioskOrder(submission);
+
+    expect(placed).toMatchObject({ created: true, vendor: { slug: "chapega" } });
+    expect(replayed.created).toBe(false);
+    expect(replayed.order).toEqual(placed.order);
   });
 
   it("serves the Supabase kiosk catalogue without loading the whole tenant (AUD-14)", async () => {

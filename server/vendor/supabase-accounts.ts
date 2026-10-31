@@ -42,10 +42,28 @@ type TeamFunctionRow = {
   member_since: Date | string;
 };
 
-function postgresCode(error: unknown): string | undefined {
+export function postgresCode(error: unknown): string | undefined {
   return typeof error === "object" && error !== null && "code" in error
     ? String((error as { code: unknown }).code)
     : undefined;
+}
+
+/**
+ * undefined_function, undefined_column, undefined_table: the app is ahead of
+ * the database and a migration has not been applied yet.
+ */
+export function isMigrationError(error: unknown): boolean {
+  const code = postgresCode(error);
+  return code === "42883" || code === "42703" || code === "42P01";
+}
+
+export function migrationRequiredError(migration: string, cause: unknown): VendorServiceError {
+  return wrapped(
+    503,
+    "MIGRATION_REQUIRED",
+    `This needs a database update that has not been applied yet (migration ${migration}).`,
+    cause,
+  );
 }
 
 function wrapped(status: number, code: string, message: string, cause: unknown) {
@@ -57,6 +75,7 @@ function wrapped(status: number, code: string, message: string, cause: unknown) 
 export async function withAccountTransaction<T>(
   identity: AccountIdentity,
   run: (sql: postgres.TransactionSql) => Promise<T>,
+  { migration = "20261030122000" }: { migration?: string } = {},
 ): Promise<T> {
   try {
     return (await getSupabasePostgres().begin(async (sql) => {
@@ -77,15 +96,7 @@ export async function withAccountTransaction<T>(
     if (code === "42501") {
       throw wrapped(403, "FORBIDDEN", "Only the shop owner can manage the team.", error);
     }
-    // undefined_function / undefined_column: the app is ahead of the database.
-    if (code === "42883" || code === "42703") {
-      throw wrapped(
-        503,
-        "MIGRATION_REQUIRED",
-        "This needs a database update that has not been applied yet (migration 20261030122000).",
-        error,
-      );
-    }
+    if (isMigrationError(error)) throw migrationRequiredError(migration, error);
     throw wrapped(503, "BACKEND_UNAVAILABLE", "The account change could not be saved.", error);
   }
 }

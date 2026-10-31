@@ -15,7 +15,10 @@ import { logger, serializeError } from "@/server/observability/logger";
 import {
   getRequestVendorContext,
   getRequestVendorSession,
+  getVendorSessionByToken,
+  presentedVendorToken,
   vendorAccessContextFromUser,
+  type VendorSessionLookup,
 } from "@/server/vendor/auth";
 import { sha256 } from "@/server/vendor/crypto";
 import { VendorServiceError } from "@/server/vendor/errors";
@@ -166,6 +169,29 @@ export async function requireVendorActor(
 ): Promise<Readonly<{ access: VendorAccessContext; sessionHash: string }>> {
   const session = await requireVendorSession(request, vendorSlug);
   return { access: vendorAccessContextFromUser(session.user), sessionHash: session.sessionHash };
+}
+
+/**
+ * The Chapega Studio app's own session (Bearer token only), without the
+ * password-change gate: the app routes a temporary password to its
+ * change-password screen itself.
+ */
+export async function requireVendorAppSession(
+  request: NextRequest,
+  { countsAsActivity = true }: { countsAsActivity?: boolean } = {},
+): Promise<VendorSessionLookup> {
+  const presented = presentedVendorToken(request);
+  const session =
+    presented?.scope === "vendor_app"
+      ? await getVendorSessionByToken(presented.token, undefined, {
+          scope: "vendor_app",
+          countsAsActivity,
+        })
+      : null;
+  if (!session) {
+    throw new VendorServiceError(401, "UNAUTHENTICATED", "Sign in to continue.");
+  }
+  return session;
 }
 
 export function clientAddress(request: NextRequest): string {

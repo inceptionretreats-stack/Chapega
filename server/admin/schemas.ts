@@ -46,6 +46,7 @@ export const RESERVED_VENDOR_SLUGS: ReadonlySet<string> = new Set([
   "readyz",
   "privacy",
   "generated-products",
+  "studio-app",
   // Reserved for platform features and well-known paths
   "account",
   "accounts",

@@ -38,6 +38,13 @@ The interface keeps the existing ivory, blush, burgundy, and gold brand palette.
 - Light and dark themes: follows the device by default, with a System / Light / Dark switch in the sidebar (the admin portal has the same switch in its account menu). The public kiosk always stays light.
 - Archiving, cancelling, removing customer details, removing a team member's access and suspending ask for confirmation in an accessible dialog
 
+### Chapega Studio app (phones)
+
+- The Vendor Studio as a phone app (Flutter, in `mobile/`). It uses the same `/api/vendor/…` endpoints, with its own sign-in at `/api/studio-app/v1/*` and an `Authorization: Bearer` token instead of a cookie
+- Phone sessions are their own kind: signing in on a phone never signs the person out of the web Studio, and the other way round. A phone stays signed in for 14 days without use and 30 days at most (`VENDOR_APP_SESSION_IDLE_DAYS`, `VENDOR_APP_SESSION_DAYS`); each person can have 3 phones signed in (`VENDOR_APP_MAX_DEVICES`), and a fourth signs out the one used least recently
+- Signing out, a password change, removal from the team, a reset and a password rotation all end phone sessions too
+- **New-order push notifications** (Firebase Cloud Messaging): off until `FCM_SERVICE_ACCOUNT_JSON` is set (see `docs/RUNBOOK.md`). Each new kiosk order is announced once, after the kiosk has its answer, to the signed-in phones of the shop's team. A notification shows the order number, total and item count, never the customer's name, phone number or notes
+
 ### Super admin
 
 - Separate `/admin/login` and protected `/admin` surface with its own platform-scoped session cookie (15 idle minutes, 8 hours at most)
@@ -168,6 +175,10 @@ Vendor endpoints exist in two forms: `/api/vendor/<vendor-slug>/…` acts on tha
 | `POST /api/vendor/:vendorSlug/team/:userId/password` | Set a member's temporary password (owners) |
 | `POST /api/vendor/:vendorSlug/account/password` | Change your own password (works while a temporary password must be replaced) |
 | `PATCH /api/vendor/:vendorSlug/settings` | Publish kiosk and shop settings (version-checked) |
+| `POST /api/studio-app/v1/login` | Chapega Studio app sign-in: returns a Bearer token in the body (never a cookie) |
+| `GET /api/studio-app/v1/session` | Who the app is signed in as (works while a temporary password must be replaced) |
+| `POST /api/studio-app/v1/logout` | End this phone's session and its notifications |
+| `PUT` / `DELETE /api/studio-app/v1/push-token` | Register or forget this phone's Firebase Cloud Messaging token |
 | `GET /api/kiosk/:vendorSlug/bootstrap` | Public catalogue and settings, with ETag revalidation |
 | `POST /api/kiosk/:vendorSlug/orders` | Reprice, validate, and idempotently create a kiosk order |
 | `POST /api/admin/login` / `POST /api/admin/logout` | Create or revoke a platform-admin session |
@@ -188,6 +199,7 @@ Vendor endpoints exist in two forms: `/api/vendor/<vendor-slug>/…` acts on tha
 - Passwords are hashed with scrypt at the OWASP parameters (N=2^17, r=8, p=1); only hashed session tokens are stored. On Supabase, accounts and sessions are written only through narrow `SECURITY DEFINER` functions that prove the caller from the session it presented (migrations `20261008130000` and `20261030122000`).
 - Responses carry `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`, HSTS outside development, and an enforced Content Security Policy (`next.config.ts`; how to debug a blocked resource is in `docs/RUNBOOK.md`).
 - Every API response carries an `X-Request-Id`, and server logs are structured JSON lines with the same ID.
+- Every `/api/vendor/…` endpoint also accepts the Chapega Studio app's `Authorization: Bearer chapega_app_…` token. A Bearer token is looked up only among phone sessions and a cookie only among browser sessions; when an `Authorization: Bearer` header is present, the cookie is ignored. App sign-in shares the Studio's rate limits. Push tokens live in a table only `SECURITY DEFINER` functions can reach and disappear with their session (migration `20261101120000`).
 
 New uploads use `/vendor-products/<vendor-id>/<sha256>.png` or `.jpg`; legacy flat paths remain readable during the cutover. Owner and manager roles may retry deletion safely when the object is already missing; staff cannot upload or delete images. Cross-vendor ownership checks run before deletion, and deletion is refused while the image is referenced by any active or archived product or immutable historical order-item snapshot. Supabase objects are removed through the Storage API rather than by modifying `storage.objects` directly.
 
@@ -289,6 +301,9 @@ CHAPEGA_IT_ADMIN_URL=postgresql://postgres:PASSWORD@localhost:5432/postgres npm 
 CI runs all of these on every pull request, plus a dependency audit, coverage thresholds, and a secret scan. A physical WhatsApp receipt remains a manual acceptance check.
 
 ## Current production follow-ups
+
+- Create the Firebase project for push notifications and set `FCM_SERVICE_ACCOUNT_JSON` (`docs/RUNBOOK.md`, `mobile/docs/PUSH.md`); publish the Chapega Studio app to Google Play and the App Store (`mobile/docs/RELEASE.md`).
+- A "Signed-in phones" list with remote sign-out, and a lighter, paginated orders endpoint for phones (the bootstrap returns every order).
 
 - Self-service password recovery (needs an email or SMS provider) and multi-factor sign-in for platform admins.
 - Admin tools still missing: edit a vendor's details, transfer ownership, add a second super admin, delete a vendor.

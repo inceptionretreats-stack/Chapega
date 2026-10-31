@@ -4,7 +4,7 @@ import { NextRequest } from "next/server";
 const mocks = vi.hoisted(() => ({
   authenticateVendorLogin: vi.fn(),
   authenticateAdminLogin: vi.fn(),
-  recordKioskOrder: vi.fn(),
+  placeKioskOrder: vi.fn(),
   getKioskBootstrap: vi.fn(),
 }));
 
@@ -22,7 +22,7 @@ vi.mock("@/server/admin/auth", () => ({
   authenticateAdminLogin: mocks.authenticateAdminLogin,
 }));
 vi.mock("@/server/vendor/service", () => ({
-  recordKioskOrder: mocks.recordKioskOrder,
+  placeKioskOrder: mocks.placeKioskOrder,
   getKioskBootstrap: mocks.getKioskBootstrap,
 }));
 vi.mock("@/server/vendor/database", () => ({
@@ -99,8 +99,11 @@ beforeEach(() => {
         ? { user: { id: "admin" }, token: "token", expiresAt: new Date(now + 3_600_000) }
         : null,
     );
-  mocks.recordKioskOrder.mockReset().mockImplementation(async (input: { orderNumber: string }) => ({
-    orderNumber: input.orderNumber,
+  // created: false keeps new-order notifications out of these tests.
+  mocks.placeKioskOrder.mockReset().mockImplementation(async (input: { orderNumber: string }) => ({
+    order: { orderNumber: input.orderNumber },
+    vendor: { id: "00000000-0000-4000-8000-000000000001", slug: "chapega" },
+    created: false,
   }));
   mocks.getKioskBootstrap.mockReset().mockResolvedValue({
     vendor: { id: "00000000-0000-4000-8000-000000000001", slug: "chapega", displayName: "Chapega" },

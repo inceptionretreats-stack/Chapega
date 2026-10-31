@@ -58,14 +58,40 @@ export type VendorMembershipRecord = Readonly<{
   createdAt: string;
 }>;
 
+/**
+ * 'vendor' is a Studio browser (cookie), 'vendor_app' a phone signed in to
+ * the Chapega Studio app (Bearer token), 'platform' the admin portal.
+ */
+export type VendorSessionScope = "vendor" | "vendor_app" | "platform";
+
+/** The phone a 'vendor_app' session belongs to. */
+export type VendorSessionDevice = Readonly<{
+  /** sha256 of the app's installation id; the id itself is never stored. */
+  hash: string;
+  platform: "android" | "ios";
+  model?: string;
+  appVersion?: string;
+}>;
+
 export type VendorSessionRecord = Readonly<{
   idHash: string;
   userId: string;
-  scope: "vendor" | "platform";
+  scope: VendorSessionScope;
   activeVendorId: string | null;
   createdAt: string;
   expiresAt: string;
+  device?: VendorSessionDevice;
+  /**
+   * Local backend only: where this phone receives new-order notifications.
+   * Supabase keeps it in private.vendor_push_registrations.
+   */
+  push?: Readonly<{ token: string; tokenHash: string; updatedAt: string }>;
 }>;
+
+/** A Studio session of either kind: a browser or a phone. */
+export function isVendorSessionScope(scope: VendorSessionScope): scope is "vendor" | "vendor_app" {
+  return scope === "vendor" || scope === "vendor_app";
+}
 
 export type VendorProductRecord = VendorProduct & Readonly<{ vendorId: string }>;
 

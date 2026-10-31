@@ -53,6 +53,34 @@ export const loginSchema = z
   })
   .strict();
 
+/** Chapega Studio app sign-in: Studio sign-in plus the phone it comes from. */
+export const vendorAppLoginSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email().max(160),
+    password: z.string().min(8).max(200),
+    vendorSlug: vendorSlugSchema.optional(),
+    device: z
+      .object({
+        installationId: z.string().trim().uuid("Send the app's installation id."),
+        platform: z.enum(["android", "ios"]),
+        // A label shown to the person (e.g. "Pixel 8"), never an identifier.
+        model: z.string().transform(safeText).pipe(z.string().trim().min(1).max(60)).optional(),
+        appVersion: z
+          .string()
+          .regex(/^[0-9A-Za-z.+_-]{1,32}$/, "Send the app version, e.g. 1.0.0+1.")
+          .optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
+/** A Firebase Cloud Messaging registration token, as private.register_push_token accepts it. */
+export const pushTokenSchema = z
+  .object({
+    fcmToken: z.string().regex(/^[A-Za-z0-9_:.-]{32,4096}$/, "Send a valid push token."),
+  })
+  .strict();
+
 export const vendorProductSchema = z
   .object({
     name: trimmed(120),

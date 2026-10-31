@@ -32,6 +32,7 @@ vi.mock("@/server/vendor/database", () => ({
     entityId,
     createdAt: new Date().toISOString(),
   }),
+  isVendorSessionScope: (scope: string) => scope === "vendor" || scope === "vendor_app",
   readLocalVendorDatabase: async () => structuredClone(memory.database),
   updateLocalVendorDatabase: async <T>(mutation: (draft: VendorDatabase) => T) => {
     const draft = structuredClone(memory.database) as VendorDatabase;

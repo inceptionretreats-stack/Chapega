@@ -9,6 +9,7 @@ import {
   verifyPassword,
 } from "@/server/vendor/crypto";
 import {
+  isVendorSessionScope,
   newAuditRecord,
   readLocalVendorDatabase,
   updateLocalVendorDatabase,
@@ -104,7 +105,9 @@ async function saveLocal(
       (candidate) =>
         candidate.idHash === actor.sessionHash &&
         candidate.userId === actor.userId &&
-        candidate.scope === actor.scope &&
+        (actor.scope === "platform"
+          ? candidate.scope === "platform"
+          : isVendorSessionScope(candidate.scope)) &&
         Date.parse(candidate.expiresAt) > Date.now(),
     );
     const index = database.users.findIndex((candidate) => candidate.id === actor.userId);

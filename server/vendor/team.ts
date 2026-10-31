@@ -6,6 +6,7 @@ import { usesSupabaseBackend } from "@/server/supabase/config";
 import { newPasswordProblem } from "@/server/security/password-policy";
 import { derivePasswordHash } from "@/server/vendor/crypto";
 import {
+  isVendorSessionScope,
   newAuditRecord,
   readLocalVendorDatabase,
   updateLocalVendorDatabase,
@@ -157,7 +158,7 @@ function liveLocalOwner(database: VendorDatabase, actor: TeamActor): VendorUserR
     (candidate) =>
       candidate.idHash === actor.sessionHash &&
       candidate.userId === actor.access.user.id &&
-      candidate.scope === "vendor" &&
+      isVendorSessionScope(candidate.scope) &&
       Date.parse(candidate.expiresAt) > Date.now(),
   );
   const user = database.users.find((candidate) => candidate.id === session?.userId);
@@ -374,7 +375,7 @@ export async function setVendorTeamMemberActive(
       database.sessions = database.sessions.filter(
         (session) =>
           session.userId !== memberId ||
-          session.scope !== "vendor" ||
+          !isVendorSessionScope(session.scope) ||
           session.activeVendorId !== vendorId,
       );
     }

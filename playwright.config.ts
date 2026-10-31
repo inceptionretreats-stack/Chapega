@@ -3,7 +3,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 const port = Number(process.env.PORT ?? 3100);
 const baseURL = `http://localhost:${port}`;
-const testDataDirectory = path.join(process.cwd(), ".data", `e2e-${process.pid}`);
+// One store per run. Process ids get reused, and a reused id must not pick up
+// an old run's data; workers inherit the variable, so they agree on the name.
+process.env.CHAPEGA_E2E_RUN ??= `${process.pid}-${Date.now().toString(36)}`;
+const testDataDirectory = path.join(process.cwd(), ".data", `e2e-${process.env.CHAPEGA_E2E_RUN}`);
 
 export default defineConfig({
   testDir: "./tests/e2e",

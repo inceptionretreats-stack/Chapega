@@ -23,7 +23,7 @@ const LEVEL_ORDER: Readonly<Record<LogLevel, number>> = {
 };
 
 const SENSITIVE_KEY =
-  /pass(?:word|wd|phrase)?$|password|secret|token|cookie|authori[sz]ation|^salt$|salt$|credential|session(?:id|hash)?$|^body$|^raw/i;
+  /pass(?:word|wd|phrase)?$|password|secret|token|cookie|authori[sz]ation|^salt$|salt$|credential|session(?:id|hash)?$|^body$|^raw|private_?key|assertion|jwt|installation/i;
 const MAX_STRING = 1_000;
 const MAX_DEPTH = 4;
 

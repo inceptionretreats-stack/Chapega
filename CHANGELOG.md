@@ -40,6 +40,17 @@ the findings of the 2026-10-08 project audit.
 - People given a temporary password (new owners from Add vendor, new team
   members, any reset) choose their own at the next sign-in. Rolling the app
   back afterwards is safe; never roll back the migrations.
+- **Chapega Studio app (migration `20261101120000`).** Apply it with the
+  others, before merging; it is safe for the app that is live now (web
+  sessions are unchanged).
+  - If the app goes out first, the web Studio works as today, but phone
+    sign-in and push registration answer 503 `MIGRATION_REQUIRED` and new
+    orders are not announced.
+  - Before applying, `select slug from private.vendors where slug =
+    'studio-app';` must return nothing (it became a reserved route).
+  - Push notifications stay off until `FCM_SERVICE_ACCOUNT_JSON` is set
+    (`docs/RUNBOOK.md`). Rolling the app back signs phones out and leaves the
+    web alone; never roll back the migration.
 
 ### Security
 
@@ -62,6 +73,13 @@ the findings of the 2026-10-08 project audit.
   presented, and a shop-scoped write that touches them now fails (403)
   instead of a silent no-op. `npm run supabase:verify` checks those
   functions' grants and `search_path`.
+- Phone sessions (Chapega Studio app) are a separate kind from browser
+  sessions: a Bearer token is looked up only among phone sessions and a
+  cookie only among browser sessions, tokens carry a `chapega_app_` prefix
+  that secret scanning recognises (`.gitleaks.toml`), and app sign-in shares
+  the Studio's rate limits. Push tokens are reachable only through
+  `SECURITY DEFINER` functions and end with their session; notifications
+  carry no customer details.
 
 ### Changed
 
@@ -95,6 +113,15 @@ the findings of the 2026-10-08 project audit.
 
 ### Added
 
+- **Server side of the Chapega Studio phone app**: app sign-in, session and
+  sign-out at `/api/studio-app/v1/*`, with every Studio endpoint accepting the
+  app's Bearer token. A phone stays signed in for 14 days without use and
+  30 days at most, and signing in on a phone never signs the web Studio out
+  (or the other way round). Up to 3 phones per person; a fourth signs out the
+  one used least recently. All three limits are configurable.
+- **New-order push notifications** through Firebase Cloud Messaging, built in
+  and off until configured. Each new kiosk order is announced once, after
+  the kiosk has its answer, with the order number, total and item count.
 - `/.well-known/security.txt` and `SECURITY.md` with a private way to
   report vulnerabilities. GitHub private vulnerability reporting is on.
 - **Team** in Vendor Studio (owners): add managers and staff with a temporary
