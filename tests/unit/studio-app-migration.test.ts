@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
@@ -27,6 +27,21 @@ function functions(sql: string): Map<string, string> {
   for (const match of sql.matchAll(pattern)) result.set(match[1], match[0]);
   return result;
 }
+
+describe("every migration", () => {
+  it("keeps regular expressions within Postgres's repetition limit", async () => {
+    // Postgres refuses a bound above 255 ("invalid repetition count"), but
+    // only when the expression is first evaluated, not when the migration runs.
+    const directory = path.join(process.cwd(), "supabase", "migrations");
+    for (const file of (await readdir(directory)).filter((name) => name.endsWith(".sql"))) {
+      const sql = await readFile(path.join(directory, file), "utf8");
+      for (const [bound, low, high] of sql.matchAll(/\{(\d+)(?:,(\d*))?\}/g)) {
+        expect(Number(low), `${file}: ${bound}`).toBeLessThanOrEqual(255);
+        if (high) expect(Number(high), `${file}: ${bound}`).toBeLessThanOrEqual(255);
+      }
+    }
+  });
+});
 
 describe("migration 20261101120000 (phone sessions and push)", () => {
   it("caps phone sessions at the longest lifetime the app can be configured to", async () => {

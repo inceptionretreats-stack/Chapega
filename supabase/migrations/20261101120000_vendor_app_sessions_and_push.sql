@@ -253,7 +253,8 @@ create table private.vendor_push_registrations (
     constraint vendor_push_registrations_scope_check check (session_scope = 'vendor_app'),
   fcm_token text not null
     constraint vendor_push_registrations_token_check
-    check (fcm_token ~ '^[A-Za-z0-9_:.-]{32,4096}$'),
+    -- Length apart: Postgres regular expressions repeat at most 255 times.
+    check (fcm_token ~ '^[A-Za-z0-9_:.-]+$' and char_length(fcm_token) between 32 and 4096),
   -- Unique on the hash: a btree entry for a 4 KB token would be too large.
   fcm_token_hash text not null
     constraint vendor_push_registrations_token_hash_check
@@ -345,7 +346,9 @@ declare
   v_session_hash text := nullif(current_setting('app.session_hash', true), '');
   v_token_hash text;
 begin
-  if p_fcm_token is null or p_fcm_token !~ '^[A-Za-z0-9_:.-]{32,4096}$' then
+  if p_fcm_token is null
+    or char_length(p_fcm_token) not between 32 and 4096
+    or p_fcm_token !~ '^[A-Za-z0-9_:.-]+$' then
     return 'invalid_token';
   end if;
   if private.current_app_session_user_id() is null then
