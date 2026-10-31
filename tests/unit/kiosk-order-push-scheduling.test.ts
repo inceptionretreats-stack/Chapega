@@ -24,7 +24,7 @@ function submission() {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      idempotencyKey: "4f1c2a7e-8a7b-4d63-9a6e-0d2f9c1b5e33",
+      idempotencyKey: "push-scheduling-order",
       kioskName: "Main Entrance",
       customer: {},
       items: [{ productId: "mug", quantity: 1, giftWrapped: false }],

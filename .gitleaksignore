@@ -9,3 +9,5 @@ b0806b3b4ccbc99f3386671d3c95be912290f320:tests/integration/helpers.ts:generic-ap
 92751200485cb46573d8fb98c88dfb076c3b1d0a:server/security/common-passwords.ts:generic-api-key:123
 # tests/integration/supabase-tenant-rls.test.ts: fixture password for the throwaway integration database
 93845d3e30b4799d2a5e040cd8dea7be9bd7141d:tests/integration/supabase-tenant-rls.test.ts:generic-api-key:22
+# tests/unit/kiosk-order-push-scheduling.test.ts: a made-up kiosk order key (a UUID) in a unit test; replaced since
+dc27c1d46dcff3a8ac754021afd64f7a5130ca2d:tests/unit/kiosk-order-push-scheduling.test.ts:generic-api-key:27
