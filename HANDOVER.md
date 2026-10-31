@@ -10,12 +10,12 @@ State on 2026-10-31. Update this file at the end of every session (AGENTS.md,
 - Open pull requests:
   - **#29 `fix/security-upgrade`**: Next.js 16.4.3 and zod 4.6.7 for
     the advisories that made CI's audit step fail. No migration. Merge first.
-  - **`feat/complete-app`** (stacked on #29): privacy notice, 30-day
+  - **#30 `feat/complete-app`** (stacked on #29): privacy notice, 30-day
     retention, per-order erasure, Team, password changes and resets, the
     recovery-script fix, shop rename, small admin/Studio fixes, docs.
     **Migration-first**, see below.
 
-## Before merging `feat/complete-app`
+## Before merging #30
 
 1. `npx supabase db push --linked --dry-run`, then `npx supabase db push --linked`.
    New: `20261030120000` (retention job), `20261030121000` (shop rename),
