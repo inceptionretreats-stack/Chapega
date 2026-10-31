@@ -88,7 +88,6 @@ State on 2026-10-31. Update this file at the end of every session (AGENTS.md,
   - a "Signed-in phones" list with remote sign-out;
   - a lighter, paginated orders endpoint (today the bootstrap returns every
     order);
-  - bind the stored token to the server that issued it;
   - an app-level `PrivacyInfo.xcprivacy`;
   - a TalkBack and VoiceOver pass.
 - **RUNBOOK TO DECIDE items:** production owner, on-call, staging, uptime
