@@ -8,6 +8,23 @@ the findings of the 2026-10-08 project audit.
 
 ### Before you deploy
 
+- **Android upload signing/store pack:** release bundles require a real
+  upload key; private settings remain local and `.p12` files are refused
+  by the mobile CI safeguard. Listing materials and public certificates
+  are under `mobile/store/`. Contacts/reviewer setup remain deferred;
+  no Play upload or paid service is enabled. No new database migration.
+- **Optional Netlify evaluation:** local config and a trusted request-context
+  client-IP integration are prepared. Set the documented server runtime
+  marker; verify the live adapter, payload limits and services before any
+  hosting cutover. Existing Vercel behavior is preserved. No migration.
+- **Google Play review:** see `mobile/docs/PLAY_STORE_REVIEW.md` for the
+  verified checks and remaining submission blockers. Store icon encoding
+  and operational documentation fixes need no new migration or web deploy.
+- **Firebase-configured Android builds:** enable AGP's `resValues` feature
+  and build with `--dart-define-from-file=config/firebase.json`. This build
+  fix needs no new migration. The production FCM credential is configured;
+  installed phones need the configured app build and push opt-in. Existing
+  migration `20261101120000` remains required, and iOS still needs APNs.
 - **Apply the migrations first, then merge (deploy) the app.** Review the
   dry run, which lists what is pending (`20261009120000` too, if it was
   never applied):
@@ -166,6 +183,18 @@ the findings of the 2026-10-08 project audit.
 
 ### Fixed
 
+- Reject missing/debug signing for release Android App Bundles while
+  retaining the APK-only CI fallback. Add genuine local-demo capture tools
+  that use the app's test runner and refuse production origins.
+- Expand the privacy notice for Firebase/provider data, photo processing,
+  scheduled cleanup and external-app transfers, keeping contact details
+  unchanged. Patch the test-only Undici dependency's TLS/redirect advisory;
+  Node 22.19 or newer is required.
+- Export the Play listing icon as 512×512 RGBA PNG, with identical pixels.
+- Correct store privacy notes for Firebase Installations, provider
+  processing and explicit transfers to other apps. Harden the documented
+  account-deletion procedure's author checks and tenant joins; no real
+  deletion or public contact change was performed.
 - Product editor and admin "Add vendor" dialog: the divider line ran
   through each section heading, and a heading sat 24 px further from its
   fields than the first one did. The divider now sits between sections.

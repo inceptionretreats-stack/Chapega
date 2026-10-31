@@ -305,7 +305,7 @@ The Chapega Studio app has its own checks (Flutter 3.44.8): `npm run check:mobil
 
 ## Current production follow-ups
 
-- Create the Firebase project for push notifications and set `FCM_SERVICE_ACCOUNT_JSON` (`docs/RUNBOOK.md`, `mobile/docs/PUSH.md`); publish the Chapega Studio app to Google Play and the App Store (`mobile/docs/RELEASE.md`).
+- Firebase, production FCM and all four approved migrations are configured (`mobile/docs/PUSH.md`). Android upload signing and the local store pack are prepared; the owner has deferred real public contact details and reviewer access. Play signing/internal-phone acceptance and a business-use hosting cutover remain pending. See `mobile/docs/PLAY_STORE_REVIEW.md` and `mobile/store/README.md`. The authorization remains free versions only; iOS APNs setup is pending (`mobile/docs/RELEASE.md`).
 - A "Signed-in phones" list with remote sign-out, and a lighter, paginated orders endpoint for phones (the bootstrap returns every order).
 
 - Self-service password recovery (needs an email or SMS provider) and multi-factor sign-in for platform admins.

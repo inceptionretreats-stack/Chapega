@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { NextRequest } from "next/server";
-import { proxyHeadersTrusted, trustedClientAddress } from "@/server/http/request-identity";
+import { clientAddressTrustConfigured, trustedClientAddress } from "@/server/http/request-identity";
 import { logger } from "@/server/observability/logger";
 import { sha256 } from "@/server/vendor/crypto";
 import {
@@ -18,8 +18,8 @@ import {
 
 /**
  * Throttling policies. Route handlers cannot see the socket address, so a
- * client IP is only known when a trusted proxy supplies it (Vercel, or
- * TRUST_PROXY_HEADERS=true). Without it every client looks the same, and a
+ * client IP is only known from Netlify's request context or a trusted proxy
+ * (Vercel, or TRUST_PROXY_HEADERS=true). Without it every client looks the same, and a
  * per-address bucket would let one attacker lock everybody out, so:
  *
  * Sign-in (vendor and admin)
@@ -92,19 +92,20 @@ export function resetClientAddressWarning(): void {
  * One-time warning (per process) that client addresses are unknown. Called at
  * startup by instrumentation and lazily on the first throttled request.
  */
-export function warnIfClientAddressUnknown(): void {
-  if (unknownAddressWarningLogged || proxyHeadersTrusted()) return;
+export function warnIfClientAddressUnknown(observedMissingAddress = false): void {
+  if (unknownAddressWarningLogged || (!observedMissingAddress && clientAddressTrustConfigured()))
+    return;
   unknownAddressWarningLogged = true;
   logger.warn("security.client_address_unknown", {
     message:
       "Client IP addresses are not trusted, so rate limits fall back to per-account and per-kiosk buckets. " +
-      "If this server runs behind a reverse proxy or load balancer that sets X-Forwarded-For, set TRUST_PROXY_HEADERS=true.",
+      "On Netlify, verify its request context is available. For other proxies, review header overwriting before setting TRUST_PROXY_HEADERS=true.",
   });
 }
 
 function clientAddressFor(request: NextRequest): string | null {
   const address = trustedClientAddress(request);
-  if (!address) warnIfClientAddressUnknown();
+  if (!address) warnIfClientAddressUnknown(true);
   return address;
 }
 
