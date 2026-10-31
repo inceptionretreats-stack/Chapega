@@ -102,6 +102,14 @@ export const createAdminVendorSchema = z
     }
   });
 
+/** The policy check needs the owner's email and name, so it runs in the service. */
+export const resetOwnerPasswordSchema = z
+  .object({
+    ownerId: z.string().uuid(),
+    temporaryPassword: z.string().max(200),
+  })
+  .strict();
+
 const vendorStatusSchema = z.enum(["active", "suspended"]);
 
 /**

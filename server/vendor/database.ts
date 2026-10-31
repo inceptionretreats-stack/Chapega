@@ -44,6 +44,8 @@ export type VendorUserRecord = Readonly<{
   passwordSalt: string;
   passwordHash: string;
   active: boolean;
+  /** Set when someone else chose the password; cleared when the user picks one. */
+  mustChangePassword?: boolean;
   createdAt: string;
 }>;
 

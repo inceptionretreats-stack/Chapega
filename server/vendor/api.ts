@@ -12,12 +12,16 @@ import {
 } from "@/server/http/body";
 import { clientAddressLabel, sameOriginRejection } from "@/server/http/request-identity";
 import { logger, serializeError } from "@/server/observability/logger";
-import { getRequestVendorContext } from "@/server/vendor/auth";
+import {
+  getRequestVendorContext,
+  getRequestVendorSession,
+  vendorAccessContextFromUser,
+} from "@/server/vendor/auth";
 import { sha256 } from "@/server/vendor/crypto";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { RateLimitExceededError } from "@/server/vendor/rate-limit";
 import type { KioskBootstrap } from "@/types/kiosk";
-import type { VendorAccessContext } from "@/types/vendor";
+import type { VendorAccessContext, VendorUser } from "@/types/vendor";
 
 const MAX_JSON_BYTES = 128 * 1024;
 
@@ -140,6 +144,30 @@ export async function requireVendorRequest(
   return context;
 }
 
+/**
+ * The signed-in user and the hash of their session, without the
+ * password-change gate: only for changing that password.
+ */
+export async function requireVendorSession(
+  request: NextRequest,
+  vendorSlug?: string,
+): Promise<Readonly<{ user: VendorUser; sessionHash: string }>> {
+  const session = await getRequestVendorSession(request, vendorSlug);
+  if (!session) {
+    throw new VendorServiceError(401, "UNAUTHENTICATED", "Sign in to continue.");
+  }
+  return session;
+}
+
+/** Access plus the session hash, which the database re-checks for team changes. */
+export async function requireVendorActor(
+  request: NextRequest,
+  vendorSlug?: string,
+): Promise<Readonly<{ access: VendorAccessContext; sessionHash: string }>> {
+  const session = await requireVendorSession(request, vendorSlug);
+  return { access: vendorAccessContextFromUser(session.user), sessionHash: session.sessionHash };
+}
+
 export function clientAddress(request: NextRequest): string {
   return clientAddressLabel(request);
 }
@@ -154,7 +182,13 @@ export function apiError(error: unknown): NextResponse {
       });
     }
     const response = jsonResponse(
-      { error: { code: error.code, message: error.message } },
+      {
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.fields ? { fields: error.fields } : {}),
+        },
+      },
       error.status,
     );
     if (error instanceof RateLimitExceededError) {

@@ -600,6 +600,26 @@ function assertTenantScoped(database: VendorDatabase, vendorId: string): void {
   }
 }
 
+/**
+ * A shop workspace never writes accounts, memberships or sessions: row-level
+ * security lets only a platform session write them, and a DELETE it refuses
+ * silently removes nothing. Team and password changes go through the narrow
+ * functions of migration 20261030122000 instead (server/vendor/supabase-accounts).
+ */
+function assertNoTenantIdentityWrite(current: VendorDatabase, next: VendorDatabase): void {
+  if (
+    changed(current.users, next.users) ||
+    changed(current.memberships, next.memberships) ||
+    changed(current.sessions, next.sessions)
+  ) {
+    throw new VendorServiceError(
+      403,
+      "IDENTITY_WRITE_REJECTED",
+      "Accounts and sessions cannot be changed from a shop workspace.",
+    );
+  }
+}
+
 async function persistVendorsAndIdentity(
   sql: postgres.TransactionSql,
   current: VendorDatabase,
@@ -650,10 +670,14 @@ async function persistVendorsAndIdentity(
     if (previous && !changed(previous, user)) continue;
     await sql`
       insert into private.vendor_users
-        (id, email, name, platform_role, password_salt, password_hash, active, created_at)
+        (id, email, name, platform_role, password_salt, password_hash, active,
+         must_change_password, created_at)
       values
         (${user.id}, ${user.email}, ${user.name}, ${user.platformRole},
-         ${user.passwordSalt}, ${user.passwordHash}, ${user.active}, ${user.createdAt})
+         ${user.passwordSalt}, ${user.passwordHash}, ${user.active},
+         ${user.mustChangePassword ?? false}, ${user.createdAt})
+      -- must_change_password is never rewritten here: only the narrow functions
+      -- of migration 20261030122000 set or clear it on an existing account.
       on conflict (id) do update set
         email = excluded.email,
         name = excluded.name,
@@ -1295,6 +1319,7 @@ export async function updateSupabaseVendorDatabase<T>(
       const draft = structuredClone(current);
       const value = await mutation(draft);
       assertTenantScoped(draft, resolved.vendorId);
+      assertNoTenantIdentityWrite(current, draft);
       await persistSnapshot(transaction, current, draft, resolved.vendorId);
       return { value: structuredClone(value) };
     });

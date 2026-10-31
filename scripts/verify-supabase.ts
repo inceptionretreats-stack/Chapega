@@ -268,6 +268,62 @@ async function main(): Promise<void> {
       "Runtime RLS exposes another tenant without a matching vendor context.",
     );
 
+    // SECURITY DEFINER functions run as the owner, so each must pin its
+    // search_path and only the intended ones may be callable by the app.
+    const definers = await admin<
+      Array<{ name: string; pinned: boolean; anon: boolean; authenticated: boolean; app: boolean }>
+    >`
+      select
+        procs.proname as name,
+        coalesce(procs.proconfig::text like '%search_path=%', false) as pinned,
+        has_function_privilege('anon', procs.oid, 'execute') as anon,
+        has_function_privilege('authenticated', procs.oid, 'execute') as authenticated,
+        has_function_privilege('chapega_app', procs.oid, 'execute') as app
+      from pg_proc procs
+      join pg_namespace namespaces on namespaces.oid = procs.pronamespace
+      where namespaces.nspname = 'private' and procs.prosecdef
+    `;
+    const unpinned = definers.filter((fn) => !fn.pinned).map((fn) => fn.name);
+    assert(
+      unpinned.length === 0,
+      `Definer functions without a search_path: ${unpinned.join(", ")}.`,
+    );
+    const exposed = definers.filter((fn) => fn.anon || fn.authenticated).map((fn) => fn.name);
+    assert(
+      exposed.length === 0,
+      `Private functions callable by anon/authenticated: ${exposed.join(", ")}.`,
+    );
+    const callable = new Set(definers.filter((fn) => fn.app).map((fn) => fn.name));
+    const required = [
+      "has_platform_admin_session",
+      "current_vendor_is_active",
+      "rehash_own_password",
+      "change_own_password",
+      "list_vendor_team",
+      "add_vendor_team_member",
+      "set_vendor_team_member_role",
+      "set_vendor_team_member_active",
+      "reset_vendor_team_password",
+      "reset_vendor_owner_password",
+    ];
+    const missing = required.filter((name) => !callable.has(name));
+    assert(missing.length === 0, `chapega_app cannot run: ${missing.join(", ")}.`);
+    const ownerOnly = [
+      "current_vendor_owner_id",
+      "purge_expired_records",
+      "redact_order_personal_data",
+    ];
+    const leaked = ownerOnly.filter((name) => callable.has(name));
+    assert(
+      leaked.length === 0,
+      `Owner-only functions callable by chapega_app: ${leaked.join(", ")}.`,
+    );
+
+    const [reserved] = await admin<Array<{ count: number }>>`
+      select count(*)::int as count from private.vendors where slug in ('team', 'account')
+    `;
+    assert(reserved.count === 0, "A vendor uses the reserved slug 'team' or 'account'.");
+
     console.log("Supabase verification passed.");
     console.log(
       `- Migrations: ${remoteVersions.length}/${localVersions.length} applied with no drift`,

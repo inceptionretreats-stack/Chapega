@@ -1,6 +1,6 @@
 "use client";
 
-import { PauseCircle, PlayCircle, Plus, Search } from "lucide-react";
+import { KeyRound, PauseCircle, PlayCircle, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { AdminVendorStatus, AdminVendorSummary } from "@/types/admin";
 import { AdminVendorStatus as VendorStatus, relativeAdminTime, VendorAvatar } from "./admin-shared";
@@ -9,13 +9,32 @@ type AdminVendorCollectionProps = {
   vendors: readonly AdminVendorSummary[];
   onAdd: () => void;
   onChangeStatus: (vendor: AdminVendorSummary) => void;
+  onResetOwnerPassword?: (vendor: AdminVendorSummary) => void;
+  /** The signed-in admin; their own shop's owner account is never reset here. */
+  currentUserId?: string;
 };
 
 export function AdminVendorCollection({
   vendors,
   onAdd,
   onChangeStatus,
+  onResetOwnerPassword,
+  currentUserId,
 }: AdminVendorCollectionProps) {
+  const canResetOwner = (vendor: AdminVendorSummary) =>
+    Boolean(onResetOwnerPassword && vendor.owner.id && vendor.owner.id !== currentUserId);
+  const resetButton = (vendor: AdminVendorSummary, className: string, size: number) =>
+    canResetOwner(vendor) ? (
+      <button
+        className={className}
+        type="button"
+        onClick={() => onResetOwnerPassword?.(vendor)}
+        aria-label={`Reset owner password for ${vendor.displayName}`}
+        aria-haspopup="dialog"
+      >
+        <KeyRound size={size} />
+      </button>
+    ) : null;
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | AdminVendorStatus>("all");
 
@@ -123,18 +142,21 @@ export function AdminVendorCollection({
                         </time>
                       </td>
                       <td>
-                        <button
-                          className="admin-row-action"
-                          type="button"
-                          onClick={() => onChangeStatus(vendor)}
-                          aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
-                        >
-                          {vendor.status === "active" ? (
-                            <PauseCircle size={18} />
-                          ) : (
-                            <PlayCircle size={18} />
-                          )}
-                        </button>
+                        <span className="admin-row-actions">
+                          {resetButton(vendor, "admin-row-action", 18)}
+                          <button
+                            className="admin-row-action"
+                            type="button"
+                            onClick={() => onChangeStatus(vendor)}
+                            aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
+                          >
+                            {vendor.status === "active" ? (
+                              <PauseCircle size={18} />
+                            ) : (
+                              <PlayCircle size={18} />
+                            )}
+                          </button>
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -155,18 +177,21 @@ export function AdminVendorCollection({
                       {vendor.orderCount === 1 ? "order" : "orders"}
                     </small>
                   </div>
-                  <button
-                    className="admin-vendor-list__action"
-                    type="button"
-                    onClick={() => onChangeStatus(vendor)}
-                    aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
-                  >
-                    {vendor.status === "active" ? (
-                      <PauseCircle size={22} />
-                    ) : (
-                      <PlayCircle size={22} />
-                    )}
-                  </button>
+                  <div className="admin-vendor-list__actions">
+                    {resetButton(vendor, "admin-vendor-list__action", 22)}
+                    <button
+                      className="admin-vendor-list__action"
+                      type="button"
+                      onClick={() => onChangeStatus(vendor)}
+                      aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
+                    >
+                      {vendor.status === "active" ? (
+                        <PauseCircle size={22} />
+                      ) : (
+                        <PlayCircle size={22} />
+                      )}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

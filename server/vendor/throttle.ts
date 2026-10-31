@@ -43,6 +43,15 @@ import {
  * Public kiosk catalogue (per instance, no database writes on a read path)
  * - Known address: 120 / min per vendor+address (kiosks poll every 30 s).
  * - Per vendor, all clients: 2,400 / min.
+ *
+ * Changing your own password (it re-checks the current one)
+ * - Per user: the sign-in account policy for that scope, so a stolen session
+ *   cannot guess the current password quickly. A successful change resets it.
+ *
+ * Issuing accounts and temporary passwords
+ * - Team members added per shop: 20 / hour, counting only refusals (a refused
+ *   email is the one thing an owner can learn about other accounts).
+ * - Team password resets per shop, owner password resets per admin: 20 / hour.
  */
 
 const MINUTE = 60_000;
@@ -189,6 +198,48 @@ export async function beginLoginAttempt(
       ]);
     },
   };
+}
+
+const PASSWORD_CHANGE_MESSAGE = "Too many password attempts. Please wait and try again.";
+
+/** Reserve an own-password change; call `succeeded()` once it is saved. */
+export async function beginPasswordChangeAttempt(
+  scope: LoginScope,
+  userId: string,
+): Promise<LoginAttempt> {
+  const bucket = `password-change:${scope}:${userId}`;
+  rejectIfLimited(
+    await reserveProgressiveAttempt(
+      bucket,
+      scope === "admin" ? ADMIN_ACCOUNT_POLICY : VENDOR_ACCOUNT_POLICY,
+    ),
+    `${scope}-password-change`,
+    "account",
+    PASSWORD_CHANGE_MESSAGE,
+  );
+  return { succeeded: () => resetRateLimit(bucket) };
+}
+
+export const CREDENTIAL_ISSUE_LIMIT = { maximum: 20, windowMs: 60 * MINUTE } as const;
+
+export type CredentialIssueKind = "team-add" | "team-reset" | "admin-owner-reset";
+
+/**
+ * Reserve one account or temporary-password change for a shop (team) or an
+ * admin. `refund()` gives it back, for outcomes that should not count.
+ */
+export async function beginCredentialIssue(
+  kind: CredentialIssueKind,
+  key: string,
+): Promise<Readonly<{ refund: () => Promise<void> }>> {
+  const bucket = `${kind}:${key}`;
+  rejectIfLimited(
+    await consumeRateLimit(bucket, CREDENTIAL_ISSUE_LIMIT.maximum, CREDENTIAL_ISSUE_LIMIT.windowMs),
+    kind,
+    "issuer",
+    "Too many account changes. Please wait and try again.",
+  );
+  return { refund: () => refundRateLimit(bucket) };
 }
 
 const ORDER_MESSAGE = "Too many orders were prepared. Please wait a moment.";

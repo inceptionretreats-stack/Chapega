@@ -22,6 +22,8 @@ export default async function VendorLoginPage({ searchParams }: PageProps) {
   const credentialConfiguration = getVendorCredentialConfiguration();
   const currentUser = await getCurrentVendorUser();
   if (currentUser) {
+    // The workspace page asks for a new password before anything else.
+    if (currentUser.mustChangePassword) redirect(`/vendor/${currentUser.activeVendor.slug}`);
     if (safeVendorSlug && (await getCurrentVendorContext(safeVendorSlug))) {
       redirect(`/vendor/${safeVendorSlug}`);
     }

@@ -58,7 +58,13 @@ export function adminApiError(error: unknown): NextResponse {
       });
     }
     const response = adminJsonResponse(
-      { error: { code: error.code, message: error.message } },
+      {
+        error: {
+          code: error.code,
+          message: error.message,
+          ...(error.fields ? { fields: error.fields } : {}),
+        },
+      },
       error.status,
     );
     if (error instanceof RateLimitExceededError) {

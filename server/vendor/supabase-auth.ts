@@ -38,6 +38,7 @@ type CredentialUserRow = {
   password_salt: string;
   password_hash: string;
   active: boolean;
+  must_change_password?: boolean;
   created_at: DateValue;
 };
 
@@ -96,6 +97,7 @@ function userRecord(row: CredentialUserRow): VendorUserRecord {
     passwordSalt: row.password_salt,
     passwordHash: row.password_hash,
     active: row.active,
+    ...(row.must_change_password ? { mustChangePassword: true } : {}),
     createdAt: iso(row.created_at),
   };
 }
@@ -131,6 +133,8 @@ async function credentialsByEmail(
   const [user] = await sql<CredentialUserRow[]>`
     select
       id, email, name, platform_role, password_salt, password_hash, active,
+      coalesce((to_jsonb(vendor_users) ->> 'must_change_password')::boolean, false)
+        as must_change_password,
       created_at
     from private.vendor_users
     where email = ${email}
@@ -169,6 +173,8 @@ async function credentialsStillValid(
   const [current] = await sql<CredentialUserRow[]>`
     select
       id, email, name, platform_role, password_salt, password_hash, active,
+      coalesce((to_jsonb(vendor_users) ->> 'must_change_password')::boolean, false)
+        as must_change_password,
       created_at
     from private.vendor_users
     where id = ${verified.id}
@@ -482,6 +488,8 @@ export async function getSupabaseVendorUserByToken(
       const [user] = await transaction<CredentialUserRow[]>`
         select
           id, email, name, platform_role, password_salt, password_hash, active,
+          coalesce((to_jsonb(vendor_users) ->> 'must_change_password')::boolean, false)
+            as must_change_password,
           created_at
         from private.vendor_users
         where id = ${session.user_id} and active
@@ -592,6 +600,8 @@ export async function getSupabasePlatformUserByToken(
       const [user] = await transaction<CredentialUserRow[]>`
         select
           id, email, name, platform_role, password_salt, password_hash, active,
+          coalesce((to_jsonb(vendor_users) ->> 'must_change_password')::boolean, false)
+            as must_change_password,
           created_at
         from private.vendor_users
         where id = ${session.user_id}

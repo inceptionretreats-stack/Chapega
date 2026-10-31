@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { optionalCustomerPhoneError } from "@/domain/customer";
 import { normalizeWhatsAppNumber } from "@/domain/whatsapp";
+import { newPasswordProblem } from "@/server/security/password-policy";
 import type { ProductImagePath } from "@/types/kiosk";
 
 const trimmed = (maximum: number) => z.string().trim().min(1).max(maximum);
@@ -202,6 +203,52 @@ export const orderTransitionSchema = z
   })
   .strict();
 
+const assignableTeamRoleSchema = z.enum(["manager", "staff"]);
+
+/**
+ * A temporary password follows the same policy as any new password
+ * (server/security/password-policy.ts), checked against the member's own
+ * email and name.
+ */
+export const teamMemberCreateSchema = z
+  .object({
+    name: z.string().transform(safeText).pipe(z.string().trim().min(1).max(80)),
+    email: z.string().trim().toLowerCase().email().max(160),
+    role: assignableTeamRoleSchema,
+    temporaryPassword: z.string().max(200),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    const problem = newPasswordProblem(value.temporaryPassword, {
+      email: value.email,
+      name: value.name,
+    });
+    if (problem) {
+      context.addIssue({ code: "custom", path: ["temporaryPassword"], message: problem });
+    }
+  });
+
+/** Exactly one change per request: a new role, or access on/off. */
+export const teamMemberUpdateSchema = z.union([
+  z.object({ role: assignableTeamRoleSchema }).strict(),
+  z.object({ active: z.boolean() }).strict(),
+]);
+
+/** The policy check needs the member's email and name, so it runs in the service. */
+export const teamPasswordResetSchema = z
+  .object({ temporaryPassword: z.string().max(200) })
+  .strict();
+
+export const teamUserIdSchema = z.string().uuid();
+
+/** Changing your own password (Studio and admin). */
+export const passwordChangeSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(200),
+    newPassword: z.string().min(1).max(200),
+  })
+  .strict();
+
 export const orderCustomerRemovalSchema = z
   .object({
     version: z.number().int().positive(),
@@ -209,6 +256,8 @@ export const orderCustomerRemovalSchema = z
   .strict();
 
 export type LoginInput = z.infer<typeof loginSchema>;
+export type TeamMemberCreatePayload = z.infer<typeof teamMemberCreateSchema>;
+export type PasswordChangePayload = z.infer<typeof passwordChangeSchema>;
 export type VendorProductPayload = z.infer<typeof vendorProductSchema>;
 export type VendorSettingsPayload = z.infer<typeof vendorSettingsSchema>;
 export type KioskOrderPayload = z.infer<typeof kioskOrderSubmissionSchema>;

@@ -114,15 +114,28 @@ export function vendorUserFromDatabase(
         return left.vendor.displayName.localeCompare(right.vendor.displayName);
       }),
     capabilities,
+    ...(user.mustChangePassword ? { mustChangePassword: true as const } : {}),
   };
 }
 
+/**
+ * Every Studio read and write goes through here. A user holding a password
+ * someone else chose gets nothing (the bootstrap carries customer details)
+ * until they change it; only change-password and sign-out skip this.
+ */
 export function vendorAccessContextFromUser(user: VendorUser): VendorAccessContext {
   if (user.activeVendor.status !== "active") {
     throw new VendorServiceError(
       403,
       "VENDOR_SUSPENDED",
       "This vendor account is currently suspended.",
+    );
+  }
+  if (user.mustChangePassword) {
+    throw new VendorServiceError(
+      403,
+      "PASSWORD_CHANGE_REQUIRED",
+      "Set a new password to continue.",
     );
   }
   const capabilities = capabilitiesForVendorRole(user.role);
@@ -348,6 +361,19 @@ export async function getRequestVendorUser(
   return getVendorUserByToken(request.cookies.get(VENDOR_SESSION_COOKIE)?.value, vendorSlug, {
     countsAsActivity: !isBackgroundRefresh(request.headers),
   });
+}
+
+/**
+ * The signed-in user and the hash of the session they presented, without the
+ * password-change gate: only for changing that password.
+ */
+export async function getRequestVendorSession(
+  request: NextRequest,
+  vendorSlug?: string,
+): Promise<Readonly<{ user: VendorUser; sessionHash: string }> | null> {
+  const token = request.cookies.get(VENDOR_SESSION_COOKIE)?.value;
+  const user = await getVendorUserByToken(token, vendorSlug);
+  return user && token ? { user, sessionHash: sha256(token) } : null;
 }
 
 export async function getRequestVendorContext(

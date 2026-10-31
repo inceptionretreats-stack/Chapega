@@ -2,6 +2,7 @@
 
 import {
   ChevronDown,
+  KeyRound,
   Home,
   LoaderCircle,
   LogOut,
@@ -18,10 +19,12 @@ import { backgroundRefreshHeaders } from "@/domain/session-activity";
 import { ThemeControl } from "../theme-control";
 import { AddVendorDialog } from "./add-vendor-dialog";
 import { AdminActivityRail } from "./admin-activity-rail";
+import { AdminPasswordDialog } from "./admin-password-dialog";
 import { adminRequest, AdminClientError } from "./admin-client";
 import { AdminAccountAvatar, AdminSkipLink } from "./admin-shared";
 import { AdminVendorCollection } from "./admin-vendor-collection";
 import { PlatformMetricBand } from "./platform-metric-band";
+import { ResetOwnerPasswordDialog } from "./reset-owner-password-dialog";
 import { VendorStatusDialog } from "./vendor-status-dialog";
 
 type AdminPortalProps = {
@@ -44,6 +47,8 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
   const [accountOpen, setAccountOpen] = useState(false);
   const [addingVendor, setAddingVendor] = useState(false);
   const [statusVendor, setStatusVendor] = useState<AdminVendorSummary | null>(null);
+  const [resetVendor, setResetVendor] = useState<AdminVendorSummary | null>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
@@ -237,6 +242,16 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
                   <span>{data.user.email}</span>
                 </div>
                 <ThemeControl className="admin-theme-control" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccountOpen(false);
+                    setChangingPassword(true);
+                  }}
+                  aria-haspopup="dialog"
+                >
+                  <KeyRound size={18} /> Change password
+                </button>
                 <button type="button" onClick={logout} disabled={loggingOut}>
                   {loggingOut ? (
                     <LoaderCircle className="admin-spin" size={18} />
@@ -277,6 +292,8 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
               vendors={data.vendors}
               onAdd={() => setAddingVendor(true)}
               onChangeStatus={setStatusVendor}
+              onResetOwnerPassword={setResetVendor}
+              currentUserId={data.user.id}
             />
             <AdminActivityRail items={data.recentActivity} />
           </div>
@@ -312,6 +329,32 @@ export function AdminPortal({ initialData }: AdminPortalProps) {
           onSaved={(result) =>
             applyMutation(result, `${result.vendor.displayName} is now ${result.vendor.status}.`)
           }
+        />
+      ) : null}
+
+      {resetVendor ? (
+        <ResetOwnerPasswordDialog
+          vendor={resetVendor}
+          onClose={() => setResetVendor(null)}
+          onReset={(result) =>
+            applyMutation(result, `Temporary password set for ${resetVendor.owner.name}.`)
+          }
+          onSessionEnded={() => router.replace("/admin/login")}
+        />
+      ) : null}
+
+      {changingPassword ? (
+        <AdminPasswordDialog
+          email={data.user.email}
+          onClose={() => setChangingPassword(false)}
+          onChanged={() => {
+            setChangingPassword(false);
+            setToast({
+              message: "Password changed. Your other devices were signed out.",
+              tone: "success",
+            });
+          }}
+          onSessionEnded={() => router.replace("/admin/login")}
         />
       ) : null}
 

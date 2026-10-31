@@ -293,3 +293,26 @@ describe("Supabase order and shop-name persistence", () => {
     ).toBe(false);
   });
 });
+
+describe("Supabase tenant writes and identities", () => {
+  it("refuses a shop-scoped write that touches accounts, memberships or sessions", async () => {
+    await expect(
+      updateSupabaseVendorDatabase((database) => {
+        database.sessions.push({
+          idHash: "forged",
+          userId: "owner-1",
+          scope: "vendor",
+          activeVendorId: database.vendors[0].id,
+          createdAt: "2026-10-30T00:00:00.000Z",
+          expiresAt: "2099-10-30T00:00:00.000Z",
+        });
+      }),
+    ).rejects.toMatchObject({ status: 403, code: "IDENTITY_WRITE_REJECTED" });
+    // The snapshot read selects sessions; nothing may write them.
+    expect(
+      postgresState.calls.some((call) =>
+        /(insert into|delete from|update) private\.vendor_sessions/i.test(call.text),
+      ),
+    ).toBe(false);
+  });
+});

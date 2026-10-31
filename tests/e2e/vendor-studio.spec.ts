@@ -574,3 +574,75 @@ test("vendor signs in, publishes a product, receives an order, and cleans up", a
     expect(protectedResponse.status()).toBe(401);
   });
 });
+
+test("an owner adds a staff member, who sets their own password, then removes their access", async ({
+  page,
+  browser,
+}) => {
+  const runId = Date.now().toString(36);
+  const staffName = `Ravi ${runId.toUpperCase()}`;
+  const staffEmail = `staff-${runId}@example.test`;
+  const temporaryPassword = "amber gulls circle the old pier";
+  const ownPassword = "violet trams hum past midnight";
+
+  await page.goto("/vendor/login?vendor=chapega");
+  await signIn(page, VENDOR_EMAIL, VENDOR_PASSWORD);
+  await expect(page).toHaveURL(/\/vendor\/chapega$/);
+  if (isVendorMobileLayout(page)) {
+    await page.getByRole("button", { name: "Open navigation" }).click();
+  }
+  await vendorSidebar(page).getByRole("button", { name: "Team" }).click();
+  await expect(page.getByRole("heading", { name: /People who can sign in to/ })).toBeVisible();
+
+  await page.getByRole("button", { name: "Add team member" }).click();
+  const addDialog = page.getByRole("dialog", { name: "Add a team member" });
+  await addDialog.getByLabel("Name").fill(staffName);
+  await addDialog.getByLabel("Email").fill(staffEmail);
+  await addDialog.getByRole("radio", { name: /Staff/ }).check();
+  await addDialog.getByLabel("Temporary password", { exact: true }).fill(temporaryPassword);
+  await addDialog.getByRole("button", { name: "Add to team" }).click();
+  const added = page.getByRole("dialog", { name: `${staffName} was added` });
+  await expect(added).toContainText(staffEmail);
+  await added.getByRole("button", { name: "Done" }).click();
+  const row = page.locator(".vendor-team-member").filter({ hasText: staffEmail });
+  await expect(row).toContainText("Waiting for their own password");
+
+  const staffContext = await browser.newContext();
+  try {
+    const staff = await staffContext.newPage();
+    await staff.goto("/vendor/login?vendor=chapega");
+    await signIn(staff, staffEmail, temporaryPassword);
+    await expect(staff.getByRole("heading", { name: /Set a new password/ })).toBeVisible();
+    await fillHydrated(
+      staff,
+      staff.getByLabel("Temporary password", { exact: true }),
+      temporaryPassword,
+    );
+    await staff.getByLabel("New password", { exact: true }).fill(ownPassword);
+    await staff.getByLabel("Confirm new password", { exact: true }).fill(ownPassword);
+    await staff.getByRole("button", { name: "Save and open the Studio" }).click();
+    await expect(staff.locator(".vendor-app-shell")).toBeVisible();
+    // Staff handle orders only: no Products, Settings or Team.
+    const sidebar = staff.locator(".vendor-sidebar");
+    await expect(sidebar.getByRole("button", { name: "Products" })).toHaveCount(0);
+    await expect(sidebar.getByRole("button", { name: "Team" })).toHaveCount(0);
+
+    await page.reload();
+    if (isVendorMobileLayout(page)) {
+      await page.getByRole("button", { name: "Open navigation" }).click();
+    }
+    await vendorSidebar(page).getByRole("button", { name: "Team" }).click();
+    await expect(row).toContainText("Active");
+    await row.getByRole("button", { name: `Remove access for ${staffName}` }).click();
+    const confirm = page.getByRole("alertdialog", { name: `Remove ${staffName}'s access?` });
+    await expect(confirm.getByRole("button", { name: "Keep access" })).toBeFocused();
+    await confirm.getByRole("button", { name: "Remove access" }).click();
+    await expect(row).toContainText("No access");
+
+    // Their Studio session for this shop ended with the access.
+    await staff.reload();
+    await expect(staff).toHaveURL(/\/vendor\/login/);
+  } finally {
+    await staffContext.close();
+  }
+});
