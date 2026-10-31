@@ -19,6 +19,7 @@
     "vendor:password": "node --conditions=react-server --import tsx scripts/rotate-vendor-password.ts --confirm-rotation",
     "typecheck": "next typegen && tsc --noEmit --incremental false",
     "check": "npm run -s typecheck && npm run -s lint && vitest run --silent",
+    "check:mobile": "cd mobile && flutter analyze --fatal-infos && flutter test",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts",
@@ -63,9 +64,10 @@
   },
   "lint-staged": {
     "*.{ts,tsx,mts,mjs,js,cjs}": [
-      "eslint --fix --max-warnings=0",
+      "eslint --fix --max-warnings=0 --no-warn-ignored",
       "prettier --write"
     ],
-    "*.{css,json,yml,yaml}": "prettier --write"
+    "*.{css,json,yml,yaml}": "prettier --write",
+    "mobile/**/*.dart": "dart format"
   }
 }

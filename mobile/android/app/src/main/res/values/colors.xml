@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The Studio page colour (the web "surface-page" token), so launch has no white flash. -->
+    <color name="launch_background">#F6F5F4</color>
+    <color name="notification_accent">#7A263A</color>
+</resources>

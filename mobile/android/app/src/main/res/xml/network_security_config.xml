@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HTTPS only. Dart's own HTTP client ignores this file, so the app also
+     refuses plain-HTTP API origins in release builds (lib/bootstrap/app_config.dart). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>
