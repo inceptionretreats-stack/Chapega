@@ -9,7 +9,7 @@ marked **TO DECIDE** need an owner's decision before launch.
 | --- | --- |
 | Production owner (Vercel, Supabase, domain) | **TO DECIDE** |
 | On-call / first responder | **TO DECIDE** |
-| Shop data and privacy contact | **TO DECIDE** (also named in `/privacy`) |
+| Shop data and privacy contact | Each shop, on its WhatsApp number (shown at `/privacy?shop=<slug>`); Chapega.com is named as responsible |
 
 ## Environments
 
@@ -98,14 +98,25 @@ for example, `bom1::icn1::…` is the Mumbai edge and a Seoul function.
   On a Postgres without pg_cron the migration skips the job; run
   `select private.purge_expired_records();` on another schedule.
 
-- **Customer details on finished orders** are not removed yet. The
-  retention period is the owner's decision (**TO DECIDE**; at least 30 days,
-  and state it in `/privacy`). Then schedule it as the database owner:
+- **Customer details** are removed every day at 03:45 UTC by the
+  `chapega-redact-orders` job (migration `20261030120000`; retention decided
+  2026-10-30: 30 days). It clears name, phone, notes, the WhatsApp text and
+  the submission fingerprint 30 days after an order is completed or
+  cancelled, and 30 days after preparation for orders the shop never
+  confirmed. Orders in progress keep them until they finish. `/privacy`
+  states this rule; change both together. The day after a run this should
+  return 0 (it also proves the owner bypasses row-level security):
 
   ```sql
-  select cron.schedule('chapega-redact-orders', '30 3 * * *',
-    $select private.redact_order_personal_data(interval '90 days')$);
+  select count(*) from private.orders
+  where ((status in ('completed', 'cancelled') and updated_at < now() - interval '30 days')
+      or (status = 'prepared' and created_at < now() - interval '30 days'))
+    and (customer_name <> '' or customer_phone <> '' or gift_note <> ''
+      or order_note <> '' or whatsapp_url like '%?%');
   ```
+
+  On a Postgres without pg_cron, run
+  `select * from private.redact_order_personal_data(interval '30 days');` daily.
 
 ## Backups and recovery
 
@@ -116,6 +127,10 @@ for example, `bom1::icn1::…` is the Mumbai edge and a Seoul function.
   database backups do not cover. **TO DECIDE**: how to back up the bucket.
 - Local backend: `.data/vendor-db.json`, with its recovery copy next to it.
   Back up that directory.
+- A restore brings back customer details removed since the backup. Run the
+  redaction function again afterwards, and repeat any
+  `order.customer_details_removed` actions recorded in `private.audit_log`
+  after the backup was taken.
 
 ## Incidents
 
@@ -135,13 +150,32 @@ for example, `bom1::icn1::…` is the Mumbai edge and a Seoul function.
 Suspend the vendor in `/admin`. This stops kiosk ordering and vendor
 sign-in and keeps every record. Reactivate it when access should resume.
 
-### An owner is locked out
+### Someone is locked out
 
 Sign-in never locks an account; it only slows retries. The delay per
 account is at most 5 minutes, and one address that keeps failing can be
-held off for up to 15 minutes. If the owner has forgotten the password, set a new one with
-`npm run vendor:password` (see README). There is no self-service reset
-yet.
+held off for up to 15 minutes. For a forgotten password:
+
+- **A shop owner:** in `/admin`, use the key icon on the shop's row (Reset
+  owner password). Share the temporary password privately; the owner
+  chooses a new one at the next sign-in.
+- **A manager or staff member:** the shop owner uses Team → Set temporary
+  password. Someone who also belongs to another shop changes their own
+  password; if they cannot, use the next option.
+- **A super admin, or nobody can sign in:** `npm run vendor:password` with
+  `VENDOR_EMAIL`, the new `VENDOR_PASSWORD` and, on Supabase,
+  `SUPABASE_ADMIN_DATABASE_URL` (see README).
+
+There is no self-service reset by email yet.
+
+### A customer asks to see, correct or delete their details
+
+The privacy notice sends these requests to the shop's WhatsApp. In Studio,
+find the order by its number or the customer's phone (any format), then
+use **Remove details**; it is audited as `order.customer_details_removed`.
+There is no tool to edit an order's details: for a correction, remove them
+and continue on WhatsApp. Messages already in WhatsApp are outside the
+app; the shop deletes that chat itself.
 
 ### The site is slow or down
 
