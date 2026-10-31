@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../bootstrap/providers.dart';
 import '../features/account/more_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/orders/order_detail_screen.dart';
+import '../features/orders/orders_screen.dart';
 import '../features/session/launch_screen.dart';
 import '../features/session/password_required_screen.dart';
 import '../features/session/session_controller.dart';
@@ -174,12 +176,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/s/:slug/orders',
-                builder: (context, state) => PlaceholderScreen(slug: _slug(state), title: 'Orders'),
+                builder: (context, state) => OrdersScreen(slug: _slug(state)),
                 routes: [
                   GoRoute(
                     path: ':orderId',
-                    builder: (context, state) =>
-                        PlaceholderScreen(slug: _slug(state), title: 'Order'),
+                    builder: (context, state) => OrderDetailScreen(
+                      slug: _slug(state),
+                      orderId: state.pathParameters['orderId']!,
+                    ),
                   ),
                 ],
               ),

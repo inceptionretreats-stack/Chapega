@@ -8,6 +8,7 @@ import '../../models/studio_snapshot.dart';
 import '../../models/vendor_order.dart';
 import '../../models/vendor_product.dart';
 import '../../models/vendor_settings.dart';
+import '../alerts/new_order_alerts.dart';
 import '../session/session_controller.dart';
 import '../session/session_state.dart';
 import 'request_guard.dart';
@@ -41,7 +42,9 @@ class StudioState {
 /// Called with each shop's orders after a successful sync (new-order alerts).
 typedef OrdersObserver = void Function(String slug, List<VendorOrder> orders);
 
-final ordersObserverProvider = Provider<OrdersObserver>((ref) => (_, _) {});
+final ordersObserverProvider = Provider<OrdersObserver>(
+  (ref) => ref.read(newOrderAlertsProvider.notifier).observe,
+);
 
 final studioStoreProvider = NotifierProvider.family<StudioStore, StudioState, String>(
   StudioStore.new,

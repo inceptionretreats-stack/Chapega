@@ -6,6 +6,7 @@ import '../../bootstrap/providers.dart';
 import '../../domain/team.dart';
 import '../../models/vendor_user.dart';
 import '../../routing/routes.dart';
+import '../alerts/new_order_banner.dart';
 import '../session/session_controller.dart';
 import 'studio_store.dart';
 import 'sync_scheduler.dart';
@@ -117,7 +118,7 @@ class _StudioShellState extends ConsumerState<StudioShell> {
     );
 
     return Scaffold(
-      body: shell,
+      body: NewOrderBannerHost(child: shell),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selected < 0 ? 0 : selected,
         onDestinationSelected: (index) {

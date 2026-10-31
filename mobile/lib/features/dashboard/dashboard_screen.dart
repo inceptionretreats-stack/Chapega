@@ -95,7 +95,7 @@ class _Dashboard extends ConsumerWidget {
           title: 'Live orders',
           subtitle:
               'Orders prepared at the kiosk. Confirm only after the shop receives the request.',
-          padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+          padding: const EdgeInsets.only(bottom: 8),
           trailing: TextButton(
             onPressed: () => context.go(Routes.orders(slug)),
             child: const Text('View all'),
@@ -123,7 +123,7 @@ class _Dashboard extends ConsumerWidget {
         SectionCard(
           title: 'Low stock',
           subtitle: 'At or below $threshold units.',
-          padding: const EdgeInsets.fromLTRB(0, 16, 0, 8),
+          padding: const EdgeInsets.only(bottom: 8),
           trailing: canEditCatalogue
               ? TextButton(
                   onPressed: () => context.go(Routes.products(slug)),
@@ -274,12 +274,7 @@ class _StatGrid extends StatelessWidget {
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
-                            child: Text(
-                              value,
-                              style: text.headlineSmall?.copyWith(
-                                fontFeatures: const [FontFeature.tabularFigures()],
-                              ),
-                            ),
+                            child: Text(value, style: text.headlineSmall),
                           ),
                         ],
                       ),

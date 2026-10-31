@@ -158,7 +158,9 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// A bordered card with a heading, like the web Studio's panels.
+/// A bordered card with a heading, like the web Studio's panels. The
+/// heading is always inset; [padding] applies to the body, so list cards
+/// can pass a zero horizontal padding and let their rows inset themselves.
 class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key,
@@ -173,19 +175,19 @@ class SectionCard extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
   final Widget child;
-  final EdgeInsetsGeometry padding;
+  final EdgeInsets padding;
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     return Card(
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (title != null) ...[
-              Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (title != null)
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, trailing == null ? 16 : 6, 0),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
@@ -203,11 +205,9 @@ class SectionCard extends StatelessWidget {
                   ?trailing,
                 ],
               ),
-              const SizedBox(height: 14),
-            ],
-            child,
-          ],
-        ),
+            ),
+          Padding(padding: title == null ? padding : padding.copyWith(top: 12), child: child),
+        ],
       ),
     );
   }
