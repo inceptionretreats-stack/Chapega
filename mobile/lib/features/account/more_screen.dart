@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../routing/routes.dart';
 import '../../theme/chapega_colors.dart';
+import '../../theme/theme_mode.dart';
 import '../../ui/feedback.dart';
 import '../session/session_controller.dart';
 import '../studio/studio_chrome.dart';
@@ -91,6 +92,30 @@ class MoreScreen extends ConsumerWidget {
                   onTap: () => context.go(Routes.about(slug)),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Appearance', style: text.titleSmall),
+                  const SizedBox(height: 10),
+                  SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment(value: ThemeMode.system, label: Text('System')),
+                      ButtonSegment(value: ThemeMode.light, label: Text('Light')),
+                      ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
+                    ],
+                    selected: {ref.watch(themeModeProvider)},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (selection) =>
+                        ref.read(themeModeProvider.notifier).set(selection.first),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),

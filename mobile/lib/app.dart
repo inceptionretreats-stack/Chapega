@@ -2,21 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_messenger.dart';
-import 'bootstrap/providers.dart';
 import 'routing/app_router.dart';
 import 'theme/chapega_theme.dart';
-
-final themeModeProvider = NotifierProvider<ThemeModeController, ThemeMode>(ThemeModeController.new);
-
-class ThemeModeController extends Notifier<ThemeMode> {
-  @override
-  ThemeMode build() => ref.read(preferencesProvider).themeMode;
-
-  Future<void> set(ThemeMode mode) async {
-    state = mode;
-    await ref.read(preferencesProvider).setThemeMode(mode);
-  }
-}
+import 'theme/theme_mode.dart';
 
 class ChapegaStudioApp extends ConsumerWidget {
   const ChapegaStudioApp({super.key});

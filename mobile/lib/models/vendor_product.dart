@@ -171,6 +171,27 @@ class ProductInput {
   /// The version being replaced; null when creating.
   final int? version;
 
+  /// The same product with a just-uploaded photo.
+  ProductInput withImage(String path) => ProductInput(
+    name: name,
+    shortDescription: shortDescription,
+    description: description,
+    category: category,
+    pricePaise: pricePaise,
+    compareAtPricePaise: compareAtPricePaise,
+    image: path,
+    stock: stock,
+    featured: featured,
+    tags: tags,
+    recipientTags: recipientTags,
+    occasionTags: occasionTags,
+    variants: variants,
+    preparationTime: preparationTime,
+    giftWrapEligible: giftWrapEligible,
+    visible: visible,
+    version: version,
+  );
+
   JsonMap toJson() => {
     'name': name,
     'shortDescription': shortDescription,

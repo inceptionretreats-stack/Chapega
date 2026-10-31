@@ -3,19 +3,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../bootstrap/providers.dart';
+import '../features/account/about_screen.dart';
+import '../features/account/change_password_screen.dart';
 import '../features/account/more_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/orders/order_detail_screen.dart';
 import '../features/orders/orders_screen.dart';
+import '../features/products/product_editor_screen.dart';
+import '../features/products/products_screen.dart';
 import '../features/session/launch_screen.dart';
 import '../features/session/password_required_screen.dart';
 import '../features/session/session_controller.dart';
 import '../features/session/session_state.dart';
 import '../features/session/sign_in_screen.dart';
+import '../features/settings/settings_screen.dart';
 import '../features/shops/shop_picker_screen.dart';
 import '../features/studio/placeholder_screen.dart';
 import '../features/studio/shop_access.dart';
 import '../features/studio/studio_shell.dart';
+import '../features/team/add_member_screen.dart';
+import '../features/team/team_screen.dart';
 import '../models/vendor_user.dart';
 import '../ui/feedback.dart';
 import 'pending_deep_link.dart';
@@ -142,20 +149,23 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/s/:slug',
         redirect: (context, state) =>
-            state.matchedLocation == '/s/${_slug(state)}' ? Routes.home(_slug(state)) : null,
+            state.uri.path.replaceAll(RegExp(r'/+$'), '') == '/s/${_slug(state)}'
+            ? Routes.home(_slug(state))
+            : null,
         routes: [
           // Full-screen editors above the tabs.
           GoRoute(
             path: 'products/new',
             parentNavigatorKey: rootNavigatorKey,
-            builder: (context, state) =>
-                PlaceholderScreen(slug: _slug(state), title: 'New product'),
+            builder: (context, state) => ProductEditorScreen(slug: _slug(state)),
           ),
           GoRoute(
             path: 'products/:productId/edit',
             parentNavigatorKey: rootNavigatorKey,
-            builder: (context, state) =>
-                PlaceholderScreen(slug: _slug(state), title: 'Edit product'),
+            builder: (context, state) => ProductEditorScreen(
+              slug: _slug(state),
+              productId: state.pathParameters['productId'],
+            ),
           ),
         ],
       ),
@@ -194,8 +204,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/s/:slug/products',
-                builder: (context, state) =>
-                    PlaceholderScreen(slug: _slug(state), title: 'Products'),
+                builder: (context, state) => ProductsScreen(slug: _slug(state)),
               ),
             ],
           ),
@@ -204,8 +213,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: '/s/:slug/settings',
-                builder: (context, state) =>
-                    PlaceholderScreen(slug: _slug(state), title: 'Shop settings'),
+                builder: (context, state) => SettingsScreen(slug: _slug(state)),
               ),
             ],
           ),
@@ -218,13 +226,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [
                   GoRoute(
                     path: 'team',
-                    builder: (context, state) =>
-                        PlaceholderScreen(slug: _slug(state), title: 'Team'),
+                    builder: (context, state) => TeamScreen(slug: _slug(state)),
+                    routes: [
+                      GoRoute(
+                        path: 'add',
+                        parentNavigatorKey: rootNavigatorKey,
+                        builder: (context, state) => AddMemberScreen(slug: _slug(state)),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'password',
-                    builder: (context, state) =>
-                        PlaceholderScreen(slug: _slug(state), title: 'Change password'),
+                    builder: (context, state) => ChangePasswordScreen(slug: _slug(state)),
                   ),
                   GoRoute(
                     path: 'notifications',
@@ -233,8 +246,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'about',
-                    builder: (context, state) =>
-                        PlaceholderScreen(slug: _slug(state), title: 'About'),
+                    builder: (context, state) => AboutScreen(slug: _slug(state)),
                   ),
                 ],
               ),
