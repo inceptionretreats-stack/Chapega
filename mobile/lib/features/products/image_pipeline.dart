@@ -21,9 +21,10 @@ class PhotoProblem implements Exception {
 }
 
 /// Turns any photo the phone gives us into an upright JPEG the server
-/// accepts. The server strips EXIF (including the rotation flag), so the
-/// rotation is applied to the pixels here; transparency is flattened onto
-/// white; the result is at most [maxPhotoSide] px and under 8 MB.
+/// accepts. The camera's metadata (location, time, phone model) is dropped
+/// here, and the server strips it again; the rotation flag goes with it, so
+/// the rotation is applied to the pixels first. Transparency is flattened
+/// onto white; the result is at most [maxPhotoSide] px and under 8 MB.
 Future<Uint8List> prepareProductPhoto(Uint8List original) => Isolate.run(() => _prepare(original));
 
 Uint8List _prepare(Uint8List original) {
@@ -33,7 +34,7 @@ Uint8List _prepare(Uint8List original) {
       'This photo format isn\'t supported. Choose a JPEG or PNG photo, or take a new one.',
     );
   }
-  var image = img.bakeOrientation(decoded);
+  var image = img.bakeOrientation(decoded)..exif = img.ExifData();
   final longest = image.width > image.height ? image.width : image.height;
   if (longest > maxPhotoSide) {
     image = image.width >= image.height

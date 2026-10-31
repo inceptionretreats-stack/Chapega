@@ -25,3 +25,21 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
    deploy" in `CHANGELOG.md`.
 6. Before finishing, update `HANDOVER.md`. With uncommitted changes the Stop
    hook runs `npm run -s check`, which takes about a minute.
+
+## The Chapega Studio app (`mobile/`)
+
+- A Flutter app (Flutter 3.44.8) for shop teams. ESLint, Prettier, TypeScript
+  and Vercel skip `mobile/`. Read `mobile/README.md` before changing it.
+- `npm run check:mobile` runs `flutter analyze --fatal-infos` and
+  `flutter test`; the Stop hook runs it when `mobile/` changed. Run one
+  Flutter command at a time (the README says why).
+- The app calls `/api/studio-app/v1/*` (sign-in, session, push token) and
+  `/api/vendor/<slug>/*` with a Bearer token. A change to those responses
+  needs the matching change in `mobile/lib/models` and `mobile/lib/data`, and
+  must keep older app versions working (`mobile/docs/RELEASE.md`).
+- Order status, money, stock and validation rules exist in both TypeScript
+  and Dart. `tests/parity/domain-vectors.json` holds the cases both test
+  suites check: change a rule in both places and add a vector.
+- Never commit `mobile/config/firebase.json`, `key.properties` or keystores.
+  Test fixtures use obviously fake, low-entropy values: CI runs gitleaks on
+  every commit.
