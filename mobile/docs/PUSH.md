@@ -1,9 +1,9 @@
 # Push notifications for Chapega Studio
 
-New kiosk orders can reach staff phones even when the app is closed. The
-whole path is built in, but it stays off until a Firebase project exists:
+New kiosk orders can reach staff phones even when the app is closed. Push
+requires Firebase settings in the app build and a server credential:
 
-- **Without Firebase** (today), the app alerts only while it is open: a banner,
+- **Without Firebase**, the app alerts only while it is open: a banner,
   a vibration and a notification with sound for each new order. The
   Notifications screen says so.
 - **With Firebase**, the Notifications screen shows a "Push notifications"
@@ -16,6 +16,39 @@ whole path is built in, but it stays off until a Firebase project exists:
 A phone stops getting pushes when its person signs out, changes their
 password elsewhere, loses access to the shop, or doesn't open the app for 14
 days (the session's idle limit).
+
+## Current connection (2026-10-31)
+
+- Firebase project: `chapega-studio` (Chapega Studio), on Spark ($0/month),
+  under the owner's chosen Google account. Both app identifiers are
+  `com.chapega.studio`.
+- FCM HTTP v1 is enabled. The dedicated `chapega-fcm-sender` service account
+  has only Firebase Cloud Messaging API Admin. Its key is installed as a
+  Sensitive Production variable on Inception's existing Vercel `chapega`
+  project. Production was redeployed and reports push on.
+- Google authentication and an FCM validation-only request passed (HTTP
+  200), without delivering a notification. A configured Android release
+  APK builds; actual phone registration and delivery remain to be tested.
+- Production has all four approved migrations (`20261030120000`,
+  `20261030121000`, `20261030122000`, `20261101120000`), with no pending
+  migrations. Phone session columns, push tables, forced RLS and restricted
+  function grants are verified. The approved 30-day customer redaction is
+  scheduled nightly at 03:45 UTC (09:15 IST); it was not invoked manually.
+- The ignored `config/firebase.json` contains Android and iOS build settings.
+  Android's key is restricted to the package and both the debug and upload
+  certificates; iOS's key is restricted to the bundle. The upload SHA-1 is
+  `9D:02:E3:15:11:BB:AF:20:2D:48:18:84:FD:E7:DC:51:61:93:FB:6C`.
+  Firebase also has the upload SHA-256; public fingerprints are in
+  `../store/signing/certificate.json`. Google's Play app-signing certificate
+  is separate and still needs adding before testing a Play installation.
+  Apple APNs credentials are still required for iOS.
+- Keep this setup on free versions. Firebase remains on Spark, Vercel on
+  Hobby and Supabase on Free; no billing was activated or plan upgraded.
+  Do not enroll in paid Apple/Google store programs under the current
+  authorization. Install the configured Android APK directly for testing.
+  Hobby is the unchanged current plan, not a recommendation for business
+  launch: see the commercial-hosting blocker in
+  [the Play review](PLAY_STORE_REVIEW.md).
 
 ## 1. Create the Firebase project
 

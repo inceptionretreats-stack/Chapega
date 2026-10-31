@@ -20,6 +20,8 @@ const MANAGED = [
   "NEXT_RUNTIME",
   "NEXT_PHASE",
   "VERCEL",
+  "NETLIFY",
+  "CHAPEGA_HOST_PLATFORM",
   "CHAPEGA_DATA_BACKEND",
   "ALLOW_LOCAL_VENDOR_BACKEND",
   "ALLOW_VENDOR_PREVIEW_LOGIN",
@@ -106,6 +108,32 @@ describe("startup configuration validation (instrumentation register)", () => {
     await expect(instrumentation.register?.()).resolves.toBeUndefined();
     expect(inspectServerConfiguration().errors).toEqual([]);
   });
+
+  it.each(["", "netlify", " netlify "])(
+    "accepts the supported runtime host marker: %s",
+    (value) => {
+      environment({
+        NODE_ENV: "development",
+        NEXT_RUNTIME: "nodejs",
+        CHAPEGA_HOST_PLATFORM: value,
+      });
+      expect(inspectServerConfiguration().errors).toEqual([]);
+    },
+  );
+
+  it.each(["vercel", "NETLIFY", "true"])(
+    "rejects an unknown runtime host marker: %s",
+    async (value) => {
+      environment({
+        NODE_ENV: "development",
+        NEXT_RUNTIME: "nodejs",
+        CHAPEGA_HOST_PLATFORM: value,
+      });
+      await expect(instrumentation.register?.()).rejects.toThrow(
+        'CHAPEGA_HOST_PLATFORM must be "netlify" or unset.',
+      );
+    },
+  );
 
   it("reports invalid or missing production configuration", () => {
     environment({ NODE_ENV: "production", CHAPEGA_DATA_BACKEND: "postgres" });

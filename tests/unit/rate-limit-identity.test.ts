@@ -6,9 +6,11 @@ const mocks = vi.hoisted(() => ({
   authenticateAdminLogin: vi.fn(),
   placeKioskOrder: vi.fn(),
   getKioskBootstrap: vi.fn(),
+  netlifyContext: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
+vi.mock("@netlify/functions", () => ({ getContext: mocks.netlifyContext }));
 vi.mock("@/server/supabase/config", () => ({
   usesSupabaseBackend: () => false,
 }));
@@ -80,11 +82,14 @@ beforeEach(() => {
   now = Date.parse("2026-10-08T10:00:00.000Z");
   vi.setSystemTime(now);
   vi.stubEnv("VERCEL", "");
+  vi.stubEnv("NETLIFY", "");
+  vi.stubEnv("CHAPEGA_HOST_PLATFORM", "");
   vi.stubEnv("TRUST_PROXY_HEADERS", "");
   clearMemoryRateLimits();
   resetClientAddressWarning();
   logLines = [];
   setLogSink((_level, line) => logLines.push(JSON.parse(line)));
+  mocks.netlifyContext.mockReset().mockReturnValue({ ip: "198.51.100.7" });
   mocks.authenticateVendorLogin
     .mockReset()
     .mockImplementation(async (email: string, password: string) =>
@@ -200,6 +205,42 @@ describe("login throttling with a trusted client address", () => {
       "x-forwarded-for": "203.0.113.99",
     });
     expect(other.status).toBe(200);
+  });
+});
+
+describe("login throttling on Netlify", () => {
+  it("keeps one platform address in one bucket despite forged address headers", async () => {
+    vi.stubEnv("CHAPEGA_HOST_PLATFORM", "netlify");
+    let limited: Response | null = null;
+    for (let index = 0; index < 40 && !limited; index += 1) {
+      const response = await loginAs(`victim${index}@example.com`, "wrong-password", {
+        "x-forwarded-for": `203.0.113.${index + 1}`,
+        "x-real-ip": `203.0.113.${index + 1}`,
+        "x-nf-client-connection-ip": `203.0.113.${index + 1}`,
+      });
+      if (response.status === 429) limited = response;
+    }
+    expect(limited).not.toBeNull();
+    expect(Number(limited?.headers.get("retry-after"))).toBeGreaterThan(0);
+
+    // The runtime, rather than a request header, identifies another person.
+    mocks.netlifyContext.mockReturnValue({ ip: "198.51.100.8" });
+    expect((await loginAs("owner@example.com", VENDOR_PASSWORD)).status).toBe(200);
+    expect(logLines.some((line) => line.event === "security.client_address_unknown")).toBe(false);
+  });
+
+  it("retains unknown-address safeguards when its request context is absent", async () => {
+    vi.stubEnv("NETLIFY", "true");
+    mocks.netlifyContext.mockImplementation(() => {
+      throw new Error("No active request");
+    });
+    for (let index = 0; index < 35; index += 1) {
+      expect((await loginAs(`stranger${index}@example.com`, "wrong-password")).status).toBe(401);
+    }
+    expect((await loginAs("owner@example.com", VENDOR_PASSWORD)).status).toBe(200);
+    expect(
+      logLines.filter((line) => line.event === "security.client_address_unknown"),
+    ).toHaveLength(1);
   });
 });
 

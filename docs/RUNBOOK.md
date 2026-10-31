@@ -258,7 +258,7 @@ example from the phone number or email the shop has for them.
 1. Find the account and its shops (as the database owner):
 
    ```sql
-   select users.id, users.name, users.platform_role,
+   select users.id, users.email, users.name, users.platform_role,
           vendors.slug, memberships.role, memberships.active
    from private.vendor_users users
    left join private.vendor_memberships memberships on memberships.user_id = users.id
@@ -268,33 +268,86 @@ example from the phone number or email the shop has for them.
 
    Stop if they are a shop's only owner: agree the new owner or the shop's
    closure first. Never delete the only `super_admin`.
-2. Check that nobody else in those shops has the same name:
+2. Check for names shared by more than one account in those shops. Include
+   inactive accounts and memberships: their old order events still exist.
 
    ```sql
-   select distinct users.name
+   select users.name, count(distinct users.id) as accounts_with_name
    from private.vendor_memberships memberships
    join private.vendor_users users on users.id = memberships.user_id
    where memberships.vendor_id in (
      select vendor_id from private.vendor_memberships where user_id = 'USER-ID'
-   );
+   )
+   group by users.name
+   having count(distinct users.id) > 1;
    ```
 
-3. Delete in one transaction:
+   **Stop if the person's name is ambiguous.** `order_events` stores an
+   `actor_name`, not the author's account ID. This query finds collisions
+   among accounts that still exist; it cannot identify historical names,
+   deleted former members, or an old membership that was removed. A unique
+   current name therefore does not prove who wrote every matching event.
+   If this person changed names, another current or former member used the
+   same name, or attribution cannot be verified, prepare a separate reviewed
+   deletion plan using individually verified event IDs. Do not run the
+   name-based update below, erase another person's authorship, or promise
+   that historical names have been removed based only on this query.
+
+3. Only after verifying that the current name uniquely identifies this
+   person's relevant events throughout their membership history, delete in
+   one transaction. Replace the ID, email and name with the exact values
+   verified in step 1 (escape SQL string literals correctly). The guard
+   aborts if the target changed or another existing member shares the name;
+   it cannot resolve the historical ambiguity described above.
 
    ```sql
    begin;
-   -- Order timelines store the name, not the account.
-   update private.order_events events
-   set actor_name = 'Former team member'
-   from private.orders orders
-   where events.order_id = orders.id
-     and orders.vendor_id in (
-       select vendor_id from private.vendor_memberships where user_id = 'USER-ID'
-     )
-     and events.actor_name = 'THEIR NAME';
-   -- Memberships, every session (browsers and phones) and push registrations
-   -- go with the account; their uploads keep no uploader.
-   delete from private.vendor_users where id = 'USER-ID';
+   do $$
+   declare
+     target_id uuid := 'USER-ID';
+     expected_email text := 'person@example.com';
+     expected_name text := 'THEIR NAME';
+     target_account private.vendor_users%rowtype;
+   begin
+     select users.* into target_account
+     from private.vendor_users users
+     where users.id = target_id
+     for update;
+     if not found then
+       raise exception 'Deletion target not found; stop and verify the request.';
+     end if;
+     if target_account.email is distinct from expected_email
+       or target_account.name is distinct from expected_name then
+       raise exception 'Deletion target changed; stop and verify the request.';
+     end if;
+     if exists (
+       select 1
+       from private.vendor_memberships memberships
+       join private.vendor_users users on users.id = memberships.user_id
+       where memberships.vendor_id in (
+         select vendor_id from private.vendor_memberships where user_id = target_id
+       )
+         and users.id <> target_id
+         and users.name = target_account.name
+     ) then
+       raise exception 'Ambiguous author name; a reviewed event-by-event plan is required.';
+     end if;
+
+     -- Order IDs are tenant-scoped: match both parts of the event's FK.
+     update private.order_events events
+     set actor_name = 'Former team member'
+     from private.orders orders
+     where events.vendor_id = orders.vendor_id
+       and events.order_id = orders.id
+       and orders.vendor_id in (
+         select vendor_id from private.vendor_memberships where user_id = target_id
+       )
+       and events.actor_name = target_account.name;
+     -- Memberships, every session (browsers and phones) and push registrations
+     -- go with the account; their uploads keep no uploader.
+     delete from private.vendor_users where id = target_id;
+   end;
+   $$;
    commit;
    ```
 

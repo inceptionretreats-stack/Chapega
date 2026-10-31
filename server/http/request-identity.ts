@@ -1,6 +1,7 @@
 import "server-only";
 
 import { isIP } from "node:net";
+import { getContext } from "@netlify/functions";
 import type { NextRequest } from "next/server";
 import { logger } from "@/server/observability/logger";
 
@@ -8,8 +9,9 @@ import { logger } from "@/server/observability/logger";
  * Proxy headers (X-Forwarded-*) are attacker-controlled unless a proxy we
  * trust overwrites them. Vercel always does; any other reverse proxy must be
  * declared with TRUST_PROXY_HEADERS=true. TRUST_PROXY_HEADERS=false disables
- * trust everywhere. This single rule governs client addresses (rate limits)
- * and the request origin (CSRF checks), so the two can never disagree.
+ * trust everywhere. This controls forwarded-origin and proxy-address trust.
+ * Netlify client addresses come from a separate platform request context;
+ * enabling that source never enables trust in forwarded-origin headers.
  */
 export function proxyHeadersTrusted(): boolean {
   const preference = process.env.TRUST_PROXY_HEADERS?.trim();
@@ -18,18 +20,44 @@ export function proxyHeadersTrusted(): boolean {
   return process.env.VERCEL === "1";
 }
 
+/** Netlify uses its request context; this never opts into forwarded headers. */
+function usesNetlifyRequestContext(): boolean {
+  if (process.env.VERCEL === "1") return false;
+  const configuredPlatform = process.env.CHAPEGA_HOST_PLATFORM?.trim();
+  if (configuredPlatform) return configuredPlatform === "netlify";
+  return process.env.NETLIFY === "true";
+}
+
+/** Whether a platform address source is configured, including at startup. */
+export function clientAddressTrustConfigured(): boolean {
+  if (process.env.TRUST_PROXY_HEADERS?.trim() === "false") return false;
+  return proxyHeadersTrusted() || usesNetlifyRequestContext();
+}
+
 function firstHeaderValue(value: string | null): string | null {
   const first = value?.split(",", 1)[0]?.trim();
   return first ? first : null;
 }
 
 /**
- * The client IP when a trusted proxy supplied a valid one, otherwise null.
+ * The client IP from a platform context or trusted proxy, otherwise null.
  * Route handlers cannot see the socket address, so without a trusted proxy
  * every client is indistinguishable and callers must not key shared limits
  * on the address.
  */
 export function trustedClientAddress(request: NextRequest): string | null {
+  if (process.env.TRUST_PROXY_HEADERS?.trim() === "false") return null;
+  if (usesNetlifyRequestContext()) {
+    // getContext is populated by Netlify's runtime, not by request headers.
+    // Missing/invalid context fails closed: never fall back to a spoofable
+    // X-Forwarded-For, X-Real-IP or X-NF-Client-Connection-IP on this host.
+    try {
+      const address = getContext().ip;
+      return typeof address === "string" && isIP(address) ? address : null;
+    } catch {
+      return null;
+    }
+  }
   if (!proxyHeadersTrusted()) return null;
   const candidates =
     process.env.VERCEL === "1"
@@ -44,8 +72,7 @@ export function trustedClientAddress(request: NextRequest): string | null {
 
 /** Backwards-compatible bucket label: an IP, "proxy" (bad header) or "direct". */
 export function clientAddressLabel(request: NextRequest): string {
-  if (!proxyHeadersTrusted()) return "direct";
-  return trustedClientAddress(request) ?? "proxy";
+  return trustedClientAddress(request) ?? (clientAddressTrustConfigured() ? "proxy" : "direct");
 }
 
 // A bare host[:port]: DNS name, IPv4, or bracketed IPv6. Anything else
