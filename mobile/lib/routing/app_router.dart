@@ -7,6 +7,7 @@ import '../features/account/about_screen.dart';
 import '../features/account/change_password_screen.dart';
 import '../features/account/more_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/notifications/notification_settings_screen.dart';
 import '../features/orders/order_detail_screen.dart';
 import '../features/orders/orders_screen.dart';
 import '../features/products/product_editor_screen.dart';
@@ -18,7 +19,6 @@ import '../features/session/session_state.dart';
 import '../features/session/sign_in_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shops/shop_picker_screen.dart';
-import '../features/studio/placeholder_screen.dart';
 import '../features/studio/shop_access.dart';
 import '../features/studio/studio_shell.dart';
 import '../features/team/add_member_screen.dart';
@@ -241,8 +241,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(
                     path: 'notifications',
-                    builder: (context, state) =>
-                        PlaceholderScreen(slug: _slug(state), title: 'Notifications'),
+                    builder: (context, state) => NotificationSettingsScreen(slug: _slug(state)),
                   ),
                   GoRoute(
                     path: 'about',
