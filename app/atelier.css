@@ -684,7 +684,8 @@ summary:focus-visible,
   top: 0;
   display: grid;
   min-height: var(--header-height);
-  grid-template-columns: minmax(210px, 0.8fr) minmax(320px, 1.5fr) minmax(280px, 0.9fr);
+  /* The actions never shrink below their content, or "1 of 5" wraps under its badge. */
+  grid-template-columns: minmax(210px, 0.8fr) minmax(320px, 1.5fr) minmax(max-content, 0.9fr);
   align-items: center;
   gap: clamp(18px, 3vw, 44px);
   padding: 12px var(--page-gutter);
@@ -830,6 +831,7 @@ summary:focus-visible,
 .cart-header-button__label {
   font-size: 0.82rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .header-profile,
@@ -6103,4 +6105,10 @@ select:focus-visible {
 }
 .privacy-page p:last-child {
   margin-top: 28px;
+}
+
+/* The chosen option and gift wrap, after the product name in the cart rail. */
+.mini-cart-line__extras {
+  color: var(--text-muted);
+  font-weight: 500;
 }

@@ -121,7 +121,9 @@ export const vendorProductSchema = z
 export const vendorSettingsSchema = z
   .object({
     shopName: trimmed(80),
-    ownerWhatsAppNumber: z.string().trim().min(8).max(24),
+    // Length and format are checked by normalizeWhatsAppNumber below, with a
+    // message a shop owner can act on; a bare .min() would add zod's own.
+    ownerWhatsAppNumber: z.string().trim().max(24, "Use at most 24 characters."),
     defaultCountryCode: z.string().regex(/^[1-9]\d{0,2}$/),
     kioskName: trimmed(80),
     maxCartQuantity: z.number().int().min(1).max(5),

@@ -23,6 +23,8 @@ function categoryLabel(category: CategoryFilter) {
 
 type CatalogueScreenProps = {
   products: readonly Product[];
+  /** Products in the whole catalogue, before search and filters. */
+  totalProducts: number;
   categories: readonly ProductCategory[];
   selectedCategory: CategoryFilter;
   searchQuery: string;
@@ -42,6 +44,7 @@ type CatalogueScreenProps = {
 
 export function CatalogueScreen({
   products,
+  totalProducts,
   categories,
   selectedCategory,
   searchQuery,
@@ -60,6 +63,8 @@ export function CatalogueScreen({
 }: CatalogueScreenProps) {
   const [selectedMoment, setSelectedMoment] = useState<MomentFilter>("all");
   const [sortOption, setSortOption] = useState<SortOption>("featured");
+  // A shop with nothing listed yet has nothing to search or filter.
+  const catalogueEmpty = totalProducts === 0;
   const capacityPercent = Math.min(100, (unitCount / maxUnits) * 100);
   const selectedQuantities = new Map<string, number>();
 
@@ -115,25 +120,27 @@ export function CatalogueScreen({
           ))}
         </nav>
 
-        <section className="moment-filter" aria-labelledby="moment-filter-heading">
-          <div className="moment-filter__heading">
-            <h2 id="moment-filter-heading">Shop by occasion</h2>
-            <p>Show gifts for one occasion.</p>
-          </div>
-          <div className="moment-filter__options" role="group" aria-label="Filter by occasion">
-            {MOMENT_FILTERS.map(({ value, label }) => (
-              <button
-                key={value}
-                className={`moment-filter__button ${selectedMoment === value ? "active" : ""}`}
-                type="button"
-                onClick={() => setSelectedMoment(value)}
-                aria-pressed={selectedMoment === value}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </section>
+        {catalogueEmpty ? null : (
+          <section className="moment-filter" aria-labelledby="moment-filter-heading">
+            <div className="moment-filter__heading">
+              <h2 id="moment-filter-heading">Shop by occasion</h2>
+              <p>Show gifts for one occasion.</p>
+            </div>
+            <div className="moment-filter__options" role="group" aria-label="Filter by occasion">
+              {MOMENT_FILTERS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  className={`moment-filter__button ${selectedMoment === value ? "active" : ""}`}
+                  type="button"
+                  onClick={() => setSelectedMoment(value)}
+                  aria-pressed={selectedMoment === value}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="catalogue-section" id="popular-gifts">
           <div className="section-heading-row">
@@ -150,28 +157,30 @@ export function CatalogueScreen({
                 {displayedProducts.length} {displayedProducts.length === 1 ? "gift" : "gifts"} found
               </span>
             </div>
-            <div className="catalogue-toolbar">
-              {hasActiveFilters ? (
-                <button
-                  className="text-button catalogue-clear"
-                  type="button"
-                  onClick={clearFilters}
-                >
-                  Clear filters
-                </button>
-              ) : null}
-              <label className="catalogue-sort">
-                <span>Sort by</span>
-                <select
-                  value={sortOption}
-                  onChange={(event) => setSortOption(event.target.value as SortOption)}
-                >
-                  <option value="featured">Featured</option>
-                  <option value="price-ascending">Price: Low to high</option>
-                  <option value="price-descending">Price: High to low</option>
-                </select>
-              </label>
-            </div>
+            {catalogueEmpty ? null : (
+              <div className="catalogue-toolbar">
+                {hasActiveFilters ? (
+                  <button
+                    className="text-button catalogue-clear"
+                    type="button"
+                    onClick={clearFilters}
+                  >
+                    Clear filters
+                  </button>
+                ) : null}
+                <label className="catalogue-sort">
+                  <span>Sort by</span>
+                  <select
+                    value={sortOption}
+                    onChange={(event) => setSortOption(event.target.value as SortOption)}
+                  >
+                    <option value="featured">Featured</option>
+                    <option value="price-ascending">Price: Low to high</option>
+                    <option value="price-descending">Price: High to low</option>
+                  </select>
+                </label>
+              </div>
+            )}
           </div>
 
           {displayedProducts.length ? (
@@ -271,6 +280,16 @@ export function CatalogueScreen({
                 );
               })}
             </div>
+          ) : catalogueEmpty ? (
+            <div className="empty-state">
+              <div>
+                <h2>No gifts on display yet</h2>
+                <p>
+                  This shop is still adding its gifts to the kiosk. A team member can help you in
+                  the meantime.
+                </p>
+              </div>
+            </div>
           ) : (
             <div className="empty-state">
               <div>
@@ -330,45 +349,69 @@ export function CatalogueScreen({
               </div>
 
               <div className="cart-rail__items" aria-label="Selected gifts" role="list">
-                {cart.map((line) => (
-                  <div className="mini-cart-line" key={line.key} role="listitem">
-                    <span className="sr-only">
-                      {line.productName}, quantity {line.quantity}
-                    </span>
-                    <div className="mini-cart-line__image">
-                      <Image src={line.productImage} alt="" width={140} height={156} sizes="70px" />
-                    </div>
-                    <div className="mini-cart-line__tools">
-                      <h3>{line.productName}</h3>
-                      <div
-                        className="quantity-control"
-                        aria-label={`Quantity for ${line.productName}`}
-                      >
-                        <button
-                          onClick={() => onQuantityChange(line.key, line.quantity - 1)}
-                          aria-label="Decrease quantity"
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span>{line.quantity}</span>
-                        <button
-                          onClick={() => onQuantityChange(line.key, line.quantity + 1)}
-                          disabled={unitCount >= maxUnits}
-                          aria-label="Increase quantity"
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    <button
-                      className="remove-icon"
-                      onClick={() => onRemove(line.key)}
-                      aria-label={`Remove ${line.productName}`}
+                {cart.map((line) => {
+                  // Two lines of one product differ only by option or wrap,
+                  // so both are named wherever the line is.
+                  const name = line.variantName
+                    ? `${line.productName}, ${line.variantName}`
+                    : line.productName;
+                  const extras = [line.variantName, line.giftWrapped ? "Gift wrapped" : null]
+                    .filter(Boolean)
+                    .join(" · ");
+                  return (
+                    <div
+                      className="mini-cart-line"
+                      key={line.key}
+                      role="listitem"
+                      title={extras ? `${line.productName} · ${extras}` : line.productName}
                     >
-                      <Trash2 size={17} />
-                    </button>
-                  </div>
-                ))}
+                      <span className="sr-only">
+                        {name}
+                        {line.giftWrapped ? ", gift wrapped" : ""}, quantity {line.quantity}
+                      </span>
+                      <div className="mini-cart-line__image">
+                        <Image
+                          src={line.productImage}
+                          alt=""
+                          width={140}
+                          height={156}
+                          sizes="70px"
+                        />
+                      </div>
+                      <div className="mini-cart-line__tools">
+                        <h3>
+                          {line.productName}
+                          {extras ? (
+                            <span className="mini-cart-line__extras"> · {extras}</span>
+                          ) : null}
+                        </h3>
+                        <div className="quantity-control" aria-label={`Quantity for ${name}`}>
+                          <button
+                            onClick={() => onQuantityChange(line.key, line.quantity - 1)}
+                            aria-label="Decrease quantity"
+                          >
+                            <Minus size={14} />
+                          </button>
+                          <span>{line.quantity}</span>
+                          <button
+                            onClick={() => onQuantityChange(line.key, line.quantity + 1)}
+                            disabled={unitCount >= maxUnits}
+                            aria-label="Increase quantity"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        className="remove-icon"
+                        onClick={() => onRemove(line.key)}
+                        aria-label={`Remove ${name}`}
+                      >
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
 
               <div className="capacity-meter">

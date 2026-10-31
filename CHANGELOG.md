@@ -129,6 +129,19 @@ the findings of the 2026-10-08 project audit.
 - Admin "Accounts" did nothing when the vendor search had no results.
 - On mobile, each admin vendor row showed a navigation arrow that opened the
   Suspend dialog; it now shows the pause or play icon.
+- Shop settings: a field the server refused (for example a WhatsApp number
+  that is too short) is now highlighted with its own message and focused.
+  Before, only a general error appeared at the top, and a short number added
+  a second, technical message.
+- Kiosk cart rail: two lines of one product (different option, or one gift
+  wrapped) looked identical. Each line now shows its option and "Gift
+  wrapped", and screen readers hear the option in the quantity and Remove
+  buttons, in the cart rail and in the cart.
+- Kiosk header: at about 1366 px wide the cart button's "1 of 5" wrapped
+  onto two lines under its badge.
+- A shop with no products yet told customers "No gifts match that search"
+  and offered occasion filters and sorting. It now says the shop is still
+  adding its gifts.
 - README: the Content Security Policy is enforced (it said report-only),
   and retention runs automatically. RUNBOOK: the pg_cron example was invalid
   SQL; it now describes the scheduled job and how to check it.

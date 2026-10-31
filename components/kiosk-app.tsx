@@ -552,6 +552,7 @@ export function KioskApp({ vendorSlug, initialBootstrap = null }: KioskAppProps)
         <>
           <CatalogueScreen
             products={visibleProducts}
+            totalProducts={store.products.length}
             categories={catalogueCategories}
             selectedCategory={store.selectedCategory}
             searchQuery={store.searchQuery}
