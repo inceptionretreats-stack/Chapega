@@ -27,12 +27,13 @@ class TestApp {
 }
 
 /// The whole app against in-memory fakes. [signedIn] stores a token so the
-/// app restores a session at launch.
+/// app restores a session at launch; [storedOrigin] says which server issued it.
 Future<TestApp> pumpStudioApp(
   WidgetTester tester, {
   FakeSessionApi? session,
   FakeStudioApi? studio,
   bool signedIn = true,
+  String storedOrigin = testOrigin,
   MemoryAppPreferences? preferences,
   Size size = const Size(412, 915),
 }) async {
@@ -40,14 +41,14 @@ Future<TestApp> pumpStudioApp(
   addTearDown(tester.view.resetPhysicalSize);
   final sessionApi = session ?? FakeSessionApi();
   final studioApi = studio ?? FakeStudioApi(user: sessionApi.user);
-  final secure = MemorySecureStore()..token = signedIn ? testToken : null;
+  final secure = MemorySecureStore()
+    ..token = signedIn ? testToken : null
+    ..origin = storedOrigin;
   final prefs = preferences ?? MemoryAppPreferences();
   final container = ProviderContainer(
     retry: (retryCount, error) => null,
     overrides: [
-      appConfigProvider.overrideWithValue(
-        AppConfig(apiOrigin: Uri.parse('https://chapega.example')),
-      ),
+      appConfigProvider.overrideWithValue(AppConfig(apiOrigin: Uri.parse(testOrigin))),
       preferencesProvider.overrideWithValue(prefs),
       secureStoreProvider.overrideWithValue(secure),
       deviceInfoProvider.overrideWithValue(

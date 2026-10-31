@@ -67,6 +67,13 @@ void main() {
     expect(find.text('Welcome back, Aanya'), findsOneWidget);
   });
 
+  testWidgets('never sends a token issued by another server', (tester) async {
+    final app = await pumpStudioApp(tester, storedOrigin: 'http://10.0.2.2:3300');
+    expect(app.session.calls, isNot(contains('current')));
+    expect(await app.secure.readToken(), isNull);
+    expect(find.text('Sign in'), findsWidgets);
+  });
+
   testWidgets('an ended session signs out with an explanation', (tester) async {
     final session = FakeSessionApi(
       currentFailure: const HttpFailure(

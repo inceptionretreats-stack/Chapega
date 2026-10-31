@@ -45,6 +45,9 @@ VendorUser fakeUser({String role = 'owner', bool mustChangePassword = false}) =>
 /// A test token built at run time (never a random-looking literal in source).
 final testToken = 'chapega_app_${'t' * 43}';
 
+/// The API origin of the app under test; a stored token must come from it.
+const testOrigin = 'https://chapega.example';
+
 class FakeSessionApi implements SessionApi {
   FakeSessionApi({VendorUser? user, this.currentFailure, this.signInFailure})
     : user = user ?? fakeUser();

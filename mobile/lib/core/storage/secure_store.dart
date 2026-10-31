@@ -4,13 +4,17 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'app_preferences.dart';
 
-/// The only secrets the app keeps: the session token and a random id for
+/// A session token and the API origin that issued it.
+typedef StoredToken = ({String token, String origin});
+
+/// The only secrets the app keeps: the session token (with the origin that
+/// issued it, so it is never sent to another server) and a random id for
 /// this install. Android stores them with a Keystore-backed key; iOS in the
 /// Keychain, readable only while the phone is unlocked and never synced or
 /// restored to another device.
 abstract interface class SecureStore {
-  Future<String?> readToken();
-  Future<void> writeToken(String token);
+  Future<StoredToken?> readToken();
+  Future<void> writeToken(String token, {required String origin});
   Future<void> deleteToken();
 
   /// A random id for this install, created on first use. The server stores
@@ -31,16 +35,29 @@ class FlutterSecureStore implements SecureStore {
   final FlutterSecureStorage _storage;
 
   static const _tokenKey = 'session_token';
+  static const _originKey = 'session_origin';
   static const _installationKey = 'installation_id';
 
   @override
-  Future<String?> readToken() => _storage.read(key: _tokenKey);
+  Future<StoredToken?> readToken() async {
+    final token = await _storage.read(key: _tokenKey);
+    if (token == null) return null;
+    // A token saved without its origin can't be trusted to any server.
+    final origin = await _storage.read(key: _originKey) ?? '';
+    return (token: token, origin: origin);
+  }
 
   @override
-  Future<void> writeToken(String token) => _storage.write(key: _tokenKey, value: token);
+  Future<void> writeToken(String token, {required String origin}) async {
+    await _storage.write(key: _originKey, value: origin);
+    await _storage.write(key: _tokenKey, value: token);
+  }
 
   @override
-  Future<void> deleteToken() => _storage.delete(key: _tokenKey);
+  Future<void> deleteToken() async {
+    await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _originKey);
+  }
 
   @override
   Future<String> installationId() async {
@@ -67,16 +84,26 @@ Future<void> wipeSecretsIfFreshInstall(SecureStore secure, AppPreferences prefer
 /// Kept in memory; for tests.
 class MemorySecureStore implements SecureStore {
   String? token;
+  String origin = '';
   String? _installation;
 
   @override
-  Future<String?> readToken() async => token;
+  Future<StoredToken?> readToken() async {
+    final stored = token;
+    return stored == null ? null : (token: stored, origin: origin);
+  }
 
   @override
-  Future<void> writeToken(String token) async => this.token = token;
+  Future<void> writeToken(String token, {required String origin}) async {
+    this.token = token;
+    this.origin = origin;
+  }
 
   @override
-  Future<void> deleteToken() async => token = null;
+  Future<void> deleteToken() async {
+    token = null;
+    origin = '';
+  }
 
   @override
   Future<String> installationId() async => _installation ??= uuidV4();
@@ -84,6 +111,7 @@ class MemorySecureStore implements SecureStore {
   @override
   Future<void> deleteAll() async {
     token = null;
+    origin = '';
     _installation = null;
   }
 }

@@ -46,14 +46,25 @@ class SessionController extends Notifier<SessionState> {
     state = user.mustChangePassword ? PasswordChangeRequired(user) : SignedIn(user);
   }
 
+  /// The server this build talks to; a stored token belongs to exactly one.
+  String get _origin => ref.read(appConfigProvider).apiOrigin.toString();
+
   /// At launch: is there a stored session, and is it still valid?
   Future<void> restore() async {
     state = const SessionRestoring();
-    final token = await ref.read(secureStoreProvider).readToken();
-    if (token == null) {
+    final secure = ref.read(secureStoreProvider);
+    final stored = await secure.readToken();
+    if (stored == null) {
       state = const SignedOut();
       return;
     }
+    if (stored.origin != _origin) {
+      // Issued by another server (a build pointed elsewhere): never send it here.
+      await secure.deleteToken();
+      state = const SignedOut();
+      return;
+    }
+    final token = stored.token;
     ref.read(sessionTokenProvider).token = token;
     try {
       final status = await ref.read(sessionApiProvider).current();
@@ -96,7 +107,7 @@ class SessionController extends Notifier<SessionState> {
       if (vendorSlug == null || failure.code != 'VENDOR_ACCESS_UNAVAILABLE') rethrow;
       result = await api.signIn(email: email, password: password, device: device);
     }
-    await ref.read(secureStoreProvider).writeToken(result.token);
+    await ref.read(secureStoreProvider).writeToken(result.token, origin: _origin);
     ref.read(sessionTokenProvider).token = result.token;
     _apply(result.user);
     return result;
