@@ -37,6 +37,11 @@ marked **TO DECIDE** need an owner's decision before launch.
    - `GET /api/readyz` returns 200 with `"ready"`;
    - a kiosk loads, and a test sign-in works for Vendor Studio and admin.
 
+The Chapega Studio phone app is released separately, through Google Play and
+the App Store: follow `mobile/docs/RELEASE.md`. Ship server changes the app
+depends on first, and keep the API compatible with app versions people still
+have installed.
+
 ## Rolling back
 
 - **App only:** use Vercel's "Instant Rollback" to the previous deployment.

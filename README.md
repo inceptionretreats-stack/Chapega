@@ -40,7 +40,8 @@ The interface keeps the existing ivory, blush, burgundy, and gold brand palette.
 
 ### Chapega Studio app (phones)
 
-- The Vendor Studio as a phone app (Flutter, in `mobile/`). It uses the same `/api/vendor/…` endpoints, with its own sign-in at `/api/studio-app/v1/*` and an `Authorization: Bearer` token instead of a cookie
+- The Vendor Studio as a phone app for owners, managers and staff (Flutter, in `mobile/`; Android and iOS from one codebase): orders with new-order alerts and Call/WhatsApp buttons for the customer, products with camera photos, shop settings (including pausing the kiosk), team, and change password. Running it against a local server, tests and builds: `mobile/README.md`
+- It uses the same `/api/vendor/…` endpoints, with its own sign-in at `/api/studio-app/v1/*` and an `Authorization: Bearer` token instead of a cookie
 - Phone sessions are their own kind: signing in on a phone never signs the person out of the web Studio, and the other way round. A phone stays signed in for 14 days without use and 30 days at most (`VENDOR_APP_SESSION_IDLE_DAYS`, `VENDOR_APP_SESSION_DAYS`); each person can have 3 phones signed in (`VENDOR_APP_MAX_DEVICES`), and a fourth signs out the one used least recently
 - Signing out, a password change, removal from the team, a reset and a password rotation all end phone sessions too
 - **New-order push notifications** (Firebase Cloud Messaging): off until `FCM_SERVICE_ACCOUNT_JSON` is set (see `docs/RUNBOOK.md`). Each new kiosk order is announced once, after the kiosk has its answer, to the signed-in phones of the shop's team. A notification shows the order number, total and item count, never the customer's name, phone number or notes
@@ -299,6 +300,8 @@ CHAPEGA_IT_ADMIN_URL=postgresql://postgres:PASSWORD@localhost:5432/postgres npm 
 ```
 
 CI runs all of these on every pull request, plus a dependency audit, coverage thresholds, and a secret scan. A physical WhatsApp receipt remains a manual acceptance check.
+
+The Chapega Studio app has its own checks (Flutter 3.44.8): `npm run check:mobile`, or `flutter analyze --fatal-infos && flutter test` in `mobile/`. CI runs them, plus a release APK build, in `.github/workflows/mobile.yml` whenever `mobile/` changes; the same workflow compiles the iOS app on demand (manual run with `ios: true`).
 
 ## Current production follow-ups
 

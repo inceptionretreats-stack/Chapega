@@ -83,6 +83,12 @@ the findings of the 2026-10-08 project audit.
 
 ### Changed
 
+- The repository's tools skip `mobile/` (Prettier, ESLint, TypeScript and the
+  Vercel upload). The pre-commit hook formats Dart, Dependabot updates the
+  app's packages weekly, and a separate CI workflow checks the app when it
+  changes: format, analyze, tests and a release APK, and committed Firebase
+  settings or signing keys are refused. The Stop hook runs the web or Flutter
+  checks for whichever side changed.
 - Server functions run in Vercel's Seoul region (`icn1`), next to the Supabase
   database, instead of the default US East. Each render makes several
   database round trips, which made the kiosk home page answer in about
@@ -113,6 +119,19 @@ the findings of the 2026-10-08 project audit.
 
 ### Added
 
+- **Chapega Studio, a Flutter phone app** for shop owners, managers and staff
+  (`mobile/`). It includes:
+  - orders with new-order alerts and Call and WhatsApp buttons for the
+    customer;
+  - products with camera photos, sent upright and without location data;
+  - shop settings, including pausing the kiosk;
+  - team, change password, appearance and notifications;
+  - light and dark themes, and checks for text at twice the size.
+
+  Android is built and tested on the emulator against a real server. iOS shares
+  the code but needs a Mac to build (`mobile/docs/RELEASE.md`). Push
+  notifications work once the Firebase project exists (`mobile/docs/PUSH.md`).
+  Ship the server first (migration `20261101120000`), then the app.
 - **Server side of the Chapega Studio phone app**: app sign-in, session and
   sign-out at `/api/studio-app/v1/*`, with every Studio endpoint accepting the
   app's Bearer token. A phone stays signed in for 14 days without use and
