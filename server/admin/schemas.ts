@@ -45,7 +45,9 @@ export const RESERVED_VENDOR_SLUGS: ReadonlySet<string> = new Set([
   "healthz",
   "readyz",
   "privacy",
+  "delete-account",
   "generated-products",
+  "studio-app",
   // Reserved for platform features and well-known paths
   "account",
   "accounts",
@@ -101,6 +103,14 @@ export const createAdminVendorSchema = z
       context.addIssue({ code: "custom", path: ["temporaryPassword"], message: problem });
     }
   });
+
+/** The policy check needs the owner's email and name, so it runs in the service. */
+export const resetOwnerPasswordSchema = z
+  .object({
+    ownerId: z.string().uuid(),
+    temporaryPassword: z.string().max(200),
+  })
+  .strict();
 
 const vendorStatusSchema = z.enum(["active", "suspended"]);
 

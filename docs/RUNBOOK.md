@@ -9,7 +9,7 @@ marked **TO DECIDE** need an owner's decision before launch.
 | --- | --- |
 | Production owner (Vercel, Supabase, domain) | **TO DECIDE** |
 | On-call / first responder | **TO DECIDE** |
-| Shop data and privacy contact | **TO DECIDE** (also named in `/privacy`) |
+| Shop data and privacy contact | Each shop, on its WhatsApp number (shown at `/privacy?shop=<slug>`); Chapega.com is named as responsible |
 
 ## Environments
 
@@ -36,6 +36,11 @@ marked **TO DECIDE** need an owner's decision before launch.
    - `GET /api/healthz` returns `{"status":"ok"}`;
    - `GET /api/readyz` returns 200 with `"ready"`;
    - a kiosk loads, and a test sign-in works for Vendor Studio and admin.
+
+The Chapega Studio phone app is released separately, through Google Play and
+the App Store: follow `mobile/docs/RELEASE.md`. Ship server changes the app
+depends on first, and keep the API compatible with app versions people still
+have installed.
 
 ## Rolling back
 
@@ -98,14 +103,73 @@ for example, `bom1::icn1::…` is the Mumbai edge and a Seoul function.
   On a Postgres without pg_cron the migration skips the job; run
   `select private.purge_expired_records();` on another schedule.
 
-- **Customer details on finished orders** are not removed yet. The
-  retention period is the owner's decision (**TO DECIDE**; at least 30 days,
-  and state it in `/privacy`). Then schedule it as the database owner:
+- **Customer details** are removed every day at 03:45 UTC by the
+  `chapega-redact-orders` job (migration `20261030120000`; retention decided
+  2026-10-30: 30 days). It clears name, phone, notes, the WhatsApp text and
+  the submission fingerprint 30 days after an order is completed or
+  cancelled, and 30 days after preparation for orders the shop never
+  confirmed. Orders in progress keep them until they finish. `/privacy`
+  states this rule; change both together. The day after a run this should
+  return 0 (it also proves the owner bypasses row-level security):
 
   ```sql
-  select cron.schedule('chapega-redact-orders', '30 3 * * *',
-    $select private.redact_order_personal_data(interval '90 days')$);
+  select count(*) from private.orders
+  where ((status in ('completed', 'cancelled') and updated_at < now() - interval '30 days')
+      or (status = 'prepared' and created_at < now() - interval '30 days'))
+    and (customer_name <> '' or customer_phone <> '' or gift_note <> ''
+      or order_note <> '' or whatsapp_url like '%?%');
   ```
+
+  On a Postgres without pg_cron, run
+  `select * from private.redact_order_personal_data(interval '30 days');` daily.
+
+- **Push announcement records** (which orders were already announced to
+  phones) older than 30 days go with the same nightly purge.
+
+## Push notifications (Chapega Studio app)
+
+New kiosk orders are announced to the signed-in phones of the shop's team
+through Firebase Cloud Messaging. Push is off until it is configured; the app
+still alerts while it is open. A notification shows the order number, total
+and item count only.
+
+**Turn it on** (once, with the Firebase project the app is built with; the
+app side is in `mobile/docs/PUSH.md`):
+
+1. In the Google Cloud console of that Firebase project, create a service
+   account with only the "Firebase Cloud Messaging API Admin" role, and add a
+   JSON key.
+2. For iOS, upload the APNs authentication key in the Firebase console
+   (Project settings → Cloud Messaging).
+3. In Vercel, set `FCM_SERVICE_ACCOUNT_JSON` to the key (raw JSON or
+   base64), mark it Sensitive, and redeploy. Delete the downloaded key file.
+4. Check the deployment log: `config.validated` shows
+   `"pushNotifications":"on"`; a `config.warning` naming
+   `FCM_SERVICE_ACCOUNT_JSON` means the key was not accepted and push is off.
+5. Place a test kiosk order with a signed-in phone that allowed
+   notifications. The log shows `push.order_alert` with `sent` at least 1.
+
+**Turn it off:** remove `FCM_SERVICE_ACCOUNT_JSON` and redeploy. Phones keep
+their registrations and get notifications again when it is turned back on.
+
+**Check it** (as the database owner):
+
+```sql
+-- Phones registered for notifications, and announcements in the last day.
+select count(*) from private.vendor_push_registrations;
+select count(*) as orders, sum(sent_count) as sent, sum(failed_count) as failed
+from private.order_push_dispatches
+where claimed_at > now() - interval '1 day';
+```
+
+`push.send_failed` with status 401 or 403 in the logs means the key or its
+role is wrong; `push.apns_not_configured` means the APNs key is missing in
+Firebase. Tokens Firebase reports as no longer registered are removed
+automatically.
+
+**Rotate the key:** add a new JSON key to the service account, update
+`FCM_SERVICE_ACCOUNT_JSON`, redeploy, then delete the old key in the Google
+Cloud console.
 
 ## Backups and recovery
 
@@ -116,6 +180,10 @@ for example, `bom1::icn1::…` is the Mumbai edge and a Seoul function.
   database backups do not cover. **TO DECIDE**: how to back up the bucket.
 - Local backend: `.data/vendor-db.json`, with its recovery copy next to it.
   Back up that directory.
+- A restore brings back customer details removed since the backup. Run the
+  redaction function again afterwards, and repeat any
+  `order.customer_details_removed` actions recorded in `private.audit_log`
+  after the backup was taken.
 
 ## Incidents
 
@@ -127,21 +195,111 @@ for example, `bom1::icn1::…` is the Mumbai edge and a Seoul function.
 3. If the owner database password leaked, rotate it and update
    `SUPABASE_ADMIN_DATABASE_URL`.
 4. Sign everyone out:
-   `delete from private.vendor_sessions;` (run as owner).
-5. Redeploy and run the post-deploy checks above.
+   `delete from private.vendor_sessions;` (run as owner). This includes
+   phones; their push registrations go with their sessions.
+5. If the Firebase service-account key leaked, delete it in the Google Cloud
+   console and add a new one (see "Rotate the key" above).
+6. Redeploy and run the post-deploy checks above.
+
+### A phone is lost or stolen
+
+Any of these signs the phone out at once; its notifications stop with it:
+
+- The person changes their password (Studio or app → Change password): every
+  other session of theirs ends, browsers and phones.
+- The owner removes the person's access in Team (and restores it later).
+- As the database owner, end only that person's phones:
+
+  ```sql
+  delete from private.vendor_sessions
+  where session_scope = 'vendor_app'
+    and user_id = (select id from private.vendor_users where email = 'person@example.com');
+  ```
 
 ### A vendor is misbehaving or compromised
 
 Suspend the vendor in `/admin`. This stops kiosk ordering and vendor
 sign-in and keeps every record. Reactivate it when access should resume.
 
-### An owner is locked out
+### Someone is locked out
 
 Sign-in never locks an account; it only slows retries. The delay per
 account is at most 5 minutes, and one address that keeps failing can be
-held off for up to 15 minutes. If the owner has forgotten the password, set a new one with
-`npm run vendor:password` (see README). There is no self-service reset
-yet.
+held off for up to 15 minutes. For a forgotten password:
+
+- **A shop owner:** in `/admin`, use the key icon on the shop's row (Reset
+  owner password). Share the temporary password privately; the owner
+  chooses a new one at the next sign-in.
+- **A manager or staff member:** the shop owner uses Team → Set temporary
+  password. Someone who also belongs to another shop changes their own
+  password; if they cannot, use the next option.
+- **A super admin, or nobody can sign in:** `npm run vendor:password` with
+  `VENDOR_EMAIL`, the new `VENDOR_PASSWORD` and, on Supabase,
+  `SUPABASE_ADMIN_DATABASE_URL` (see README).
+
+There is no self-service reset by email yet.
+
+### A customer asks to see, correct or delete their details
+
+The privacy notice sends these requests to the shop's WhatsApp. In Studio,
+find the order by its number or the customer's phone (any format), then
+use **Remove details**; it is audited as `order.customer_details_removed`.
+There is no tool to edit an order's details: for a correction, remove them
+and continue on WhatsApp. Messages already in WhatsApp are outside the
+app; the shop deletes that chat itself.
+
+### A shop team member asks to delete their account
+
+`/delete-account` (linked from the app's About screen and the privacy
+notice) sends these requests to Chapega.com's WhatsApp and promises
+deletion within 30 days. Confirm the request with the person first, for
+example from the phone number or email the shop has for them.
+
+1. Find the account and its shops (as the database owner):
+
+   ```sql
+   select users.id, users.name, users.platform_role,
+          vendors.slug, memberships.role, memberships.active
+   from private.vendor_users users
+   left join private.vendor_memberships memberships on memberships.user_id = users.id
+   left join private.vendors vendors on vendors.id = memberships.vendor_id
+   where users.email = 'person@example.com';
+   ```
+
+   Stop if they are a shop's only owner: agree the new owner or the shop's
+   closure first. Never delete the only `super_admin`.
+2. Check that nobody else in those shops has the same name:
+
+   ```sql
+   select distinct users.name
+   from private.vendor_memberships memberships
+   join private.vendor_users users on users.id = memberships.user_id
+   where memberships.vendor_id in (
+     select vendor_id from private.vendor_memberships where user_id = 'USER-ID'
+   );
+   ```
+
+3. Delete in one transaction:
+
+   ```sql
+   begin;
+   -- Order timelines store the name, not the account.
+   update private.order_events events
+   set actor_name = 'Former team member'
+   from private.orders orders
+   where events.order_id = orders.id
+     and orders.vendor_id in (
+       select vendor_id from private.vendor_memberships where user_id = 'USER-ID'
+     )
+     and events.actor_name = 'THEIR NAME';
+   -- Memberships, every session (browsers and phones) and push registrations
+   -- go with the account; their uploads keep no uploader.
+   delete from private.vendor_users where id = 'USER-ID';
+   commit;
+   ```
+
+4. Tell the person it is done. `private.audit_log` keeps the account
+   number (`actor_id`), which no longer leads to anyone.
 
 ### The site is slow or down
 

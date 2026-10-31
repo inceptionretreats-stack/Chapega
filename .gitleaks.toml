@@ -1,0 +1,13 @@
+title = "Chapega secret scanning"
+
+# Keep every built-in gitleaks rule; add the ones only this project knows.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "chapega-studio-app-token"
+description = "Chapega Studio app session token (Authorization: Bearer)"
+regex = '''chapega_app_[A-Za-z0-9_-]{43}'''
+keywords = ["chapega_app_"]
+# Real tokens are random; test values built from repeated characters are not.
+entropy = 3.5

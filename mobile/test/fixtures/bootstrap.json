@@ -1,0 +1,969 @@
+{
+  "user": {
+    "id": "acee0c56-a7e5-442e-b376-3c03851f67ad",
+    "email": "owner@chapega.com",
+    "name": "Aanya",
+    "platformRole": "super_admin",
+    "role": "owner",
+    "activeVendor": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "slug": "chapega",
+      "displayName": "Chapega.com",
+      "status": "active"
+    },
+    "memberships": [
+      {
+        "vendor": {
+          "id": "00000000-0000-4000-8000-000000000001",
+          "slug": "chapega",
+          "displayName": "Chapega.com",
+          "status": "active"
+        },
+        "role": "owner",
+        "active": true,
+        "isDefault": true
+      }
+    ],
+    "capabilities": {
+      "view_dashboard": true,
+      "manage_orders": true,
+      "manage_catalogue": true,
+      "manage_settings": true,
+      "manage_team": true,
+      "erase_customer_data": true
+    }
+  },
+  "vendor": {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "slug": "chapega",
+    "displayName": "Chapega.com",
+    "status": "active"
+  },
+  "capabilities": {
+    "view_dashboard": true,
+    "manage_orders": true,
+    "manage_catalogue": true,
+    "manage_settings": true,
+    "manage_team": true,
+    "erase_customer_data": true
+  },
+  "revision": 4,
+  "products": [
+    {
+      "name": "Engraved Name Necklace",
+      "shortDescription": "A delicate necklace with one name engraved.",
+      "description": "Sterling finish pendant engraved with a name of up to 10 letters.",
+      "category": "Personalized Gifts",
+      "pricePaise": 129900,
+      "compareAtPricePaise": 159900,
+      "image": "/generated-products/acrylic-sketch-lamp.png",
+      "stock": 2,
+      "featured": true,
+      "tags": [
+        "necklace",
+        "engraved"
+      ],
+      "recipientTags": [
+        "For Her"
+      ],
+      "occasionTags": [
+        "Birthday",
+        "Anniversary"
+      ],
+      "variants": [
+        {
+          "id": "8f6a8a7e-1d2b-4f3c-9a1e-0b6c7d8e9f01",
+          "name": "Silver finish",
+          "priceAdjustmentPaise": 0
+        },
+        {
+          "id": "8f6a8a7e-1d2b-4f3c-9a1e-0b6c7d8e9f02",
+          "name": "Gold finish",
+          "priceAdjustmentPaise": 30000,
+          "stock": 1
+        }
+      ],
+      "preparationTime": "Ready in 2 days",
+      "giftWrapEligible": true,
+      "visible": true,
+      "id": "engraved-name-necklace",
+      "availability": "low_stock",
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:53.968Z",
+      "updatedAt": "2026-10-31T07:17:53.968Z"
+    },
+    {
+      "id": "wooden-box-products",
+      "name": "12x12 Wooden Box with Products",
+      "shortDescription": "A personalised wooden gift box filled with practical keepsakes.",
+      "description": "12x12 wooden box with personalised decoration, lights, photo clips, fillers, outer flower, gold acrylic name, caricature wood base, water bottle, passport cover, faux-leather wallet, steel mug, card holder, sunglasses cover and metal keychain.",
+      "category": "Gift Hampers",
+      "pricePaise": 350000,
+      "image": "/generated-products/wooden-box-products.png",
+      "availability": "available",
+      "stock": 4,
+      "featured": false,
+      "tags": [
+        "wooden box",
+        "personalised",
+        "hamper",
+        "caricature"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Anniversary"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": false,
+      "visible": true,
+      "archived": false,
+      "version": 2,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:35.549Z"
+    },
+    {
+      "id": "acrylic-sketch-lamp",
+      "name": "Engraved Acrylic Sketch Lamp",
+      "shortDescription": "A personalised engraved acrylic portrait lamp.",
+      "description": "Personalised engraved acrylic sketch lamp.",
+      "category": "Personalized Gifts",
+      "pricePaise": 75000,
+      "image": "/generated-products/acrylic-sketch-lamp.png",
+      "availability": "low_stock",
+      "stock": 3,
+      "featured": false,
+      "tags": [
+        "acrylic",
+        "sketch",
+        "lamp",
+        "engraved",
+        "personalised"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 2,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:35.549Z"
+    },
+    {
+      "id": "initial-letter-box-hamper",
+      "name": "12x18 Wooden Initial Letter Box Hamper",
+      "shortDescription": "A personalised initial-shaped hamper with lights and useful gifts.",
+      "description": "12x18 wooden initial letter box with lights, water bottle, black mug, fillers and faux-leather wallet. Chocolates and flowers are not included.",
+      "category": "Gift Hampers",
+      "pricePaise": 205000,
+      "image": "/generated-products/initial-letter-box-hamper.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "wooden box",
+        "initial",
+        "hamper",
+        "personalised"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Anniversary"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": false,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "hamper-box-black-10x10",
+      "name": "10x10 Black Hamper Box",
+      "shortDescription": "A black hamper box with personalised floral and light decoration.",
+      "description": "10x10 black hamper box with personalised outer decoration, flowers, lights and an acrylic couple name. The listed price is for each outer-decorated box only.",
+      "category": "Gift Hampers",
+      "pricePaise": 69900,
+      "image": "/generated-products/hamper-box-black-10x10.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "black box",
+        "hamper",
+        "flowers",
+        "lights",
+        "acrylic name"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": false,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "hamper-decorated-8x8",
+      "name": "8x8 Decorated Hamper Box",
+      "shortDescription": "A wooden hamper box dressed with flowers and fairy lights.",
+      "description": "8x8 wooden box decorated with flowers, fairy lights and fillers.",
+      "category": "Gift Hampers",
+      "pricePaise": 59900,
+      "image": "/generated-products/hamper-decorated-8x8.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "wooden box",
+        "hamper",
+        "flowers",
+        "fairy lights"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Anniversary"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": false,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "calendar-collage-frame-16x24",
+      "name": "16x24 Calendar Theme Wooden Collage Frame",
+      "shortDescription": "A personalised photo collage built around a calendar date.",
+      "description": "Personalised 16x24 wooden collage frame with a calendar theme.",
+      "category": "Photo Frames",
+      "pricePaise": 140000,
+      "image": "/generated-products/calendar-collage-frame-16x24.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "calendar",
+        "collage",
+        "wooden",
+        "photo frame",
+        "personalised"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "wood-sketch-plaque-8x10",
+      "name": "8x10 Wooden Sketch Plaque",
+      "shortDescription": "A personalised portrait sketch on a wooden plaque.",
+      "description": "Personalised 8x10 wooden sketch plaque.",
+      "category": "Personalized Gifts",
+      "pricePaise": 80000,
+      "image": "/generated-products/wood-sketch-plaque-8x10.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "wooden",
+        "sketch",
+        "plaque",
+        "personalised"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "caricature-couple-12-inch",
+      "name": "12-inch Couple Caricature",
+      "shortDescription": "A personalised couple caricature on laminated MDF.",
+      "description": "12-inch MDF laminated personalised couple caricature.",
+      "category": "Personalized Gifts",
+      "pricePaise": 55000,
+      "image": "/generated-products/caricature-couple-12-inch.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "couple",
+        "caricature",
+        "MDF",
+        "laminated",
+        "personalised"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Wedding",
+        "Anniversary"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "calendar-collage-frame-10x14",
+      "name": "10x14 Calendar Collage Frame",
+      "shortDescription": "A laminated wooden calendar collage with a double border.",
+      "description": "10x14 laminated wooden frame with a double border.",
+      "category": "Photo Frames",
+      "pricePaise": 75000,
+      "image": "/generated-products/calendar-collage-frame-10x14.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "calendar",
+        "collage",
+        "wooden",
+        "laminated",
+        "photo frame"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "wooden-clock-13-photos",
+      "name": "18x18 Wooden Clock with 13 Photos",
+      "shortDescription": "A personalised wooden clock displaying 13 photographs.",
+      "description": "Personalised 18x18 wooden photo clock for 13 photographs.",
+      "category": "Personalized Gifts",
+      "pricePaise": 99900,
+      "image": "/generated-products/wooden-clock-13-photos.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "wooden",
+        "clock",
+        "photos",
+        "personalised"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "engraved-photo-clock-11x11",
+      "name": "11x11 Engraved Wooden Photo Clock",
+      "shortDescription": "A personalised wooden clock with an engraved portrait.",
+      "description": "Personalised 11x11 engraved wooden photo clock.",
+      "category": "Personalized Gifts",
+      "pricePaise": 99900,
+      "image": "/generated-products/engraved-photo-clock-11x11.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "wooden",
+        "clock",
+        "photo",
+        "engraved",
+        "personalised"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "acrylic-fridge-magnet-3-5x5",
+      "name": "3.5x5 Acrylic Fridge Magnet with Stand",
+      "shortDescription": "A clear acrylic photo magnet that also works as a table frame.",
+      "description": "3.5x5 photo frame made from 4mm acrylic with four corner magnets. It works as a fridge magnet or a table frame with its stand.",
+      "category": "Photo Frames",
+      "pricePaise": 15000,
+      "compareAtPricePaise": 18000,
+      "image": "/generated-products/acrylic-fridge-magnet-3-5x5.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "acrylic",
+        "fridge magnet",
+        "photo frame",
+        "table frame",
+        "stand"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "led-shape-collage-frame-16x16",
+      "name": "16x16 LED Wooden Shape Collage Frame",
+      "shortDescription": "A heart-shaped wooden photo collage with internal lighting.",
+      "description": "16x16 heart-shaped wooden collage frame with internal LED lighting.",
+      "category": "Photo Frames",
+      "pricePaise": 120000,
+      "image": "/generated-products/led-shape-collage-frame-16x16.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "LED",
+        "wooden",
+        "heart",
+        "collage",
+        "photo frame"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "bouquet-preserve-frame-9x9",
+      "name": "9x9 Bouquet Flower Preservation Box Frame",
+      "shortDescription": "A handmade keepsake frame preserving real bouquet flowers.",
+      "description": "Handmade 9x9 box frame preserving real bouquet flowers.",
+      "category": "Resin Art",
+      "pricePaise": 120000,
+      "image": "/generated-products/bouquet-preserve-frame-9x9.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "bouquet",
+        "flowers",
+        "preservation",
+        "box frame",
+        "handmade"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "full-varmala-preservation-25x26",
+      "name": "25x26 Full Varmala Preservation Frame",
+      "shortDescription": "A full wedding varmala preserved with personal mementos.",
+      "description": "25x26 full varmala preservation frame with wedding card, photos, couple name and date deep-etched on gold leaf, and wedding elements.",
+      "category": "Varmala Preservation",
+      "pricePaise": 1000000,
+      "image": "/generated-products/full-varmala-preservation-25x26.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "varmala",
+        "preservation",
+        "wedding",
+        "gold leaf",
+        "photo frame"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "hexagon-varmala-resin-plaque",
+      "name": "Hexagon Deep-Cast Varmala Resin Plaque",
+      "shortDescription": "A deep-cast resin keepsake preserving real wedding flowers.",
+      "description": "Hexagon deep-cast resin plaque preserving real flowers with a custom photo, names and date.",
+      "category": "Varmala Preservation",
+      "pricePaise": 350000,
+      "image": "/generated-products/hexagon-varmala-resin-plaque.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "hexagon",
+        "varmala",
+        "resin",
+        "flowers",
+        "preservation"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "resin-flower-plaque-6x6",
+      "name": "6x6 Resin Flower Preservation Plaque",
+      "shortDescription": "A round flower keepsake personalised with a photo and date.",
+      "description": "6x6 round resin flower preservation plaque with a stand, custom photo, names and date.",
+      "category": "Resin Art",
+      "pricePaise": 79900,
+      "image": "/generated-products/resin-flower-plaque-6x6.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "resin",
+        "flowers",
+        "preservation",
+        "plaque",
+        "photo"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "collage-photo-frame-24x36",
+      "name": "24x36 Collage Photo Frame, Laminated Wood",
+      "shortDescription": "A large laminated wooden collage frame with a 2-inch border.",
+      "description": "24x36 laminated wooden collage photo frame with a 2-inch border, available in portrait or landscape orientation.",
+      "category": "Photo Frames",
+      "pricePaise": 225000,
+      "image": "/generated-products/collage-photo-frame-24x36.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "collage",
+        "photo frame",
+        "laminated",
+        "wooden",
+        "portrait",
+        "landscape"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "single-photo-frame-glass-18x24",
+      "name": "18x24 Single Photo Frame with Glass",
+      "shortDescription": "A glass-fronted frame for one portrait or landscape photo.",
+      "description": "18x24 single photo frame with glass for portrait or landscape orientation.",
+      "category": "Photo Frames",
+      "pricePaise": 120000,
+      "image": "/generated-products/single-photo-frame-glass-18x24.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "single photo",
+        "photo frame",
+        "glass",
+        "portrait",
+        "landscape"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "collage-photo-frame-16x24",
+      "name": "16x24 Collage Photo Frame, Laminated Wood",
+      "shortDescription": "A laminated wooden collage frame for tabletop or wall display.",
+      "description": "16x24 laminated wooden collage photo frame with a 2-inch border for tabletop or wall-hanging display.",
+      "category": "Photo Frames",
+      "pricePaise": 125000,
+      "image": "/generated-products/collage-photo-frame-16x24.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "collage",
+        "photo frame",
+        "laminated",
+        "wooden",
+        "tabletop",
+        "wall hanging"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "single-photo-frame-laminated-24x36",
+      "name": "24x36 Single Photo Frame, Laminated Wood",
+      "shortDescription": "A large laminated wooden frame for one photograph.",
+      "description": "24x36 laminated wooden single photo frame for portrait or landscape orientation.",
+      "category": "Photo Frames",
+      "pricePaise": 195000,
+      "image": "/generated-products/single-photo-frame-laminated-24x36.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "single photo",
+        "photo frame",
+        "laminated",
+        "wooden",
+        "portrait",
+        "landscape"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "canvas-painting-12x15",
+      "name": "12x15 Canvas Painting on Wood",
+      "shortDescription": "A photo rendered with a digital oil-painting effect on wood.",
+      "description": "12x15 digital oil-painting effect on wood.",
+      "category": "Photo Frames",
+      "pricePaise": 75000,
+      "image": "/generated-products/canvas-painting-12x15.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "canvas",
+        "painting",
+        "wood",
+        "digital",
+        "oil painting"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "single-photo-frame-glass-20x30",
+      "name": "20x30 Single Photo Frame with Glass",
+      "shortDescription": "A large glass-fronted frame for one photograph.",
+      "description": "20x30 single photo frame with glass for portrait or landscape orientation.",
+      "category": "Photo Frames",
+      "pricePaise": 135000,
+      "image": "/generated-products/single-photo-frame-glass-20x30.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "single photo",
+        "photo frame",
+        "glass",
+        "portrait",
+        "landscape"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Wedding",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "id": "table-frame-5x7",
+      "name": "5x7 Small Table Frame",
+      "shortDescription": "A compact tabletop frame for vertical or horizontal photos.",
+      "description": "5x7 small table frame for vertical or horizontal display.",
+      "category": "Photo Frames",
+      "pricePaise": 15000,
+      "image": "/generated-products/table-frame-5x7.png",
+      "availability": "available",
+      "stock": 5,
+      "featured": false,
+      "tags": [
+        "table frame",
+        "photo frame",
+        "vertical",
+        "horizontal"
+      ],
+      "recipientTags": [],
+      "occasionTags": [
+        "Birthday",
+        "Anniversary",
+        "For Home"
+      ],
+      "variants": [],
+      "preparationTime": "Confirm timing on WhatsApp",
+      "giftWrapEligible": true,
+      "visible": true,
+      "archived": false,
+      "version": 1,
+      "createdAt": "2026-10-31T07:17:34.975Z",
+      "updatedAt": "2026-10-31T07:17:34.975Z"
+    }
+  ],
+  "orders": [
+    {
+      "id": "08914e4b-a2ed-4c5a-9efd-8449d92b1ba3",
+      "orderNumber": "GFT-20261031-3204",
+      "idempotencyKey": "fixture-order-one",
+      "createdAt": "2026-10-31T07:17:35.472Z",
+      "updatedAt": "2026-10-31T07:17:35.549Z",
+      "customer": {
+        "customerName": "Riya Sharma",
+        "customerPhone": "+91 98765 43210",
+        "giftNote": "Happy birthday!",
+        "orderNote": "Pick up at 6 pm"
+      },
+      "kioskName": "Main Entrance",
+      "paymentMethod": "pay_later",
+      "items": [
+        {
+          "productId": "wooden-box-products",
+          "name": "12x12 Wooden Box with Products",
+          "image": "/generated-products/wooden-box-products.png",
+          "quantity": 1,
+          "unitPricePaise": 350000,
+          "giftWrapped": false,
+          "lineTotalPaise": 350000
+        },
+        {
+          "productId": "acrylic-sketch-lamp",
+          "name": "Engraved Acrylic Sketch Lamp",
+          "image": "/generated-products/acrylic-sketch-lamp.png",
+          "quantity": 2,
+          "unitPricePaise": 75000,
+          "giftWrapped": true,
+          "lineTotalPaise": 150000
+        }
+      ],
+      "subtotalPaise": 500000,
+      "giftWrapPaise": 5000,
+      "totalPaise": 505000,
+      "whatsappMessage": "Hello Chapega.com,\n\nI selected these gifts on your kiosk:\n\nOrder: GFT-20261031-3204\n1. 12x12 Wooden Box with Products × 1 — ₹3,500.00\n2. Engraved Acrylic Sketch Lamp × 2 — ₹1,500.00\n\nGift wrap: ₹50.00\nTotal: ₹5,050.00\nPayment: Pay at Counter\nKiosk: Main Entrance\nCustomer: Riya Sharma\nGift note: Happy birthday!\nNote: Pick up at 6 pm\n\nPlease confirm availability. I will pay later.",
+      "whatsappUrl": "https://wa.me/919876543210?text=Hello%20Chapega.com%2C%0A%0AI%20selected%20these%20gifts%20on%20your%20kiosk%3A%0A%0AOrder%3A%20GFT-20261031-3204%0A1.%2012x12%20Wooden%20Box%20with%20Products%20%C3%97%201%20%E2%80%94%20%E2%82%B93%2C500.00%0A2.%20Engraved%20Acrylic%20Sketch%20Lamp%20%C3%97%202%20%E2%80%94%20%E2%82%B91%2C500.00%0A%0AGift%20wrap%3A%20%E2%82%B950.00%0ATotal%3A%20%E2%82%B95%2C050.00%0APayment%3A%20Pay%20at%20Counter%0AKiosk%3A%20Main%20Entrance%0ACustomer%3A%20Riya%20Sharma%0AGift%20note%3A%20Happy%20birthday!%0ANote%3A%20Pick%20up%20at%206%20pm%0A%0APlease%20confirm%20availability.%20I%20will%20pay%20later.",
+      "status": "confirmed",
+      "version": 2,
+      "inventoryCommitted": true,
+      "events": [
+        {
+          "id": "f46032a8-5e6f-46db-a854-1f2ab0663ca3",
+          "from": null,
+          "to": "prepared",
+          "actorName": "Kiosk · Main Entrance",
+          "createdAt": "2026-10-31T07:17:35.472Z",
+          "note": "WhatsApp message prepared; sending is not yet verified."
+        },
+        {
+          "id": "15ab9605-2b82-4212-812f-72698eec09e9",
+          "from": "prepared",
+          "to": "confirmed",
+          "actorName": "Aanya",
+          "createdAt": "2026-10-31T07:17:35.549Z"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "shopName": "Chapega.com",
+    "ownerWhatsAppNumber": "919876543210",
+    "defaultCountryCode": "91",
+    "kioskName": "Main Entrance",
+    "maxCartQuantity": 5,
+    "giftWrapFeePaise": 2500,
+    "qrResetSeconds": 120,
+    "showPreviewLabel": false,
+    "storeOpen": true,
+    "lowStockThreshold": 3,
+    "version": 1,
+    "updatedAt": "2026-10-31T07:17:34.975Z"
+  }
+}

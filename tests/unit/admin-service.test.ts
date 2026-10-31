@@ -52,6 +52,7 @@ vi.mock("@/server/vendor/database", () => ({
 import {
   createAdminVendor,
   getAdminBootstrap,
+  resetAdminVendorOwnerPassword,
   updateAdminVendorStatus,
 } from "@/server/admin/service";
 
@@ -215,6 +216,8 @@ describe("platform administrator service", () => {
       platformRole: null,
       passwordSalt: "new-salt",
       passwordHash: "new-hash",
+      // The admin chose it, so the owner must replace it at the first sign-in.
+      mustChangePassword: true,
     });
     expect(state.memberships).toContainEqual(
       expect.objectContaining({
@@ -250,5 +253,93 @@ describe("platform administrator service", () => {
       "platform.vendor.suspended",
       "platform.vendor.reactivated",
     ]);
+  });
+});
+
+describe("owner password reset", () => {
+  it("sets a temporary password, signs the owner out and shows it as account activity", async () => {
+    const state = memory.database as VendorDatabase;
+    state.sessions.push({
+      idHash: "owner-session",
+      userId: ownerId,
+      scope: "vendor",
+      activeVendorId: vendorId,
+      createdAt: "2026-09-18T00:00:00.000Z",
+      expiresAt: "2099-09-18T00:00:00.000Z",
+    });
+
+    const result = await resetAdminVendorOwnerPassword(context, vendorId, {
+      ownerId,
+      temporaryPassword: "copper kettles sing at dawn",
+    });
+
+    const after = memory.database as VendorDatabase;
+    expect(after.users.find((user) => user.id === ownerId)).toMatchObject({
+      passwordSalt: "new-salt",
+      passwordHash: "new-hash",
+      mustChangePassword: true,
+    });
+    expect(after.sessions.map((session) => session.idHash)).toEqual([platformHash]);
+    expect(after.audit.at(-1)).toMatchObject({
+      action: "platform.owner.password_reset",
+      entityType: "membership",
+      entityId: ownerId,
+      actorId: adminId,
+    });
+    expect(result.activity).toMatchObject({
+      kind: "account",
+      title: "Owner password reset",
+      detail: "Chapega.com · Vendor Owner",
+    });
+  });
+
+  it("refuses super admins, non-owners and weak passwords", async () => {
+    const state = memory.database as VendorDatabase;
+    state.memberships.push({
+      vendorId,
+      userId: adminId,
+      role: "owner",
+      active: true,
+      isDefault: true,
+      createdAt: "2026-09-18T00:00:00.000Z",
+    });
+    await expect(
+      resetAdminVendorOwnerPassword(context, vendorId, {
+        ownerId: adminId,
+        temporaryPassword: "copper kettles sing at dawn",
+      }),
+    ).rejects.toMatchObject({ status: 409, code: "OWNER_IS_PLATFORM_ADMIN" });
+    await expect(
+      resetAdminVendorOwnerPassword(context, vendorId, {
+        ownerId: "33333333-3333-4333-8333-333333333333",
+        temporaryPassword: "copper kettles sing at dawn",
+      }),
+    ).rejects.toMatchObject({ status: 404, code: "OWNER_NOT_FOUND" });
+    await expect(
+      resetAdminVendorOwnerPassword(context, vendorId, { ownerId, temporaryPassword: "short" }),
+    ).rejects.toMatchObject({ status: 400, fields: { temporaryPassword: [expect.any(String)] } });
+  });
+
+  it("titles team changes in the activity rail", async () => {
+    const state = memory.database as VendorDatabase;
+    for (const action of [
+      "team.member.added",
+      "team.member.role.manager",
+      "team.member.deactivated",
+    ]) {
+      state.audit.push({
+        id: action,
+        vendorId,
+        actorId: ownerId,
+        action,
+        entityType: "membership",
+        entityId: ownerId,
+        createdAt: "2026-09-18T01:00:00.000Z",
+      });
+    }
+    const titles = (await getAdminBootstrap(context)).recentActivity.map((item) => item.title);
+    expect(titles).toEqual(
+      expect.arrayContaining(["Team member added", "Team role changed", "Team member deactivated"]),
+    );
   });
 });

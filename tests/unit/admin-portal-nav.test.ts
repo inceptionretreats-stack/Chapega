@@ -45,3 +45,26 @@ describe("admin navigation destinations (AUD-40)", () => {
     });
   }
 });
+
+describe("admin vendor collection", () => {
+  it("Accounts still has a destination when the search matches no vendor", async () => {
+    const user = userEvent.setup();
+    renderPortal();
+    await user.type(screen.getByRole("searchbox", { name: "Search vendors" }), "no such vendor");
+    expect(screen.getByText("No vendors match")).toBeInTheDocument();
+
+    const sidebar = screen.getByRole("complementary", {
+      name: /platform administration navigation/i,
+    });
+    await user.click(within(sidebar).getByRole("button", { name: "Accounts" }));
+    await waitFor(() => expect(document.activeElement?.id).toBe("vendor-accounts"));
+  });
+
+  it("labels the mobile suspend action with a pause icon, not a navigation arrow", () => {
+    renderPortal();
+    const list = screen.getByRole("list", { name: "Platform vendors" });
+    const action = within(list).getAllByRole("button", { name: /^(Suspend|Reactivate) / })[0];
+    expect(action.querySelector(".lucide-chevron-right")).toBeNull();
+    expect(action.querySelector(".lucide-circle-pause, .lucide-circle-play")).not.toBeNull();
+  });
+});

@@ -1,0 +1,104 @@
+name: Mobile app
+
+# Checks the Chapega Studio Flutter app (mobile/). It runs only when the app
+# changes, so web-only pull requests don't wait for an Android build.
+on:
+  pull_request:
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile.yml"
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile.yml"
+  # Manual runs can also compile the iOS app on a macOS runner (no signing).
+  workflow_dispatch:
+    inputs:
+      ios:
+        description: "Also compile the iOS app (macOS runner, about 10x the minutes)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Flutter is cloned at this tag and checked against the commit below, so a
+  # moved tag can't change what CI builds with (the same approach as gitleaks
+  # in quality.yml: no third-party setup action).
+  FLUTTER_VERSION: "3.44.8"
+  FLUTTER_COMMIT: 058e0af2c2b57e369d905a03ac9748b0ebf543c6
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Flutter ${{ env.FLUTTER_VERSION }}
+        working-directory: .
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "${FLUTTER_VERSION}" https://github.com/flutter/flutter.git "${RUNNER_TEMP}/flutter"
+          test "$(git -C "${RUNNER_TEMP}/flutter" rev-parse HEAD)" = "${FLUTTER_COMMIT}"
+          echo "${RUNNER_TEMP}/flutter/bin" >> "${GITHUB_PATH}"
+          # The runner image ships Temurin 21; Android builds use it.
+          echo "JAVA_HOME=${JAVA_HOME_21_X64}" >> "${GITHUB_ENV}"
+      - name: Refuse Firebase settings and signing keys in git
+        working-directory: .
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files mobile | grep -E '(^|/)(google-services\.json|GoogleService-Info\.plist|firebase_options\.dart|key\.properties)$|\.(jks|keystore)$|^mobile/config/firebase\.json$' || true)"
+          if [ -n "${tracked}" ]; then
+            echo "::error::These files must never be committed:"
+            echo "${tracked}"
+            exit 1
+          fi
+      - run: flutter --version
+      - run: flutter pub get --enforce-lockfile
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze --fatal-infos
+      - run: flutter test --coverage
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: mobile-coverage
+          path: mobile/coverage/
+          if-no-files-found: warn
+      # Release build with the debug key (no key.properties in CI): proves R8,
+      # resource shrinking and the release manifest work.
+      - name: Build release APK
+        run: flutter build apk --release --dart-define=CHAPEGA_API_ORIGIN=https://chapega.vercel.app
+
+  ios:
+    if: github.event_name == 'workflow_dispatch' && inputs.ios
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Flutter ${{ env.FLUTTER_VERSION }}
+        working-directory: .
+        run: |
+          set -euo pipefail
+          git clone --depth 1 --branch "${FLUTTER_VERSION}" https://github.com/flutter/flutter.git "${RUNNER_TEMP}/flutter"
+          test "$(git -C "${RUNNER_TEMP}/flutter" rev-parse HEAD)" = "${FLUTTER_COMMIT}"
+          echo "${RUNNER_TEMP}/flutter/bin" >> "${GITHUB_PATH}"
+      - run: flutter pub get --enforce-lockfile
+      - name: Compile the iOS app without signing
+        run: flutter build ios --no-codesign --debug --dart-define=CHAPEGA_API_ORIGIN=https://chapega.vercel.app

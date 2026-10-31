@@ -116,7 +116,7 @@ export function CartScreen({
                     <div className="cart-line__actions">
                       <div
                         className="quantity-control"
-                        aria-label={`Quantity for ${line.productName}`}
+                        aria-label={`Quantity for ${line.variantName ? `${line.productName}, ${line.variantName}` : line.productName}`}
                       >
                         <button
                           onClick={() => onQuantityChange(line.key, line.quantity - 1)}
@@ -148,7 +148,7 @@ export function CartScreen({
                       <button
                         className="text-button"
                         onClick={() => onRemove(line.key)}
-                        aria-label={`Remove ${line.productName}`}
+                        aria-label={`Remove ${line.variantName ? `${line.productName}, ${line.variantName}` : line.productName}`}
                       >
                         <Trash2 size={16} /> Remove
                       </button>

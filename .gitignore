@@ -54,3 +54,12 @@ scratch/
 
 # Agent worktrees created by Claude Code
 .claude/worktrees/
+
+# Chapega Studio app (mobile/): Firebase settings and signing keys stay out of git
+/mobile/config/firebase.json
+**/google-services.json
+**/GoogleService-Info.plist
+**/firebase_options.dart
+**/key.properties
+**/*.jks
+**/*.keystore

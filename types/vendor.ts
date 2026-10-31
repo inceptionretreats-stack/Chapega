@@ -13,7 +13,12 @@ export type PlatformRole = "super_admin";
 export type VendorStatus = "active" | "suspended";
 
 export type VendorCapability =
-  "view_dashboard" | "manage_orders" | "manage_catalogue" | "manage_settings" | "manage_team";
+  | "view_dashboard"
+  | "manage_orders"
+  | "manage_catalogue"
+  | "manage_settings"
+  | "manage_team"
+  | "erase_customer_data";
 
 export type VendorCapabilities = Readonly<Record<VendorCapability, boolean>>;
 
@@ -41,6 +46,28 @@ export type VendorUser = Readonly<{
   activeVendor: VendorIdentity;
   memberships: readonly VendorMembership[];
   capabilities: VendorCapabilities;
+  /** The password was set by someone else; nothing else works until it is changed. */
+  mustChangePassword?: true;
+}>;
+
+/** Roles an owner can give from the Team screen. Owners are managed by Chapega. */
+export type AssignableTeamRole = Exclude<VendorRole, "owner">;
+
+export type VendorTeamMember = Readonly<{
+  userId: string;
+  name: string;
+  email: string;
+  role: VendorRole;
+  /** Access to this shop. */
+  active: boolean;
+  /** Waiting for the person to replace a temporary password. */
+  passwordChangePending: boolean;
+  isCurrentUser: boolean;
+  /** Role and access can be changed (not an owner, not yourself). */
+  canManage: boolean;
+  /** A temporary password can be set (this shop's account only). */
+  canResetPassword: boolean;
+  memberSince: string;
 }>;
 
 /**

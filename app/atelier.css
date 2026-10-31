@@ -684,7 +684,8 @@ summary:focus-visible,
   top: 0;
   display: grid;
   min-height: var(--header-height);
-  grid-template-columns: minmax(210px, 0.8fr) minmax(320px, 1.5fr) minmax(280px, 0.9fr);
+  /* The actions never shrink below their content, or "1 of 5" wraps under its badge. */
+  grid-template-columns: minmax(210px, 0.8fr) minmax(320px, 1.5fr) minmax(max-content, 0.9fr);
   align-items: center;
   gap: clamp(18px, 3vw, 44px);
   padding: 12px var(--page-gutter);
@@ -830,6 +831,7 @@ summary:focus-visible,
 .cart-header-button__label {
   font-size: 0.82rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .header-profile,
@@ -6062,4 +6064,76 @@ select:focus-visible {
     bottom: 0;
     width: 100%;
   }
+}
+
+/* Privacy notice: a readable document, not a kiosk screen. */
+.screen-page.privacy-page {
+  width: min(100%, 760px);
+}
+.privacy-page .screen-heading {
+  margin-bottom: 18px;
+}
+.privacy-page h2 {
+  margin: 30px 0 10px;
+  color: var(--text-accent-strong);
+  font-family: var(--font-ui);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.25;
+}
+.privacy-page > p,
+.privacy-page li {
+  color: var(--text);
+  font-size: var(--fs-md);
+  line-height: 1.65;
+}
+.privacy-page > p + p {
+  margin-top: 12px;
+}
+.privacy-page ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 22px;
+  list-style: disc;
+}
+.privacy-page p > a:not(.text-button) {
+  color: var(--text-accent-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.privacy-page p:last-child {
+  margin-top: 28px;
+}
+/* Numbered steps (account deletion) and sub-headings (the shop-team part). */
+.privacy-page ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 22px;
+  list-style: decimal;
+}
+.privacy-page ol + p,
+.privacy-page ul + p {
+  margin-top: 12px;
+}
+.privacy-page h3 {
+  margin: 20px 0 8px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.privacy-page li > a {
+  color: var(--text-accent-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The chosen option and gift wrap, after the product name in the cart rail. */
+.mini-cart-line__extras {
+  color: var(--text-muted);
+  font-weight: 500;
 }

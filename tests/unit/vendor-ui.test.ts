@@ -138,6 +138,7 @@ describe("Vendor Studio state safeguards", () => {
       manage_catalogue: true,
       manage_settings: true,
       manage_team: true,
+      erase_customer_data: true,
     };
     const data: VendorBootstrap = {
       user: {

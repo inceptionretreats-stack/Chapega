@@ -11,6 +11,8 @@ import {
   type VendorRecord,
   type VendorUserRecord,
 } from "@/server/vendor/database";
+import { usesSupabaseBackend } from "@/server/supabase/config";
+import { newPasswordProblem } from "@/server/security/password-policy";
 import { derivePasswordHash } from "@/server/vendor/crypto";
 import type {
   AdminActivityItem,
@@ -111,6 +113,18 @@ function platformMetrics(database: VendorDatabase): AdminPlatformMetrics {
   };
 }
 
+const ACCOUNT_ACTIVITY_TITLES: Readonly<Record<string, string>> = {
+  "team.member.added": "Team member added",
+  "team.member.deactivated": "Team member deactivated",
+  "team.member.reactivated": "Team member reactivated",
+  "team.member.password_reset": "Team password reset",
+  "platform.owner.password_reset": "Owner password reset",
+};
+
+function accountRoleTitle(action: string): string {
+  return action.startsWith("team.member.role.") ? "Team role changed" : "Vendor account updated";
+}
+
 function activityKind(record: VendorAuditRecord): AdminActivityItem["kind"] | null {
   if (record.action === "platform.vendor.created") return "vendor_created";
   if (record.action === "platform.vendor.suspended") return "vendor_suspended";
@@ -179,11 +193,12 @@ function activityFromAudit(
     };
   }
   if (kind === "account") {
+    const person = database.users.find((user) => user.id === record.entityId);
     return {
       id: record.id,
       kind,
-      title: "Vendor account updated",
-      detail: vendorName,
+      title: ACCOUNT_ACTIVITY_TITLES[record.action] ?? accountRoleTitle(record.action),
+      detail: person ? `${vendorName} · ${person.name}` : vendorName,
       createdAt: record.createdAt,
       ...(record.vendorId ? { vendorId: record.vendorId } : {}),
     };
@@ -303,6 +318,8 @@ export async function createAdminVendor(
         passwordSalt: credentials.salt,
         passwordHash: credentials.hash,
         active: true,
+        // The admin chose it: the owner replaces it at their first sign-in.
+        mustChangePassword: true,
         createdAt: now,
       });
       database.memberships.push({
@@ -395,4 +412,120 @@ export async function updateAdminVendorStatus(
       platformSessionHash: context.sessionHash,
     },
   );
+}
+
+/**
+ * Sets a temporary password for a shop's owner (an owner who is locked out),
+ * signs them out everywhere, and makes them choose their own password at the
+ * next sign-in. Super admins change their own password from the account menu
+ * instead; that keeps one admin from taking over another's account.
+ */
+export async function resetAdminVendorOwnerPassword(
+  context: AdminAuthContext,
+  vendorId: string,
+  input: Readonly<{ ownerId: string; temporaryPassword: string }>,
+): Promise<AdminVendorMutationResult> {
+  const snapshot = await readVendorDatabase({ platformSessionHash: context.sessionHash });
+  assertLivePlatformAdmin(snapshot, context);
+  const owner = resetTarget(snapshot, vendorId, input.ownerId);
+  const problem = newPasswordProblem(input.temporaryPassword, {
+    email: owner.email,
+    name: owner.name,
+  });
+  if (problem) {
+    throw new AdminServiceError(400, "WEAK_PASSWORD", problem, { temporaryPassword: [problem] });
+  }
+  const credentials = await derivePasswordHash(input.temporaryPassword);
+  const auditId = randomUUID();
+
+  if (usesSupabaseBackend()) {
+    const { withAccountTransaction } = await import("@/server/vendor/supabase-accounts");
+    const outcome = await withAccountTransaction(
+      { sessionHash: context.sessionHash },
+      async (sql) => {
+        const [row] = await sql<Array<{ outcome: string }>>`
+          select private.reset_vendor_owner_password(
+            ${vendorId}::uuid, ${input.ownerId}::uuid, ${credentials.salt}, ${credentials.hash},
+            ${auditId}::uuid
+          ) as outcome
+        `;
+        return row?.outcome ?? "forbidden";
+      },
+    );
+    if (outcome !== "reset") throw ownerResetError(outcome);
+    const database = await readVendorDatabase({ platformSessionHash: context.sessionHash });
+    return mutationResult(database, vendorId, auditId);
+  }
+
+  return updateVendorDatabase(
+    (database) => {
+      assertLivePlatformAdmin(database, context);
+      const current = resetTarget(database, vendorId, input.ownerId);
+      const index = database.users.findIndex((user) => user.id === current.id);
+      database.users[index] = {
+        ...current,
+        passwordSalt: credentials.salt,
+        passwordHash: credentials.hash,
+        mustChangePassword: true,
+      };
+      database.sessions = database.sessions.filter((session) => session.userId !== current.id);
+      database.audit.push({
+        ...newAuditRecord(
+          context.user.id,
+          "platform.owner.password_reset",
+          "membership",
+          current.id,
+          vendorId,
+        ),
+        id: auditId,
+      });
+      database.revision += 1;
+      return mutationResult(database, vendorId, auditId);
+    },
+    { platformSessionHash: context.sessionHash },
+  );
+}
+
+function resetTarget(database: VendorDatabase, vendorId: string, ownerId: string) {
+  if (!database.vendors.some((vendor) => vendor.id === vendorId)) {
+    throw new AdminServiceError(404, "VENDOR_NOT_FOUND", "Vendor not found.");
+  }
+  const isOwner = database.memberships.some(
+    (membership) =>
+      membership.vendorId === vendorId &&
+      membership.userId === ownerId &&
+      membership.role === "owner",
+  );
+  const owner = database.users.find((user) => user.id === ownerId);
+  if (!isOwner || !owner) throw ownerResetError("not_found");
+  if (owner.platformRole !== null) throw ownerResetError("platform_admin");
+  if (!owner.active) throw ownerResetError("inactive");
+  return owner;
+}
+
+function ownerResetError(outcome: string): AdminServiceError {
+  switch (outcome) {
+    case "not_found":
+      return new AdminServiceError(404, "OWNER_NOT_FOUND", "This shop's owner was not found.");
+    case "platform_admin":
+      return new AdminServiceError(
+        409,
+        "OWNER_IS_PLATFORM_ADMIN",
+        "This owner is a platform admin. They change their own password from the account menu.",
+      );
+    case "inactive":
+      return new AdminServiceError(
+        409,
+        "OWNER_ACCOUNT_INACTIVE",
+        "This owner's account is deactivated.",
+      );
+    case "invalid_password":
+      return new AdminServiceError(400, "WEAK_PASSWORD", "Choose a different temporary password.");
+    default:
+      return new AdminServiceError(
+        401,
+        "ADMIN_AUTH_REQUIRED",
+        "Your platform session has ended. Sign in again.",
+      );
+  }
 }

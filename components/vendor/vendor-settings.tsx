@@ -1,10 +1,11 @@
 "use client";
 
 import { ExternalLink, LoaderCircle, MessageCircle, Save } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import type { VendorSettings as VendorSettingsType } from "@/types/vendor";
 import { buildWhatsAppUrl } from "@/domain/whatsapp";
-import { vendorRequest } from "./vendor-client";
+import { vendorRequest, VendorClientError } from "./vendor-client";
+import { focusFirstInvalid } from "./vendor-shared";
 
 type SettingsProps = {
   apiBase?: string;
@@ -21,6 +22,30 @@ type WorkingDraft = Readonly<{
   value: SettingsDraft;
 }>;
 
+/** Fields the server can reject; each shows its own message. */
+type SettingsField =
+  | "shopName"
+  | "kioskName"
+  | "defaultCountryCode"
+  | "ownerWhatsAppNumber"
+  | "maxCartQuantity"
+  | "giftWrapFeePaise"
+  | "qrResetSeconds"
+  | "lowStockThreshold";
+
+type FieldErrors = Partial<Record<SettingsField, string>>;
+
+const FIELD_FOR_DRAFT_KEY: Partial<Record<keyof SettingsDraft, SettingsField>> = {
+  shopName: "shopName",
+  kioskName: "kioskName",
+  defaultCountryCode: "defaultCountryCode",
+  ownerWhatsAppNumber: "ownerWhatsAppNumber",
+  maxCartQuantity: "maxCartQuantity",
+  giftWrapFeeRupees: "giftWrapFeePaise",
+  qrResetSeconds: "qrResetSeconds",
+  lowStockThreshold: "lowStockThreshold",
+};
+
 function createDraft(settings: VendorSettingsType): SettingsDraft {
   return {
     ...settings,
@@ -36,12 +61,19 @@ export function VendorSettings({
   const [workingDraft, setWorkingDraft] = useState<WorkingDraft | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
   const baseline = workingDraft?.baseline ?? settings;
   const draft = workingDraft?.value ?? createDraft(settings);
   const dirty = workingDraft !== null;
   const newerSettingsAvailable = settings.version > baseline.version;
 
-  const update = <Key extends keyof SettingsDraft>(key: Key, value: SettingsDraft[Key]) =>
+  const update = <Key extends keyof SettingsDraft>(key: Key, value: SettingsDraft[Key]) => {
+    const field = FIELD_FOR_DRAFT_KEY[key];
+    if (field && fieldErrors[field]) {
+      setFieldErrors((current) => ({ ...current, [field]: undefined }));
+    }
     setWorkingDraft((current) => {
       const nextBaseline = current?.baseline ?? settings;
       const nextValue = {
@@ -52,11 +84,33 @@ export function VendorSettings({
         ? null
         : { baseline: nextBaseline, value: nextValue };
     });
+  };
 
   const loadLatestSettings = () => {
     setWorkingDraft(null);
     setError(null);
+    setFieldErrors({});
   };
+
+  const showFieldErrors = (next: FieldErrors, message: string) => {
+    setFieldErrors(next);
+    setError(message);
+    window.requestAnimationFrame(() => focusFirstInvalid(formRef.current, errorRef.current));
+  };
+
+  /** Props tying an input to its label and its error message. */
+  const fieldProps = (field: SettingsField, help?: string) => ({
+    id: `settings-${field}`,
+    "aria-invalid": fieldErrors[field] ? true : undefined,
+    "aria-describedby": fieldErrors[field] ? `settings-${field}-error` : help,
+  });
+
+  const fieldError = (field: SettingsField) =>
+    fieldErrors[field] ? (
+      <small id={`settings-${field}-error`} className="vendor-field-error">
+        {fieldErrors[field]}
+      </small>
+    ) : null;
 
   const save = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,11 +123,15 @@ export function VendorSettings({
     }
     const fee = Number(draft.giftWrapFeeRupees);
     if (!Number.isFinite(fee) || fee < 0) {
-      setError("Enter a valid gift-wrap fee.");
+      showFieldErrors(
+        { giftWrapFeePaise: "Enter a valid gift-wrap fee." },
+        "Check the highlighted information and try again.",
+      );
       return;
     }
     setPending(true);
     setError(null);
+    setFieldErrors({});
     try {
       const result = await vendorRequest<{ settings: VendorSettingsType }>(`${apiBase}/settings`, {
         method: "PATCH",
@@ -94,7 +152,19 @@ export function VendorSettings({
       setWorkingDraft(null);
       onSettingsSaved(result.settings, "Shop settings published to the kiosk.");
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Settings could not be saved.");
+      const fields = caught instanceof VendorClientError ? caught.fields : undefined;
+      const next: FieldErrors = {};
+      for (const field of Object.values(FIELD_FOR_DRAFT_KEY)) {
+        const message = fields?.[field]?.[0];
+        if (message) next[field] = message;
+      }
+      const message = caught instanceof Error ? caught.message : "Settings could not be saved.";
+      if (Object.keys(next).length) {
+        showFieldErrors(next, message);
+      } else {
+        setError(message);
+        window.requestAnimationFrame(() => errorRef.current?.focus());
+      }
     } finally {
       setPending(false);
     }
@@ -114,9 +184,9 @@ export function VendorSettings({
   }
 
   return (
-    <form className="vendor-workspace vendor-settings-view" onSubmit={save}>
+    <form ref={formRef} className="vendor-workspace vendor-settings-view" onSubmit={save}>
       {error ? (
-        <div className="vendor-inline-error" role="alert">
+        <div ref={errorRef} tabIndex={-1} className="vendor-inline-error" role="alert">
           {error}
         </div>
       ) : null}
@@ -142,24 +212,28 @@ export function VendorSettings({
               </div>
             </header>
             <div className="vendor-form-grid vendor-settings-fields">
-              <label className="vendor-field">
-                <span>Shop name</span>
+              <div className="vendor-field">
+                <label htmlFor="settings-shopName">Shop name</label>
                 <input
+                  {...fieldProps("shopName")}
                   value={draft.shopName}
                   onChange={(event) => update("shopName", event.target.value)}
                   maxLength={80}
                   required
                 />
-              </label>
-              <label className="vendor-field">
-                <span>Kiosk name</span>
+                {fieldError("shopName")}
+              </div>
+              <div className="vendor-field">
+                <label htmlFor="settings-kioskName">Kiosk name</label>
                 <input
+                  {...fieldProps("kioskName")}
                   value={draft.kioskName}
                   onChange={(event) => update("kioskName", event.target.value)}
                   maxLength={80}
                   required
                 />
-              </label>
+                {fieldError("kioskName")}
+              </div>
               <label className="vendor-toggle-row vendor-field--full">
                 <span>
                   <strong>Accept kiosk orders</strong>
@@ -186,11 +260,12 @@ export function VendorSettings({
               </div>
             </header>
             <div className="vendor-form-grid vendor-settings-fields">
-              <label className="vendor-field">
-                <span>Country code</span>
+              <div className="vendor-field">
+                <label htmlFor="settings-defaultCountryCode">Country code</label>
                 <span className="vendor-country-input">
                   <b>+</b>
                   <input
+                    {...fieldProps("defaultCountryCode")}
                     value={draft.defaultCountryCode}
                     onChange={(event) =>
                       update(
@@ -202,17 +277,20 @@ export function VendorSettings({
                     required
                   />
                 </span>
-              </label>
-              <label className="vendor-field">
-                <span>Owner WhatsApp number</span>
+                {fieldError("defaultCountryCode")}
+              </div>
+              <div className="vendor-field">
+                <label htmlFor="settings-ownerWhatsAppNumber">Owner WhatsApp number</label>
                 <input
+                  {...fieldProps("ownerWhatsAppNumber")}
                   value={draft.ownerWhatsAppNumber}
                   onChange={(event) => update("ownerWhatsAppNumber", event.target.value)}
                   inputMode="tel"
                   maxLength={24}
                   required
                 />
-              </label>
+                {fieldError("ownerWhatsAppNumber")}
+              </div>
               <div className="vendor-settings-note vendor-field--full">
                 <p>
                   Customers still check the message and tap Send themselves. Scanning the QR code
@@ -244,9 +322,10 @@ export function VendorSettings({
               </div>
             </header>
             <div className="vendor-form-grid vendor-settings-fields">
-              <label className="vendor-field">
-                <span>Maximum gift units</span>
+              <div className="vendor-field">
+                <label htmlFor="settings-maxCartQuantity">Maximum gift units</label>
                 <input
+                  {...fieldProps("maxCartQuantity", "settings-maxCartQuantity-help")}
                   type="number"
                   min="1"
                   max="5"
@@ -255,11 +334,14 @@ export function VendorSettings({
                   onChange={(event) => update("maxCartQuantity", Number(event.target.value))}
                   required
                 />
-                <small>Between 1 and 5.</small>
-              </label>
-              <label className="vendor-field">
-                <span>Gift-wrap fee (₹)</span>
+                {fieldError("maxCartQuantity") ?? (
+                  <small id="settings-maxCartQuantity-help">Between 1 and 5.</small>
+                )}
+              </div>
+              <div className="vendor-field">
+                <label htmlFor="settings-giftWrapFeePaise">Gift-wrap fee (₹)</label>
                 <input
+                  {...fieldProps("giftWrapFeePaise")}
                   type="number"
                   min="0"
                   step="0.01"
@@ -267,10 +349,12 @@ export function VendorSettings({
                   onChange={(event) => update("giftWrapFeeRupees", event.target.value)}
                   required
                 />
-              </label>
-              <label className="vendor-field">
-                <span>QR privacy reset (seconds)</span>
+                {fieldError("giftWrapFeePaise")}
+              </div>
+              <div className="vendor-field">
+                <label htmlFor="settings-qrResetSeconds">QR privacy reset (seconds)</label>
                 <input
+                  {...fieldProps("qrResetSeconds")}
                   type="number"
                   min="15"
                   max="3600"
@@ -279,10 +363,12 @@ export function VendorSettings({
                   onChange={(event) => update("qrResetSeconds", Number(event.target.value))}
                   required
                 />
-              </label>
-              <label className="vendor-field">
-                <span>Low-stock alert at</span>
+                {fieldError("qrResetSeconds")}
+              </div>
+              <div className="vendor-field">
+                <label htmlFor="settings-lowStockThreshold">Low-stock alert at</label>
                 <input
+                  {...fieldProps("lowStockThreshold")}
                   type="number"
                   min="0"
                   max="999"
@@ -291,7 +377,8 @@ export function VendorSettings({
                   onChange={(event) => update("lowStockThreshold", Number(event.target.value))}
                   required
                 />
-              </label>
+                {fieldError("lowStockThreshold")}
+              </div>
               <label className="vendor-toggle-row vendor-field--full">
                 <span>
                   <strong>Show preview label</strong>

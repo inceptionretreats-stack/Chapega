@@ -4,6 +4,12 @@ import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, open, readFile, rename } from "node:fs/promises";
 import path from "node:path";
 import { CATALOGUE_PRODUCTS } from "@/data/catalogue";
+import {
+  orderHasPersonalData,
+  orderIsPastRetention,
+  RETENTION_REDACTION_MESSAGE,
+  withoutPersonalData,
+} from "@/domain/order-privacy";
 import { normalizeWhatsAppNumber } from "@/domain/whatsapp";
 import { usesSupabaseBackend } from "@/server/supabase/config";
 import { getVendorCredentialConfiguration } from "@/server/vendor/config";
@@ -38,6 +44,8 @@ export type VendorUserRecord = Readonly<{
   passwordSalt: string;
   passwordHash: string;
   active: boolean;
+  /** Set when someone else chose the password; cleared when the user picks one. */
+  mustChangePassword?: boolean;
   createdAt: string;
 }>;
 
@@ -50,14 +58,40 @@ export type VendorMembershipRecord = Readonly<{
   createdAt: string;
 }>;
 
+/**
+ * 'vendor' is a Studio browser (cookie), 'vendor_app' a phone signed in to
+ * the Chapega Studio app (Bearer token), 'platform' the admin portal.
+ */
+export type VendorSessionScope = "vendor" | "vendor_app" | "platform";
+
+/** The phone a 'vendor_app' session belongs to. */
+export type VendorSessionDevice = Readonly<{
+  /** sha256 of the app's installation id; the id itself is never stored. */
+  hash: string;
+  platform: "android" | "ios";
+  model?: string;
+  appVersion?: string;
+}>;
+
 export type VendorSessionRecord = Readonly<{
   idHash: string;
   userId: string;
-  scope: "vendor" | "platform";
+  scope: VendorSessionScope;
   activeVendorId: string | null;
   createdAt: string;
   expiresAt: string;
+  device?: VendorSessionDevice;
+  /**
+   * Local backend only: where this phone receives new-order notifications.
+   * Supabase keeps it in private.vendor_push_registrations.
+   */
+  push?: Readonly<{ token: string; tokenHash: string; updatedAt: string }>;
 }>;
+
+/** A Studio session of either kind: a browser or a phone. */
+export function isVendorSessionScope(scope: VendorSessionScope): scope is "vendor" | "vendor_app" {
+  return scope === "vendor" || scope === "vendor_app";
+}
 
 export type VendorProductRecord = VendorProduct & Readonly<{ vendorId: string }>;
 
@@ -509,6 +543,36 @@ export function boundedAudit(
   return kept.slice(Math.max(0, kept.length - limit));
 }
 
+/**
+ * Replaces an order's submission fingerprint once its customer details are
+ * gone: the original is sha256 of those details, so it could be reversed.
+ * Postgres writes the same value (migration 20261030120000).
+ */
+export function redactedFingerprint(orderId: string): string {
+  return sha256(`redacted:${orderId}`);
+}
+
+/**
+ * The local store's copy of private.redact_order_personal_data: clears
+ * customer details from orders past the retention period. Runs on every save,
+ * like the session prune and the audit cap, so a local preview keeps the
+ * promise the privacy notice makes.
+ */
+export function redactExpiredOrders(
+  orders: readonly VendorOrderRecord[],
+  now = Date.now(),
+): VendorOrderRecord[] {
+  return orders.map((order) =>
+    orderIsPastRetention(order, now) && orderHasPersonalData(order)
+      ? {
+          ...withoutPersonalData(order, RETENTION_REDACTION_MESSAGE),
+          submissionFingerprint: redactedFingerprint(order.id),
+          version: order.version + 1,
+        }
+      : order,
+  );
+}
+
 export async function updateLocalVendorDatabase<T>(
   mutation: (draft: VendorDatabase) => T | Promise<T>,
 ): Promise<T> {
@@ -517,6 +581,7 @@ export async function updateLocalVendorDatabase<T>(
     const draft = clone(current);
     pruneExpiredSessions(draft);
     const result = await mutation(draft);
+    draft.orders = redactExpiredOrders(draft.orders);
     draft.audit = boundedAudit(draft.audit, MAX_LOCAL_AUDIT_RECORDS);
     await commitDatabase(draft);
     runtime.state = draft;

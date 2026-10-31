@@ -3,6 +3,11 @@ import "server-only";
 import { randomInt, randomUUID } from "node:crypto";
 import { getEffectiveMaxCartUnits } from "@/domain/cart";
 import { calculateCartTotals } from "@/domain/money";
+import {
+  orderHasPersonalData,
+  REQUEST_REDACTION_MESSAGE,
+  withoutPersonalData,
+} from "@/domain/order-privacy";
 import { canTransitionVendorOrder } from "@/domain/vendor";
 import {
   buildWhatsAppMessage,
@@ -16,6 +21,7 @@ import {
   findVendorSettings,
   newAuditRecord,
   readVendorDatabase,
+  redactedFingerprint,
   updateVendorDatabase,
   type VendorDatabase,
   type VendorOrderRecord,
@@ -502,10 +508,25 @@ function nextOrderNumber(
   );
 }
 
+export type PlacedKioskOrder = Readonly<{
+  order: VendorOrder;
+  vendor: Readonly<{ id: string; slug: string }>;
+  /** False when the idempotency key replayed an order placed earlier. */
+  created: boolean;
+}>;
+
+/** For callers that only need the order. */
 export async function recordKioskOrder(
   submission: KioskOrderSubmission,
   vendorSlug = DEFAULT_VENDOR_SLUG,
 ): Promise<VendorOrder> {
+  return (await placeKioskOrder(submission, vendorSlug)).order;
+}
+
+export async function placeKioskOrder(
+  submission: KioskOrderSubmission,
+  vendorSlug = DEFAULT_VENDOR_SLUG,
+): Promise<PlacedKioskOrder> {
   // Only what the customer chose identifies a retry. The kiosk's suggested
   // number and timestamp may legitimately change between attempts.
   const fingerprint = sha256(
@@ -518,6 +539,7 @@ export async function recordKioskOrder(
   return updateVendorDatabase(
     (database) => {
       const { vendor, settings } = activeTenantBySlug(database, vendorSlug);
+      const identity = { id: vendor.id, slug: vendor.slug };
       const duplicate = database.orders.find(
         (order) =>
           order.vendorId === vendor.id && order.idempotencyKey === submission.idempotencyKey,
@@ -530,7 +552,7 @@ export async function recordKioskOrder(
             "This order key was already used for different contents.",
           );
         }
-        return orderDto(duplicate);
+        return { order: orderDto(duplicate), vendor: identity, created: false };
       }
       if (!settings.storeOpen) {
         throw new VendorServiceError(409, "SHOP_PAUSED", "The shop has paused new kiosk orders.");
@@ -713,7 +735,7 @@ export async function recordKioskOrder(
       database.orders.push(order);
       touchVendor(database, vendor.id);
       database.audit.push(newAuditRecord("kiosk", "order.prepared", "order", order.id, vendor.id));
-      return orderDto(order);
+      return { order: orderDto(order), vendor: identity, created: true };
     },
     { vendorSlug },
   );
@@ -848,6 +870,64 @@ export async function transitionVendorOrder(
   );
 }
 
+/**
+ * Removes the customer's name, phone and notes from one order, for example
+ * when the customer asks the shop to delete their details. Items, amounts and
+ * status stay. Irreversible; owners and managers only.
+ */
+export async function removeOrderCustomerDetails(
+  orderId: string,
+  expectedVersion: number,
+  actor: VendorActor,
+): Promise<VendorOrder> {
+  const context = actorContext(actor);
+  requireCapability(
+    context,
+    "erase_customer_data",
+    "Only the shop owner or a manager can remove customer details.",
+  );
+  return updateVendorDatabase(
+    (database) => {
+      const { vendor } = activeTenantById(database, context.vendor.id);
+      const index = database.orders.findIndex(
+        (order) => order.vendorId === vendor.id && order.id === orderId,
+      );
+      if (index < 0) {
+        throw new VendorServiceError(404, "ORDER_NOT_FOUND", "Order not found.");
+      }
+      const current = database.orders[index];
+      if (current.version !== expectedVersion) {
+        throw new VendorServiceError(
+          409,
+          "VERSION_CONFLICT",
+          "This order changed in another session. Refresh before updating it.",
+        );
+      }
+      if (!orderHasPersonalData(current)) return orderDto(current);
+
+      const order: VendorOrderRecord = {
+        ...withoutPersonalData(current, REQUEST_REDACTION_MESSAGE),
+        submissionFingerprint: redactedFingerprint(current.id),
+        updatedAt: new Date().toISOString(),
+        version: current.version + 1,
+      };
+      database.orders[index] = order;
+      touchVendor(database, vendor.id);
+      database.audit.push(
+        newAuditRecord(
+          context.user.id,
+          "order.customer_details_removed",
+          "order",
+          order.id,
+          vendor.id,
+        ),
+      );
+      return orderDto(order);
+    },
+    { vendorId: context.vendor.id },
+  );
+}
+
 export async function updateVendorSettings(
   input: Omit<VendorSettings, "updatedAt">,
   actor: VendorActor,
@@ -885,6 +965,12 @@ export async function updateVendorSettings(
         (candidate) => candidate.vendorId === vendor.id,
       );
       database.settings[settingsIndex] = settings;
+      // The shop name is also the vendor's display name (page titles, Studio
+      // header, shop picker, admin). Written only when it changes.
+      if (vendor.displayName !== settings.shopName) {
+        const vendorIndex = database.vendors.findIndex((candidate) => candidate.id === vendor.id);
+        database.vendors[vendorIndex] = { ...vendor, displayName: settings.shopName };
+      }
       database.products = database.products.map((product) => ({
         ...product,
         availability:

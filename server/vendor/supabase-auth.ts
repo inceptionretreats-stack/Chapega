@@ -23,6 +23,7 @@ import {
 } from "@/server/vendor/crypto";
 import { VendorServiceError } from "@/server/vendor/errors";
 import { vendorUserFromDatabase } from "@/server/vendor/auth";
+import { isMigrationError, migrationRequiredError } from "@/server/vendor/supabase-accounts";
 import type { PlatformAdminUser } from "@/types/admin";
 import type { VendorUser } from "@/types/vendor";
 import type postgres from "postgres";
@@ -38,6 +39,7 @@ type CredentialUserRow = {
   password_salt: string;
   password_hash: string;
   active: boolean;
+  must_change_password?: boolean;
   created_at: DateValue;
 };
 
@@ -73,6 +75,22 @@ type LoginInput = Readonly<{
 
 type PlatformLoginInput = Omit<LoginInput, "vendorSlug">;
 
+/** The phone a Chapega Studio app sign-in creates its session for. */
+export type SupabaseAppSessionDevice = Readonly<{
+  /** sha256 of the app's installation id. */
+  hash: string;
+  platform: "android" | "ios";
+  model?: string;
+  appVersion?: string;
+  /** Phones this person may have signed in, this one included. */
+  maxDevices: number;
+}>;
+
+type VendorSessionScope = "vendor" | "vendor_app";
+
+/** The migration that added phone sessions and push registrations. */
+const APP_SESSIONS_MIGRATION = "20261101120000";
+
 function iso(value: DateValue): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
@@ -96,6 +114,7 @@ function userRecord(row: CredentialUserRow): VendorUserRecord {
     passwordSalt: row.password_salt,
     passwordHash: row.password_hash,
     active: row.active,
+    ...(row.must_change_password ? { mustChangePassword: true } : {}),
     createdAt: iso(row.created_at),
   };
 }
@@ -131,6 +150,8 @@ async function credentialsByEmail(
   const [user] = await sql<CredentialUserRow[]>`
     select
       id, email, name, platform_role, password_salt, password_hash, active,
+      coalesce((to_jsonb(vendor_users) ->> 'must_change_password')::boolean, false)
+        as must_change_password,
       created_at
     from private.vendor_users
     where email = ${email}
@@ -169,6 +190,8 @@ async function credentialsStillValid(
   const [current] = await sql<CredentialUserRow[]>`
     select
       id, email, name, platform_role, password_salt, password_hash, active,
+      coalesce((to_jsonb(vendor_users) ->> 'must_change_password')::boolean, false)
+        as must_change_password,
       created_at
     from private.vendor_users
     where id = ${verified.id}
@@ -298,9 +321,23 @@ async function publicVendorUser(
   return vendorUserFromDatabase({ memberships, vendors }, userRecord(user), activeVendorId);
 }
 
-export async function authenticateSupabaseVendorLogin(
+/** Creates the new session row; returns how many other sessions it ended. */
+type SessionWriter = (
+  transaction: postgres.TransactionSql,
+  userId: string,
+  vendorId: string,
+) => Promise<number>;
+
+/**
+ * Studio and app sign-in share this: verify the password with no transaction
+ * open, then re-check the credentials and create the session under the same
+ * per-user advisory lock a password change takes.
+ */
+async function authenticateVendorSession(
   input: LoginInput,
-): Promise<VendorUser | null> {
+  auditAction: "vendor.login" | "vendor.app.login",
+  writeSession: SessionWriter,
+): Promise<Readonly<{ user: VendorUser; signedOutDevices: number }> | null> {
   const failureMessage = "Vendor sign-in could not reach Supabase.";
   const candidate = await loadCredentials(input.email, failureMessage);
   // Always run one full verification (against a dummy hash for unknown
@@ -332,23 +369,12 @@ export async function authenticateSupabaseVendorLogin(
         );
       }
       await setContext(transaction, "app.vendor_id", vendor.id);
-      await transaction`
-        delete from private.vendor_sessions
-        where user_id = ${user.id} and session_scope = 'vendor'
-      `;
-      await transaction`
-        insert into private.vendor_sessions (
-          id_hash, user_id, session_scope, active_vendor_id, created_at, expires_at
-        ) values (
-          ${input.tokenHash}, ${user.id}, 'vendor', ${vendor.id},
-          ${input.createdAt}, ${input.expiresAt}
-        )
-      `;
+      const signedOutDevices = await writeSession(transaction, user.id, vendor.id);
       await transaction`
         insert into private.audit_log
           (id, vendor_id, actor_id, action, entity_type, entity_id, created_at)
         values
-          (${randomUUID()}, ${vendor.id}, ${user.id}, 'vendor.login', 'auth',
+          (${randomUUID()}, ${vendor.id}, ${user.id}, ${auditAction}, 'auth',
            ${user.id}, now())
       `;
       await transaction`
@@ -356,15 +382,96 @@ export async function authenticateSupabaseVendorLogin(
         set revision = revision + 1, updated_at = now()
         where vendor_id = ${vendor.id}
       `;
-      return publicVendorUser(transaction, user, vendor.id);
+      const publicUser = await publicVendorUser(transaction, user, vendor.id);
+      return publicUser ? { user: publicUser, signedOutDevices } : null;
     });
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
+    if (auditAction === "vendor.app.login" && isMigrationError(error)) {
+      throw migrationRequiredError(APP_SESSIONS_MIGRATION, error);
+    }
     throw backendUnavailable(failureMessage, error);
   }
 }
 
-export async function destroySupabaseVendorSession(tokenHash: string): Promise<void> {
+/** Studio (browser) sign-in: one Studio session per person at a time. */
+export async function authenticateSupabaseVendorLogin(
+  input: LoginInput,
+): Promise<VendorUser | null> {
+  const result = await authenticateVendorSession(
+    input,
+    "vendor.login",
+    async (transaction, userId, vendorId) => {
+      await transaction`
+        delete from private.vendor_sessions
+        where user_id = ${userId} and session_scope = 'vendor'
+      `;
+      await transaction`
+        insert into private.vendor_sessions (
+          id_hash, user_id, session_scope, active_vendor_id, created_at, expires_at
+        ) values (
+          ${input.tokenHash}, ${userId}, 'vendor', ${vendorId},
+          ${input.createdAt}, ${input.expiresAt}
+        )
+      `;
+      return 0;
+    },
+  );
+  return result?.user ?? null;
+}
+
+/**
+ * Chapega Studio app sign-in. Leaves the person's browser sessions alone.
+ * Signing in again on the same phone replaces that phone's session; beyond
+ * device.maxDevices phones, the one used least recently is signed out.
+ */
+export async function authenticateSupabaseVendorAppLogin(
+  input: LoginInput & Readonly<{ device: SupabaseAppSessionDevice }>,
+): Promise<Readonly<{ user: VendorUser; signedOutDevices: number }> | null> {
+  const { device } = input;
+  return authenticateVendorSession(
+    input,
+    "vendor.app.login",
+    async (transaction, userId, vendorId) => {
+      // This phone's previous session, and phone sessions that already ended.
+      await transaction`
+        delete from private.vendor_sessions
+        where user_id = ${userId}
+          and session_scope = 'vendor_app'
+          and (device_hash = ${device.hash} or expires_at <= now())
+      `;
+      // Keep the phones used most recently, leaving room for this one.
+      const evicted = await transaction<Array<{ id_hash: string }>>`
+        delete from private.vendor_sessions
+        where id_hash in (
+          select id_hash
+          from private.vendor_sessions
+          where user_id = ${userId}
+            and session_scope = 'vendor_app'
+          order by expires_at desc, created_at desc
+          offset ${Math.max(device.maxDevices - 1, 0)}
+        )
+        returning id_hash
+      `;
+      await transaction`
+        insert into private.vendor_sessions (
+          id_hash, user_id, session_scope, active_vendor_id, created_at, expires_at,
+          device_hash, device_platform, device_model, app_version
+        ) values (
+          ${input.tokenHash}, ${userId}, 'vendor_app', ${vendorId},
+          ${input.createdAt}, ${input.expiresAt},
+          ${device.hash}, ${device.platform}, ${device.model ?? null}, ${device.appVersion ?? null}
+        )
+      `;
+      return evicted.length;
+    },
+  );
+}
+
+export async function destroySupabaseVendorSession(
+  tokenHash: string,
+  scope: VendorSessionScope = "vendor",
+): Promise<void> {
   try {
     await getSupabasePostgres().begin(async (transaction) => {
       await setContext(transaction, "app.session_hash", tokenHash);
@@ -372,7 +479,7 @@ export async function destroySupabaseVendorSession(tokenHash: string): Promise<v
         select user_id, active_vendor_id
         from private.vendor_sessions
         where id_hash = ${tokenHash}
-          and session_scope = 'vendor'
+          and session_scope = ${scope}
         limit 1
       `;
       if (!session) return;
@@ -386,7 +493,8 @@ export async function destroySupabaseVendorSession(tokenHash: string): Promise<v
           (id, vendor_id, actor_id, action, entity_type, entity_id, created_at)
         values
           (${randomUUID()}, ${session.active_vendor_id}, ${session.user_id},
-           'vendor.logout', 'auth', ${session.user_id}, now())
+           ${scope === "vendor_app" ? "vendor.app.logout" : "vendor.logout"}, 'auth',
+           ${session.user_id}, now())
       `;
       await transaction`
         update private.app_state
@@ -427,13 +535,13 @@ let refreshDeniedWarningLogged = false;
 async function slideSessionExpiry(
   transaction: postgres.TransactionSql,
   tokenHash: string,
-  scope: "vendor" | "platform",
+  scope: VendorSessionScope | "platform",
   row: SessionTimesRow,
   rules: SessionPolicy,
-): Promise<void> {
+): Promise<number | null> {
   const { times, now } = sessionTimes(row);
   const refreshed = refreshedSessionExpiry(times, now, rules);
-  if (refreshed === null) return;
+  if (refreshed === null) return null;
   try {
     const updated = await transaction.savepoint(
       (savepoint) => savepoint<Array<{ id_hash: string }>>`
@@ -447,20 +555,30 @@ async function slideSessionExpiry(
       refreshDeniedWarningLogged = true;
       logger.warn("auth.session_refresh_denied", {
         message:
-          "Session expiry could not be extended (row-level security). Apply migration 20261008130000_auth_hardening.",
+          "Session expiry could not be extended (row-level security). Apply migrations 20261008130000_auth_hardening and 20261101120000_vendor_app_sessions_and_push.",
       });
     }
+    return updated.length > 0 ? refreshed : null;
   } catch (error) {
     logger.warn("auth.session_refresh_failed", { scope, error: serializeError(error) });
+    return null;
   }
 }
 
-export async function getSupabaseVendorUserByToken(
+export type SupabaseVendorSession = Readonly<{
+  user: VendorUser;
+  createdAt: number;
+  /** The idle deadline, after this request's extension. */
+  expiresAt: number;
+}>;
+
+export async function getSupabaseVendorSessionByToken(
   tokenHash: string,
   vendorSlug?: string,
   rules: SessionPolicy = vendorSessionPolicy(),
   countsAsActivity = true,
-): Promise<VendorUser | null> {
+  scope: VendorSessionScope = "vendor",
+): Promise<SupabaseVendorSession | null> {
   try {
     return await getSupabasePostgres().begin(async (transaction) => {
       await setContext(transaction, "app.session_hash", tokenHash);
@@ -470,7 +588,7 @@ export async function getSupabaseVendorUserByToken(
         select user_id, active_vendor_id, created_at, expires_at, now() as now
         from private.vendor_sessions
         where id_hash = ${tokenHash}
-          and session_scope = 'vendor'
+          and session_scope = ${scope}
           and expires_at > now()
         limit 1
       `;
@@ -482,6 +600,8 @@ export async function getSupabaseVendorUserByToken(
       const [user] = await transaction<CredentialUserRow[]>`
         select
           id, email, name, platform_role, password_salt, password_hash, active,
+          coalesce((to_jsonb(vendor_users) ->> 'must_change_password')::boolean, false)
+            as must_change_password,
           created_at
         from private.vendor_users
         where id = ${session.user_id} and active
@@ -495,15 +615,36 @@ export async function getSupabaseVendorUserByToken(
       if (!vendor || vendor.status !== "active") return null;
       const publicUser = await publicVendorUser(transaction, user, vendor.id);
       if (!publicUser) return null;
-      if (countsAsActivity) {
-        await slideSessionExpiry(transaction, tokenHash, "vendor", session, rules);
-      }
-      return publicUser;
+      const refreshed = countsAsActivity
+        ? await slideSessionExpiry(transaction, tokenHash, scope, session, rules)
+        : null;
+      return {
+        user: publicUser,
+        createdAt: times.createdAt,
+        expiresAt: refreshed ?? times.expiresAt,
+      };
     });
   } catch (error) {
     if (error instanceof VendorServiceError) throw error;
     throw backendUnavailable("The vendor session could not be verified.", error);
   }
+}
+
+export async function getSupabaseVendorUserByToken(
+  tokenHash: string,
+  vendorSlug?: string,
+  rules: SessionPolicy = vendorSessionPolicy(),
+  countsAsActivity = true,
+  scope: VendorSessionScope = "vendor",
+): Promise<VendorUser | null> {
+  const session = await getSupabaseVendorSessionByToken(
+    tokenHash,
+    vendorSlug,
+    rules,
+    countsAsActivity,
+    scope,
+  );
+  return session?.user ?? null;
 }
 
 function platformUser(row: CredentialUserRow): PlatformAdminUser {
@@ -592,6 +733,8 @@ export async function getSupabasePlatformUserByToken(
       const [user] = await transaction<CredentialUserRow[]>`
         select
           id, email, name, platform_role, password_salt, password_hash, active,
+          coalesce((to_jsonb(vendor_users) ->> 'must_change_password')::boolean, false)
+            as must_change_password,
           created_at
         from private.vendor_users
         where id = ${session.user_id}

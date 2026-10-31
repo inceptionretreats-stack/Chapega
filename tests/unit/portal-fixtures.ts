@@ -79,6 +79,7 @@ export function makeBootstrap(overrides: Partial<VendorBootstrap> = {}): VendorB
     manage_catalogue: true,
     manage_settings: true,
     manage_team: true,
+    erase_customer_data: true,
   };
   return {
     user: {

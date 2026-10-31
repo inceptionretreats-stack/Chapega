@@ -7,7 +7,12 @@ vi.mock("server-only", () => ({}));
 import * as instrumentation from "@/instrumentation";
 import { inspectServerConfiguration } from "@/server/config/startup";
 import { setLogSink } from "@/server/observability/logger";
-import { adminSessionPolicy, vendorSessionPolicy } from "@/server/security/session-policy";
+import {
+  adminSessionPolicy,
+  vendorAppMaxDevices,
+  vendorAppSessionPolicy,
+  vendorSessionPolicy,
+} from "@/server/security/session-policy";
 import { resetClientAddressWarning } from "@/server/vendor/throttle";
 
 const MANAGED = [
@@ -27,6 +32,12 @@ const MANAGED = [
   "VENDOR_SESSION_IDLE_MINUTES",
   "ADMIN_SESSION_HOURS",
   "ADMIN_SESSION_IDLE_MINUTES",
+  "VENDOR_APP_SESSION_DAYS",
+  "VENDOR_APP_SESSION_IDLE_DAYS",
+  "VENDOR_APP_MAX_DEVICES",
+  "FCM_SERVICE_ACCOUNT_JSON",
+  "FCM_PROJECT_ID",
+  "FCM_TEST_BASE_URL",
   "TRUST_PROXY_HEADERS",
   "LOG_LEVEL",
 ];
@@ -149,6 +160,29 @@ describe("session settings at runtime", () => {
     environment({ NODE_ENV: "development", ADMIN_SESSION_HOURS: "eight" });
     expect(() => adminSessionPolicy()).toThrow(/ADMIN_SESSION_HOURS/);
   });
+
+  it("gives phones days, not minutes, and refuses values beyond the database ceiling", () => {
+    environment({ NODE_ENV: "development" });
+    const days = (milliseconds: number) => milliseconds / (24 * 60 * 60_000);
+    expect(days(vendorAppSessionPolicy().idleMs)).toBe(14);
+    expect(days(vendorAppSessionPolicy().absoluteMs)).toBe(30);
+    expect(vendorAppMaxDevices()).toBe(3);
+
+    environment({ NODE_ENV: "development", VENDOR_APP_SESSION_DAYS: "91" });
+    expect(inspectServerConfiguration().errors.join("\n")).toMatch(/VENDOR_APP_SESSION_DAYS/);
+
+    environment({ NODE_ENV: "development", VENDOR_APP_MAX_DEVICES: "2.5" });
+    expect(inspectServerConfiguration().errors.join("\n")).toMatch(
+      /VENDOR_APP_MAX_DEVICES must be a whole number/,
+    );
+  });
+
+  it("treats a broken push key as a warning that leaves push off, not a failed start", () => {
+    environment({ NODE_ENV: "development", FCM_SERVICE_ACCOUNT_JSON: "not a key" });
+    const report = inspectServerConfiguration();
+    expect(report.errors).toEqual([]);
+    expect(report.warnings.join("\n")).toMatch(/FCM_SERVICE_ACCOUNT_JSON/);
+  });
 });
 
 describe(".env.example (AUD-33)", () => {
@@ -172,6 +206,10 @@ describe(".env.example (AUD-33)", () => {
       "VENDOR_SESSION_IDLE_MINUTES",
       "ADMIN_SESSION_HOURS",
       "ADMIN_SESSION_IDLE_MINUTES",
+      "VENDOR_APP_SESSION_DAYS",
+      "VENDOR_APP_SESSION_IDLE_DAYS",
+      "VENDOR_APP_MAX_DEVICES",
+      "FCM_SERVICE_ACCOUNT_JSON",
       "LOG_LEVEL",
     ]) {
       expect(template, name).toMatch(new RegExp(`^#? ?${name}=`, "m"));

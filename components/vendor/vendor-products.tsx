@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Edit3, PackagePlus, Search, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatInr } from "@/domain/money";
 import type { VendorProduct } from "@/types/vendor";
 import { vendorRequest } from "./vendor-client";
@@ -14,6 +14,9 @@ type ProductsProps = {
   lowStockThreshold: number;
   openAddRequested: boolean;
   onAddRequestHandled: () => void;
+  /** Opens this product's editor on arrival (the dashboard's Restock). */
+  openEditProductId?: string | null;
+  onEditRequestHandled?: () => void;
   onProductSaved: (product: VendorProduct, message: string) => void;
   onProductArchived: (productId: string, message: string) => void;
 };
@@ -24,12 +27,21 @@ export function VendorProducts({
   lowStockThreshold,
   openAddRequested,
   onAddRequestHandled,
+  openEditProductId = null,
+  onEditRequestHandled,
   onProductSaved,
   onProductArchived,
 }: ProductsProps) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [editor, setEditor] = useState<VendorProduct | "new" | null>(null);
+  const [editor, setEditor] = useState<VendorProduct | "new" | null>(
+    () => products.find((product) => product.id === openEditProductId) ?? null,
+  );
+
+  // The requested product is consumed by the initial editor state above.
+  useEffect(() => {
+    if (openEditProductId) onEditRequestHandled?.();
+  }, [openEditProductId, onEditRequestHandled]);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const categories = useMemo(

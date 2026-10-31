@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { VendorStudioSkeleton } from "@/components/skeletons";
+import { VendorPasswordRequired } from "@/components/vendor/vendor-password-required";
 import { VendorPortal } from "@/components/vendor/vendor-portal";
 import { getCurrentVendorContext, getCurrentVendorUser } from "@/server/vendor/auth";
 import { getVendorBootstrap } from "@/server/vendor/service";
@@ -16,6 +17,18 @@ export default async function VendorWorkspacePage({ params }: PageProps) {
   const user = await getCurrentVendorUser();
   if (!user) {
     redirect(`/vendor/login?vendor=${encodeURIComponent(vendorSlug)}`);
+  }
+  // A password someone else chose must be replaced before anything else loads.
+  if (user.mustChangePassword) {
+    if (user.activeVendor.slug !== vendorSlug) redirect(`/vendor/${user.activeVendor.slug}`);
+    return (
+      <VendorPasswordRequired
+        apiBase={`/api/vendor/${encodeURIComponent(vendorSlug)}`}
+        name={user.name}
+        email={user.email}
+        shopName={user.activeVendor.displayName}
+      />
+    );
   }
   const access = await getCurrentVendorContext(vendorSlug);
   if (!access) notFound();

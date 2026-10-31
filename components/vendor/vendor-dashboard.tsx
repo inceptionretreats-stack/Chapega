@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { formatInr } from "@/domain/money";
-import type { VendorBootstrap, VendorOrder } from "@/types/vendor";
-import { relativeVendorTime, VendorOrderStatusBadge } from "./vendor-shared";
+import type { VendorBootstrap, VendorOrder, VendorProduct } from "@/types/vendor";
+import { customerLabel, relativeVendorTime, VendorOrderStatusBadge } from "./vendor-shared";
 
 type DashboardProps = {
   data: VendorBootstrap;
@@ -12,6 +12,8 @@ type DashboardProps = {
   onViewOrders: () => void;
   onViewProducts: () => void;
   onOpenOrder: (order: VendorOrder) => void;
+  /** Opens that product's editor; without it, Restock only shows Products. */
+  onRestockProduct?: (product: VendorProduct) => void;
 };
 
 function isToday(value: string): boolean {
@@ -30,6 +32,7 @@ export function VendorDashboard({
   onViewOrders,
   onViewProducts,
   onOpenOrder,
+  onRestockProduct,
 }: DashboardProps) {
   const todayOrders = data.orders.filter((order) => isToday(order.createdAt));
   const activeOrders = data.orders.filter(
@@ -115,9 +118,7 @@ export function VendorDashboard({
                       <td data-label="Time">
                         <span suppressHydrationWarning>{relativeVendorTime(order.createdAt)}</span>
                       </td>
-                      <td data-label="Customer">
-                        {order.customer.customerName || "Walk-in customer"}
-                      </td>
+                      <td data-label="Customer">{customerLabel(order)}</td>
                       <td data-label="Items">
                         {order.items.reduce((total, item) => total + item.quantity, 0)}
                       </td>
@@ -177,7 +178,13 @@ export function VendorDashboard({
                       </span>
                     </div>
                     {canManageCatalogue ? (
-                      <button type="button" onClick={onViewProducts}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onRestockProduct ? onRestockProduct(product) : onViewProducts()
+                        }
+                        aria-label={`Restock ${product.name}`}
+                      >
                         Restock
                       </button>
                     ) : null}

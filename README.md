@@ -16,7 +16,7 @@ The interface keeps the existing ivory, blush, burgundy, and gold brand palette.
 - Optional customer name, phone, gift note and order note; control and bidirectional-override characters are stripped before the text reaches WhatsApp
 - Pay Later / Pay at Counter is the only payment method: nothing is collected online
 - Exact WhatsApp Click-to-Chat message, scannable QR, copy fallback, and a privacy countdown whose pause is capped
-- A privacy notice at `/privacy` (a **draft with placeholders**: complete it before launch)
+- A privacy notice at `/privacy`: Chapega.com is named as responsible, each kiosk links to `/privacy?shop=<slug>` so the notice gives that shop's WhatsApp number for data requests, and it states the 30-day retention rule
 - Responsive layouts for kiosk landscape, tablet, and phone sizes
 
 ### Vendor Studio
@@ -25,15 +25,26 @@ The interface keeps the existing ivory, blush, burgundy, and gold brand palette.
 - Sessions end after 30 idle minutes and in any case after 12 hours (configurable). The studio's background refresh does not count as activity, so a tab left open still signs out
 - Slug-scoped workspaces (`/vendor/:vendorSlug`) with isolated carts, products, orders, settings, uploads, sessions, and audit data
 - Owner, manager, and staff memberships with capability-based navigation and server authorization
+- **Team** (owners): add a manager or staff member with a temporary password, change their role, remove or restore their access to the shop, and set a new temporary password. Owners are never changed from here, so a shop cannot lose its owner. An email already used on the platform is refused without saying where, and a temporary password is set only for someone who belongs to this shop alone
+- **Change password** for everyone (sidebar); the current password is re-checked and other devices are signed out. A password someone else chose (a new owner or member, or any reset) must be replaced at the next sign-in: until then the Studio shows only a "Set a new password" page
 - Dashboard with order value, product count, low-stock count, live orders, and shop status
 - Product create, edit, publish/hide, stock update, image upload, and archive flows
 - PNG/JPEG signature and size validation, dimension limits, metadata stripping, and content-addressed filenames
-- Order search/filtering, immutable item snapshots, timeline, WhatsApp handoff, cancellation, and controlled status progression
+- Order search/filtering (phone numbers match in any format), immutable item snapshots, timeline, WhatsApp handoff, cancellation, and controlled status progression
+- **Remove customer details** from one order when the customer asks (owners and managers, audited); items, amounts and status stay
 - Stock deduction exactly once at confirmation, with release when a confirmed order is cancelled
-- Shop identity, WhatsApp destination, ordering limits, wrapping fee, QR timeout, low-stock threshold, and open/closed controls
+- Shop identity (a renamed shop shows its new name on the kiosk, Studio and admin), WhatsApp destination, ordering limits, wrapping fee, QR timeout, low-stock threshold, and open/closed controls
 - Automatic refresh when the tab regains focus and every 30 seconds while it is visible
 - Light and dark themes: follows the device by default, with a System / Light / Dark switch in the sidebar (the admin portal has the same switch in its account menu). The public kiosk always stays light.
-- Archiving, cancelling and suspending ask for confirmation in an accessible dialog
+- Archiving, cancelling, removing customer details, removing a team member's access and suspending ask for confirmation in an accessible dialog
+
+### Chapega Studio app (phones)
+
+- The Vendor Studio as a phone app for owners, managers and staff (Flutter, in `mobile/`; Android and iOS from one codebase): orders with new-order alerts and Call/WhatsApp buttons for the customer, products with camera photos, shop settings (including pausing the kiosk), team, and change password. Running it against a local server, tests and builds: `mobile/README.md`
+- It uses the same `/api/vendor/…` endpoints, with its own sign-in at `/api/studio-app/v1/*` and an `Authorization: Bearer` token instead of a cookie
+- Phone sessions are their own kind: signing in on a phone never signs the person out of the web Studio, and the other way round. A phone stays signed in for 14 days without use and 30 days at most (`VENDOR_APP_SESSION_IDLE_DAYS`, `VENDOR_APP_SESSION_DAYS`); each person can have 3 phones signed in (`VENDOR_APP_MAX_DEVICES`), and a fourth signs out the one used least recently
+- Signing out, a password change, removal from the team, a reset and a password rotation all end phone sessions too
+- **New-order push notifications** (Firebase Cloud Messaging): off until `FCM_SERVICE_ACCOUNT_JSON` is set (see `docs/RUNBOOK.md`). Each new kiosk order is announced once, after the kiosk has its answer, to the signed-in phones of the shop's team. A notification shows the order number, total and item count, never the customer's name, phone number or notes
 
 ### Super admin
 
@@ -41,6 +52,7 @@ The interface keeps the existing ivory, blush, burgundy, and gold brand palette.
 - Platform metrics, recent activity, vendor search/filtering, and responsive vendor tables/cards
 - Create a vendor with its initial owner, shop settings, and isolated kiosk in one guarded operation; slugs that would shadow a fixed route (`login`, `privacy`, `api`, …) are refused
 - Suspend or reactivate a vendor without deleting its catalogue, orders, settings, or audit history
+- **Reset owner password** for a locked-out owner: a temporary password, every session ends, and the owner chooses a new one at the next sign-in. Super admins change their own password from the account menu
 - Every platform read and mutation revalidates a live `super_admin` session in the database
 
 ### Production backend
@@ -58,13 +70,16 @@ The interface keeps the existing ivory, blush, burgundy, and gold brand palette.
 3. A kiosk order appears in **Orders** as **Prepared on kiosk**. This means the draft was created; it does not claim that WhatsApp delivered the message.
 4. After the shop receives and accepts the request, move it through **Confirmed → Preparing → Ready → Completed**. Cancelling a confirmed order releases its committed stock once.
 5. Use **Settings** to pause new orders or change the public kiosk rules and WhatsApp destination.
+6. Owners use **Team** to give managers and staff their own sign-in. Each person replaces the temporary password the first time they sign in.
+7. When a customer asks for their details to be deleted, find the order (by number or phone) and use **Remove details**.
 
 ## Super-admin workflow
 
 1. Open `/admin/login` and sign in with an account whose platform role is `super_admin`.
-2. Use **Add vendor** to create the tenant, its initial owner and a temporary password, and default shop settings.
+2. Use **Add vendor** to create the tenant, its initial owner and a temporary password, and default shop settings. The owner chooses their own password at the first sign-in.
 3. Open `/kiosk/<vendor-slug>` to verify the isolated public kiosk.
 4. Suspend a tenant to block its kiosk ordering and vendor sign-in while retaining all records; reactivate it when access should resume.
+5. If an owner is locked out, use the key icon on their shop's row (**Reset owner password**).
 
 ## Local setup
 
@@ -155,13 +170,24 @@ Vendor endpoints exist in two forms: `/api/vendor/<vendor-slug>/…` acts on tha
 | `POST /api/vendor/:vendorSlug/uploads` | Validate and store a PNG/JPEG product image |
 | `DELETE /api/vendor/:vendorSlug/uploads` | Delete an unused content-addressed image |
 | `PATCH /api/vendor/:vendorSlug/orders/:orderId` | Apply a permitted order-status transition |
+| `DELETE /api/vendor/:vendorSlug/orders/:orderId/customer` | Remove one order's customer details (version-checked) |
+| `GET` / `POST /api/vendor/:vendorSlug/team` | List the team, or add a member (owners) |
+| `PATCH /api/vendor/:vendorSlug/team/:userId` | Change a member's role or access (owners) |
+| `POST /api/vendor/:vendorSlug/team/:userId/password` | Set a member's temporary password (owners) |
+| `POST /api/vendor/:vendorSlug/account/password` | Change your own password (works while a temporary password must be replaced) |
 | `PATCH /api/vendor/:vendorSlug/settings` | Publish kiosk and shop settings (version-checked) |
+| `POST /api/studio-app/v1/login` | Chapega Studio app sign-in: returns a Bearer token in the body (never a cookie) |
+| `GET /api/studio-app/v1/session` | Who the app is signed in as (works while a temporary password must be replaced) |
+| `POST /api/studio-app/v1/logout` | End this phone's session and its notifications |
+| `PUT` / `DELETE /api/studio-app/v1/push-token` | Register or forget this phone's Firebase Cloud Messaging token |
 | `GET /api/kiosk/:vendorSlug/bootstrap` | Public catalogue and settings, with ETag revalidation |
 | `POST /api/kiosk/:vendorSlug/orders` | Reprice, validate, and idempotently create a kiosk order |
 | `POST /api/admin/login` / `POST /api/admin/logout` | Create or revoke a platform-admin session |
 | `GET /api/admin/bootstrap` | Platform metrics, vendors, and recent activity |
 | `POST /api/admin/vendors` | Create a vendor and its initial owner |
 | `PATCH /api/admin/vendors/:vendorId/status` | Suspend or reactivate a vendor (guarded by the status the admin saw) |
+| `POST /api/admin/vendors/:vendorId/owner-password` | Set a temporary password for the shop's owner |
+| `POST /api/admin/account/password` | Change your own admin password |
 | `GET /api/healthz` | Liveness: the process is up |
 | `GET /api/readyz` | Readiness: the data backend answers (503 otherwise) |
 | `GET /vendor-products/…` | Runtime product images (Supabase Storage, or streamed locally) |
@@ -170,10 +196,11 @@ Vendor endpoints exist in two forms: `/api/vendor/<vendor-slug>/…` acts on tha
 
 - Authenticated and PII-bearing responses are private and `no-store`. Cookie-authenticated mutations reject cross-site requests by comparing `Origin` with the host the browser addressed.
 - Request bodies are size-limited while they stream; an oversized upload is cut off with 413 instead of being buffered.
-- Sign-in is throttled without hard lockouts: a few free attempts per account, then a doubling delay of at most 5 minutes (admin accounts get fewer free attempts), plus per-address and instance-wide caps. Every 429 carries `Retry-After`. Kiosk ordering and catalogue reads are capped per shop.
-- Passwords are hashed with scrypt at the OWASP parameters (N=2^17, r=8, p=1); only hashed session tokens are stored.
-- Responses carry `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`, HSTS outside development, and a **report-only** Content Security Policy. Move the CSP to enforcing once a release shows no violations.
+- Sign-in is throttled without hard lockouts: a few free attempts per account, then a doubling delay of at most 5 minutes (admin accounts get fewer free attempts), plus per-address and instance-wide caps. Changing your own password uses the same per-account delay, and new team members and temporary passwords are capped at 20 an hour per shop (or per admin). Every 429 carries `Retry-After`. Kiosk ordering and catalogue reads are capped per shop.
+- Passwords are hashed with scrypt at the OWASP parameters (N=2^17, r=8, p=1); only hashed session tokens are stored. On Supabase, accounts and sessions are written only through narrow `SECURITY DEFINER` functions that prove the caller from the session it presented (migrations `20261008130000` and `20261030122000`).
+- Responses carry `X-Frame-Options: DENY`, `frame-ancestors 'none'`, `Referrer-Policy`, `X-Content-Type-Options`, `Permissions-Policy`, HSTS outside development, and an enforced Content Security Policy (`next.config.ts`; how to debug a blocked resource is in `docs/RUNBOOK.md`).
 - Every API response carries an `X-Request-Id`, and server logs are structured JSON lines with the same ID.
+- Every `/api/vendor/…` endpoint also accepts the Chapega Studio app's `Authorization: Bearer chapega_app_…` token. A Bearer token is looked up only among phone sessions and a cookie only among browser sessions; when an `Authorization: Bearer` header is present, the cookie is ignored. App sign-in shares the Studio's rate limits. Push tokens live in a table only `SECURITY DEFINER` functions can reach and disappear with their session (migration `20261101120000`).
 
 New uploads use `/vendor-products/<vendor-id>/<sha256>.png` or `.jpg`; legacy flat paths remain readable during the cutover. Owner and manager roles may retry deletion safely when the object is already missing; staff cannot upload or delete images. Cross-vendor ownership checks run before deletion, and deletion is refused while the image is referenced by any active or archived product or immutable historical order-item snapshot. Supabase objects are removed through the Storage API rather than by modifying `storage.objects` directly.
 
@@ -237,14 +264,16 @@ Point the host's health checks at `/api/healthz` (liveness) and `/api/readyz` (r
 
 ### Data retention
 
-Two owner-only database functions exist for retention; nothing runs them automatically yet:
+Two owner-only database functions run daily through pg_cron (migrations `20261009120000` and `20261030120000`):
 
-- `select private.purge_expired_records();` deletes sessions that expired more than a day ago.
-- `select private.redact_order_personal_data(interval '90 days');` blanks customer name, phone and notes on finished orders older than the period (it refuses periods under 30 days). Choose the period with the shop owner and state it in the privacy notice.
+- `chapega-purge-sessions` (03:15 UTC) runs `private.purge_expired_records()`, deleting sessions that expired more than a day ago.
+- `chapega-redact-orders` (03:45 UTC) runs `private.redact_order_personal_data(interval '30 days')`. It blanks the customer's name, phone and notes, the WhatsApp text and the submission fingerprint 30 days after an order is completed or cancelled, and 30 days after preparation for orders the shop never confirmed. Orders still in progress keep them until they finish; items, amounts and order numbers stay. The function refuses periods under 30 days.
+
+Without pg_cron, run both functions daily by hand. The local JSON store applies the same 30-day rule whenever it saves. A single order's details can be removed earlier from Studio (**Remove details**).
 
 ### Password rotation
 
-To rotate the owner password, set `VENDOR_EMAIL` and a new `VENDOR_PASSWORD` that meets the policy above in `.env.local`, then run `npm run vendor:password`. The command re-hashes the password, updates the selected backend, revokes that account's existing sessions, and records an audit event.
+Owners and team members change their own passwords in Studio; an admin resets a locked-out owner from `/admin`, and an owner resets their team from **Team**. For a super admin (or when nobody can sign in), set `VENDOR_EMAIL` and a new `VENDOR_PASSWORD` that meets the policy above in `.env.local` and run `npm run vendor:password`. On Supabase it needs `SUPABASE_ADMIN_DATABASE_URL` (the postgres owner URL); before this release the command could not write there. It re-hashes the password, re-enables the account, clears any pending forced change, revokes that account's sessions, and records an audit event.
 
 ## WhatsApp behavior
 
@@ -272,12 +301,16 @@ CHAPEGA_IT_ADMIN_URL=postgresql://postgres:PASSWORD@localhost:5432/postgres npm 
 
 CI runs all of these on every pull request, plus a dependency audit, coverage thresholds, and a secret scan. A physical WhatsApp receipt remains a manual acceptance check.
 
+The Chapega Studio app has its own checks (Flutter 3.44.8): `npm run check:mobile`, or `flutter analyze --fatal-infos && flutter test` in `mobile/`. CI runs them, plus a release APK build, in `.github/workflows/mobile.yml` whenever `mobile/` changes; the same workflow compiles the iOS app on demand (manual run with `ios: true`).
+
 ## Current production follow-ups
 
-- Complete the draft privacy notice at `/privacy`, choose the retention period, and schedule the two retention functions.
-- Add owner-facing account management, password recovery, and multi-factor sign-in for platform admins.
-- Move the Content Security Policy from report-only to enforcing after a clean release.
-- Set up error monitoring and a staging environment; document backups and rollback.
+- Create the Firebase project for push notifications and set `FCM_SERVICE_ACCOUNT_JSON` (`docs/RUNBOOK.md`, `mobile/docs/PUSH.md`); publish the Chapega Studio app to Google Play and the App Store (`mobile/docs/RELEASE.md`).
+- A "Signed-in phones" list with remote sign-out, and a lighter, paginated orders endpoint for phones (the bootstrap returns every order).
+
+- Self-service password recovery (needs an email or SMS provider) and multi-factor sign-in for platform admins.
+- Admin tools still missing: edit a vendor's details, transfer ownership, add a second super admin, delete a vendor.
+- Set up error monitoring and a staging environment; confirm the Supabase backup plan and test a restore (`docs/RUNBOOK.md`).
 - Integrate the WhatsApp Business Platform only if verified delivery/webhook status is required.
 - Run physical touch-screen and physical-phone acceptance tests on the final hardware and deployment.
 

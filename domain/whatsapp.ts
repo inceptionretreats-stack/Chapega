@@ -94,6 +94,13 @@ export function maskWhatsAppNumber(rawNumber: string, visibleDigits = 4): string
   return `${"•".repeat(hiddenCount)}${suffix}`;
 }
 
+/** Display form of a normalized number: "+91 98765 43210" for Indian mobiles. */
+export function formatWhatsAppNumber(normalized: string): string {
+  const digits = digitsOnly(normalized);
+  const indian = /^91([6-9]\d{4})(\d{5})$/.exec(digits);
+  return indian ? `+91 ${indian[1]} ${indian[2]}` : `+${digits}`;
+}
+
 // Bidi embedding/override (U+202A-202E) and isolate (U+2066-2069) controls can
 // visually reorder the shop owner's WhatsApp text, so they are dropped.
 const BIDI_CONTROLS = /[‪-‮⁦-⁩]/g;

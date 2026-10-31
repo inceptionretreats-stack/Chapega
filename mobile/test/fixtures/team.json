@@ -1,0 +1,28 @@
+{
+  "members": [
+    {
+      "userId": "acee0c56-a7e5-442e-b376-3c03851f67ad",
+      "name": "Aanya",
+      "email": "owner@chapega.com",
+      "role": "owner",
+      "active": true,
+      "passwordChangePending": false,
+      "isCurrentUser": true,
+      "canManage": false,
+      "canResetPassword": false,
+      "memberSince": "2026-10-31T07:17:34.975Z"
+    },
+    {
+      "userId": "ad675570-fb08-43a1-925c-ac80e3a2248d",
+      "name": "Kabir Staff",
+      "email": "kabir@example.com",
+      "role": "staff",
+      "active": true,
+      "passwordChangePending": true,
+      "isCurrentUser": false,
+      "canManage": true,
+      "canResetPassword": true,
+      "memberSince": "2026-10-31T07:17:54.225Z"
+    }
+  ]
+}

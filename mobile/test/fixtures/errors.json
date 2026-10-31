@@ -1,0 +1,19 @@
+{
+  "conflict": {
+    "error": {
+      "code": "VERSION_CONFLICT",
+      "message": "This order changed in another session. Refresh before updating it."
+    }
+  },
+  "validation": {
+    "error": {
+      "code": "VALIDATION_ERROR",
+      "message": "Check the highlighted information and try again.",
+      "fields": {
+        "ownerWhatsAppNumber": [
+          "Enter a valid WhatsApp number with 10 to 15 digits."
+        ]
+      }
+    }
+  }
+}

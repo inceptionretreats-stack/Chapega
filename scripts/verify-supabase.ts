@@ -22,6 +22,9 @@ const EXPECTED_PRIVATE_TABLES = [
   "vendors",
 ] as const;
 
+// Reached only through SECURITY DEFINER functions: chapega_app has no grants.
+const DEFINER_ONLY_TABLES = ["order_push_dispatches", "vendor_push_registrations"] as const;
+
 const DEFAULT_VENDOR_ID = "00000000-0000-4000-8000-000000000001";
 
 function requiredEnvironment(name: string): string {
@@ -82,6 +85,33 @@ async function main(): Promise<void> {
     const tableNames = new Set(tables.map((table) => table.table_name));
     const missingTables = EXPECTED_PRIVATE_TABLES.filter((table) => !tableNames.has(table));
     assert(missingTables.length === 0, `Missing private tables: ${missingTables.join(", ")}.`);
+    const missingDefinerTables = DEFINER_ONLY_TABLES.filter((table) => !tableNames.has(table));
+    assert(
+      missingDefinerTables.length === 0,
+      `Missing private tables: ${missingDefinerTables.join(", ")}.`,
+    );
+    for (const table of DEFINER_ONLY_TABLES) {
+      const [access] = await admin<Array<{ granted: boolean }>>`
+        select has_table_privilege(
+          'chapega_app',
+          ${`private.${table}`},
+          'select, insert, update, delete'
+        ) as granted
+      `;
+      assert(!access?.granted, `chapega_app can reach private.${table} directly.`);
+    }
+    const [refreshPolicy] = await admin<Array<{ with_check: string | null }>>`
+      select with_check
+      from pg_policies
+      where schemaname = 'private'
+        and tablename = 'vendor_sessions'
+        and policyname = 'chapega_sessions_refresh'
+    `;
+    assert(
+      refreshPolicy?.with_check?.includes("vendor_app") &&
+        refreshPolicy.with_check.includes("168:00:00"),
+      "The session refresh policy is missing its per-scope lifetime ceiling.",
+    );
     assert(
       tables.every((table) => table.row_security && table.force_row_security),
       "Every private table must have enabled and forced row-level security.",
@@ -266,6 +296,72 @@ async function main(): Promise<void> {
     assert(
       isolated?.products === 0 && isolated.orders === 0,
       "Runtime RLS exposes another tenant without a matching vendor context.",
+    );
+
+    // SECURITY DEFINER functions run as the owner, so each must pin its
+    // search_path and only the intended ones may be callable by the app.
+    const definers = await admin<
+      Array<{ name: string; pinned: boolean; anon: boolean; authenticated: boolean; app: boolean }>
+    >`
+      select
+        procs.proname as name,
+        coalesce(procs.proconfig::text like '%search_path=%', false) as pinned,
+        has_function_privilege('anon', procs.oid, 'execute') as anon,
+        has_function_privilege('authenticated', procs.oid, 'execute') as authenticated,
+        has_function_privilege('chapega_app', procs.oid, 'execute') as app
+      from pg_proc procs
+      join pg_namespace namespaces on namespaces.oid = procs.pronamespace
+      where namespaces.nspname = 'private' and procs.prosecdef
+    `;
+    const unpinned = definers.filter((fn) => !fn.pinned).map((fn) => fn.name);
+    assert(
+      unpinned.length === 0,
+      `Definer functions without a search_path: ${unpinned.join(", ")}.`,
+    );
+    const exposed = definers.filter((fn) => fn.anon || fn.authenticated).map((fn) => fn.name);
+    assert(
+      exposed.length === 0,
+      `Private functions callable by anon/authenticated: ${exposed.join(", ")}.`,
+    );
+    const callable = new Set(definers.filter((fn) => fn.app).map((fn) => fn.name));
+    const required = [
+      "has_platform_admin_session",
+      "current_vendor_is_active",
+      "rehash_own_password",
+      "change_own_password",
+      "list_vendor_team",
+      "add_vendor_team_member",
+      "set_vendor_team_member_role",
+      "set_vendor_team_member_active",
+      "reset_vendor_team_password",
+      "reset_vendor_owner_password",
+      "register_push_token",
+      "unregister_push_token",
+      "claim_order_push_targets",
+      "finish_order_push",
+    ];
+    const missing = required.filter((name) => !callable.has(name));
+    assert(missing.length === 0, `chapega_app cannot run: ${missing.join(", ")}.`);
+    const ownerOnly = [
+      "current_vendor_owner_id",
+      "current_app_session_user_id",
+      "purge_expired_records",
+      "redact_order_personal_data",
+    ];
+    const leaked = ownerOnly.filter((name) => callable.has(name));
+    assert(
+      leaked.length === 0,
+      `Owner-only functions callable by chapega_app: ${leaked.join(", ")}.`,
+    );
+
+    const [reserved] = await admin<Array<{ count: number }>>`
+      select count(*)::int as count
+      from private.vendors
+      where slug in ('team', 'account', 'studio-app')
+    `;
+    assert(
+      reserved.count === 0,
+      "A vendor uses the reserved slug 'team', 'account' or 'studio-app'.",
     );
 
     console.log("Supabase verification passed.");

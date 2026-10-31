@@ -166,7 +166,9 @@ test("first load does not refetch the catalogue or prefetch staff pages (AUD-24)
   const early: string[] = [];
   page.on("request", (request) => {
     const url = request.url();
-    if (url.includes("/api/kiosk/") || url.includes("/vendor/login")) early.push(url);
+    if (url.includes("/api/kiosk/") || url.includes("/vendor/login") || url.includes("/privacy")) {
+      early.push(url);
+    }
   });
   await page.goto("/");
   await expect(page.getByRole("button", { name: /Start Shopping/ })).toBeEnabled();

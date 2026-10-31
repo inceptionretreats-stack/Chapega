@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, PauseCircle, PlayCircle, Plus, Search } from "lucide-react";
+import { KeyRound, PauseCircle, PlayCircle, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import type { AdminVendorStatus, AdminVendorSummary } from "@/types/admin";
 import { AdminVendorStatus as VendorStatus, relativeAdminTime, VendorAvatar } from "./admin-shared";
@@ -9,13 +9,32 @@ type AdminVendorCollectionProps = {
   vendors: readonly AdminVendorSummary[];
   onAdd: () => void;
   onChangeStatus: (vendor: AdminVendorSummary) => void;
+  onResetOwnerPassword?: (vendor: AdminVendorSummary) => void;
+  /** The signed-in admin; their own shop's owner account is never reset here. */
+  currentUserId?: string;
 };
 
 export function AdminVendorCollection({
   vendors,
   onAdd,
   onChangeStatus,
+  onResetOwnerPassword,
+  currentUserId,
 }: AdminVendorCollectionProps) {
+  const canResetOwner = (vendor: AdminVendorSummary) =>
+    Boolean(onResetOwnerPassword && vendor.owner.id && vendor.owner.id !== currentUserId);
+  const resetButton = (vendor: AdminVendorSummary, className: string, size: number) =>
+    canResetOwner(vendor) ? (
+      <button
+        className={className}
+        type="button"
+        onClick={() => onResetOwnerPassword?.(vendor)}
+        aria-label={`Reset owner password for ${vendor.displayName}`}
+        aria-haspopup="dialog"
+      >
+        <KeyRound size={size} />
+      </button>
+    ) : null;
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<"all" | AdminVendorStatus>("all");
 
@@ -76,103 +95,116 @@ export function AdminVendorCollection({
         Showing {filtered.length} of {vendors.length} vendors
       </p>
 
-      {filtered.length ? (
-        <div id="vendor-accounts" tabIndex={-1} role="group" aria-label="Vendor owner accounts">
-          <div className="admin-vendor-table-wrap">
-            <table className="admin-vendor-table">
-              <caption className="sr-only">Platform vendors</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Vendor</th>
-                  <th scope="col">Owner</th>
-                  <th scope="col">Store status</th>
-                  <th scope="col">Products</th>
-                  <th scope="col">Orders</th>
-                  <th scope="col">Last activity</th>
-                  <th scope="col">
-                    <span className="sr-only">Vendor action</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((vendor) => (
-                  <tr key={vendor.id}>
-                    <th scope="row">
-                      <span className="admin-vendor-identity">
-                        <VendorAvatar name={vendor.displayName} compact />
-                        <span>
-                          <strong>{vendor.displayName}</strong>
-                          <small>/kiosk/{vendor.slug}</small>
-                        </span>
-                      </span>
+      {/* Always rendered: the "Accounts" navigation item focuses it. */}
+      <div id="vendor-accounts" tabIndex={-1} role="group" aria-label="Vendor owner accounts">
+        {filtered.length ? (
+          <>
+            <div className="admin-vendor-table-wrap">
+              <table className="admin-vendor-table">
+                <caption className="sr-only">Platform vendors</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Vendor</th>
+                    <th scope="col">Owner</th>
+                    <th scope="col">Store status</th>
+                    <th scope="col">Products</th>
+                    <th scope="col">Orders</th>
+                    <th scope="col">Last activity</th>
+                    <th scope="col">
+                      <span className="sr-only">Vendor action</span>
                     </th>
-                    <td>
-                      <strong>{vendor.owner.name}</strong>
-                      <small>{vendor.owner.email}</small>
-                    </td>
-                    <td>
-                      <VendorStatus status={vendor.status} />
-                    </td>
-                    <td>{vendor.productCount}</td>
-                    <td>{vendor.orderCount}</td>
-                    <td>
-                      <time dateTime={vendor.lastActivityAt} suppressHydrationWarning>
-                        {relativeAdminTime(vendor.lastActivityAt)}
-                      </time>
-                    </td>
-                    <td>
-                      <button
-                        className="admin-row-action"
-                        type="button"
-                        onClick={() => onChangeStatus(vendor)}
-                        aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
-                      >
-                        {vendor.status === "active" ? (
-                          <PauseCircle size={18} />
-                        ) : (
-                          <PlayCircle size={18} />
-                        )}
-                      </button>
-                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map((vendor) => (
+                    <tr key={vendor.id}>
+                      <th scope="row">
+                        <span className="admin-vendor-identity">
+                          <VendorAvatar name={vendor.displayName} compact />
+                          <span>
+                            <strong>{vendor.displayName}</strong>
+                            <small>/kiosk/{vendor.slug}</small>
+                          </span>
+                        </span>
+                      </th>
+                      <td>
+                        <strong>{vendor.owner.name}</strong>
+                        <small>{vendor.owner.email}</small>
+                      </td>
+                      <td>
+                        <VendorStatus status={vendor.status} />
+                      </td>
+                      <td>{vendor.productCount}</td>
+                      <td>{vendor.orderCount}</td>
+                      <td>
+                        <time dateTime={vendor.lastActivityAt} suppressHydrationWarning>
+                          {relativeAdminTime(vendor.lastActivityAt)}
+                        </time>
+                      </td>
+                      <td>
+                        <span className="admin-row-actions">
+                          {resetButton(vendor, "admin-row-action", 18)}
+                          <button
+                            className="admin-row-action"
+                            type="button"
+                            onClick={() => onChangeStatus(vendor)}
+                            aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
+                          >
+                            {vendor.status === "active" ? (
+                              <PauseCircle size={18} />
+                            ) : (
+                              <PlayCircle size={18} />
+                            )}
+                          </button>
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-          <ul className="admin-vendor-list" aria-label="Platform vendors">
-            {filtered.map((vendor) => (
-              <li key={vendor.id}>
-                <VendorAvatar name={vendor.displayName} />
-                <div className="admin-vendor-list__body">
-                  <strong>{vendor.displayName}</strong>
-                  <span>{vendor.owner.name}</span>
-                  <VendorStatus status={vendor.status} />
-                  <small>
-                    {vendor.productCount} products <i>•</i> {vendor.orderCount}{" "}
-                    {vendor.orderCount === 1 ? "order" : "orders"}
-                  </small>
-                </div>
-                <button
-                  className="admin-vendor-list__action"
-                  type="button"
-                  onClick={() => onChangeStatus(vendor)}
-                  aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
-                >
-                  <ChevronRight size={24} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : (
-        <div className="admin-empty-state">
-          <div>
-            <strong>No vendors match</strong>
-            <p>Clear the search or choose another status.</p>
+            <ul className="admin-vendor-list" aria-label="Platform vendors">
+              {filtered.map((vendor) => (
+                <li key={vendor.id}>
+                  <VendorAvatar name={vendor.displayName} />
+                  <div className="admin-vendor-list__body">
+                    <strong>{vendor.displayName}</strong>
+                    <span>{vendor.owner.name}</span>
+                    <VendorStatus status={vendor.status} />
+                    <small>
+                      {vendor.productCount} products <i>•</i> {vendor.orderCount}{" "}
+                      {vendor.orderCount === 1 ? "order" : "orders"}
+                    </small>
+                  </div>
+                  <div className="admin-vendor-list__actions">
+                    {resetButton(vendor, "admin-vendor-list__action", 22)}
+                    <button
+                      className="admin-vendor-list__action"
+                      type="button"
+                      onClick={() => onChangeStatus(vendor)}
+                      aria-label={`${vendor.status === "active" ? "Suspend" : "Reactivate"} ${vendor.displayName}`}
+                    >
+                      {vendor.status === "active" ? (
+                        <PauseCircle size={22} />
+                      ) : (
+                        <PlayCircle size={22} />
+                      )}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <div className="admin-empty-state">
+            <div>
+              <strong>No vendors match</strong>
+              <p>Clear the search or choose another status.</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }

@@ -1,0 +1,34 @@
+{
+  "id": "acee0c56-a7e5-442e-b376-3c03851f67ad",
+  "email": "owner@chapega.com",
+  "name": "Aanya",
+  "platformRole": "super_admin",
+  "role": "owner",
+  "activeVendor": {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "slug": "chapega",
+    "displayName": "Chapega.com",
+    "status": "active"
+  },
+  "memberships": [
+    {
+      "vendor": {
+        "id": "00000000-0000-4000-8000-000000000001",
+        "slug": "chapega",
+        "displayName": "Chapega.com",
+        "status": "active"
+      },
+      "role": "owner",
+      "active": true,
+      "isDefault": true
+    }
+  ],
+  "capabilities": {
+    "view_dashboard": true,
+    "manage_orders": true,
+    "manage_catalogue": true,
+    "manage_settings": true,
+    "manage_team": true,
+    "erase_customer_data": true
+  }
+}

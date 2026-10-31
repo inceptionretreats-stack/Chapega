@@ -17,6 +17,8 @@ type CheckoutScreenProps = {
   onChange: (patch: Partial<CustomerDetails>) => void;
   onEditSelection: () => void;
   onReview: () => void;
+  /** The privacy notice for this shop (`/privacy?shop=<slug>`). */
+  privacyHref?: string;
 };
 
 export function CheckoutScreen({
@@ -27,6 +29,7 @@ export function CheckoutScreen({
   onChange,
   onEditSelection,
   onReview,
+  privacyHref = "/privacy",
 }: CheckoutScreenProps) {
   const [summaryExpanded, setSummaryExpanded] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
@@ -139,7 +142,11 @@ export function CheckoutScreen({
             <p className="checkout-form-section__helper">
               <span>
                 Share only what you’re comfortable sending; we use it only to prepare this order on
-                WhatsApp (<Link href="/privacy">privacy notice</Link>).
+                WhatsApp (
+                <Link href={privacyHref} prefetch={false}>
+                  privacy notice
+                </Link>
+                ).
               </span>
             </p>
             <div className="form-grid">

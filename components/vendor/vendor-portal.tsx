@@ -2,6 +2,7 @@
 
 import {
   Boxes,
+  KeyRound,
   ExternalLink,
   Home,
   LayoutDashboard,
@@ -13,6 +14,7 @@ import {
   Settings,
   ShoppingBag,
   Store,
+  UsersRound,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,8 +33,11 @@ import { VendorDashboard } from "./vendor-dashboard";
 import { VendorOrders } from "./vendor-orders";
 import { VendorProducts } from "./vendor-products";
 import { VendorSettings } from "./vendor-settings";
+import { VendorFormDialog } from "./vendor-form-dialog";
+import { VendorPasswordForm } from "./vendor-password-form";
+import { VendorTeam } from "./vendor-team";
 
-type VendorView = "dashboard" | "products" | "orders" | "settings";
+type VendorView = "dashboard" | "products" | "orders" | "settings" | "team";
 
 type PortalProps = { initialData: VendorBootstrap };
 
@@ -63,6 +68,10 @@ const viewCopy: Readonly<Record<VendorView, { title: string; description: string
     title: "Shop settings",
     description: "Kiosk name, WhatsApp number and ordering rules.",
   },
+  team: {
+    title: "Team",
+    description: "Who can sign in to this shop, and what each person can do.",
+  },
 };
 
 const navigation = [
@@ -70,6 +79,8 @@ const navigation = [
   { id: "products" as const, label: "Products", icon: Boxes },
   { id: "orders" as const, label: "Orders", icon: ShoppingBag },
   { id: "settings" as const, label: "Shop settings", icon: Settings },
+  // Sidebar only: the mobile bottom bar is already full.
+  { id: "team" as const, label: "Team", icon: UsersRound },
 ];
 
 function syncLabel(status: SyncStatus, lastSuccessfulSyncAt: number | null) {
@@ -94,6 +105,9 @@ export function VendorPortal({ initialData }: PortalProps) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [openAddRequested, setOpenAddRequested] = useState(false);
   const [focusOrderId, setFocusOrderId] = useState<string | null>(null);
+  const [editProductId, setEditProductId] = useState<string | null>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const passwordFieldRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
   const vendorSidebarRef = useRef<HTMLElement>(null);
   const mobileMenuButtonRef = useRef<HTMLButtonElement>(null);
@@ -109,8 +123,15 @@ export function VendorPortal({ initialData }: PortalProps) {
   );
   const canManageCatalogue = data.capabilities.manage_catalogue;
   const canManageSettings = data.capabilities.manage_settings;
+  const canManageTeam = data.capabilities.manage_team;
   const visibleNavigation = navigation.filter((item) =>
-    item.id === "products" ? canManageCatalogue : item.id === "settings" ? canManageSettings : true,
+    item.id === "products"
+      ? canManageCatalogue
+      : item.id === "settings"
+        ? canManageSettings
+        : item.id === "team"
+          ? canManageTeam
+          : true,
   );
 
   const showToast = useCallback((message: string, tone: "success" | "error" = "success") => {
@@ -260,6 +281,13 @@ export function VendorPortal({ initialData }: PortalProps) {
     selectView("orders");
   };
 
+  const restockProduct = (product: VendorProduct) => {
+    setEditProductId(product.id);
+    selectView("products");
+  };
+
+  const editRequestHandled = useCallback(() => setEditProductId(null), []);
+
   const commitProduct = useCallback(
     (product: VendorProduct, message: string) => {
       refreshSequenceRef.current += 1;
@@ -331,6 +359,8 @@ export function VendorPortal({ initialData }: PortalProps) {
         setData((current) => ({
           ...current,
           revision: current.revision + 1,
+          // The server writes the shop name to the vendor's display name too.
+          vendor: { ...current.vendor, displayName: settings.shopName },
           settings,
         }));
       });
@@ -455,6 +485,17 @@ export function VendorPortal({ initialData }: PortalProps) {
           })}
         </nav>
         <ThemeControl className="vendor-theme-control" />
+        <button
+          className="vendor-account-action"
+          type="button"
+          onClick={() => {
+            closeMobileMenu(false);
+            setChangingPassword(true);
+          }}
+          aria-haspopup="dialog"
+        >
+          <KeyRound size={19} /> Change password
+        </button>
         <button
           className="vendor-signout"
           type="button"
@@ -600,6 +641,7 @@ export function VendorPortal({ initialData }: PortalProps) {
               onViewOrders={() => selectView("orders")}
               onViewProducts={() => selectView("products")}
               onOpenOrder={openOrder}
+              onRestockProduct={restockProduct}
             />
           ) : null}
           {view === "products" ? (
@@ -609,6 +651,8 @@ export function VendorPortal({ initialData }: PortalProps) {
               lowStockThreshold={data.settings.lowStockThreshold}
               openAddRequested={openAddRequested}
               onAddRequestHandled={() => setOpenAddRequested(false)}
+              openEditProductId={editProductId}
+              onEditRequestHandled={editRequestHandled}
               onProductSaved={commitProduct}
               onProductArchived={commitArchivedProduct}
             />
@@ -620,6 +664,7 @@ export function VendorPortal({ initialData }: PortalProps) {
               focusOrderId={focusOrderId}
               onFocusOrderHandled={() => setFocusOrderId(null)}
               onOrderSaved={commitOrder}
+              canRemoveCustomerDetails={data.capabilities.erase_customer_data}
             />
           ) : null}
           {view === "settings" ? (
@@ -627,6 +672,14 @@ export function VendorPortal({ initialData }: PortalProps) {
               apiBase={apiBase}
               settings={data.settings}
               onSettingsSaved={commitSettings}
+            />
+          ) : null}
+          {view === "team" && canManageTeam ? (
+            <VendorTeam
+              apiBase={apiBase}
+              shopName={data.vendor.displayName}
+              onToast={showToast}
+              onSessionEnded={() => router.replace(loginPath)}
             />
           ) : null}
         </main>
@@ -679,6 +732,29 @@ export function VendorPortal({ initialData }: PortalProps) {
           </button>
         ) : null}
       </nav>
+
+      {changingPassword ? (
+        <VendorFormDialog
+          title="Change your password"
+          description="Your other devices will be signed out. This one stays signed in."
+          initialFocusRef={passwordFieldRef}
+          onClose={() => setChangingPassword(false)}
+        >
+          <VendorPasswordForm
+            apiBase={apiBase}
+            email={data.user.email}
+            idPrefix="studio-password"
+            submitLabel="Change password"
+            firstFieldRef={passwordFieldRef}
+            onCancel={() => setChangingPassword(false)}
+            onChanged={() => {
+              setChangingPassword(false);
+              showToast("Password changed. Your other devices were signed out.");
+            }}
+            onSessionEnded={() => router.replace(loginPath)}
+          />
+        </VendorFormDialog>
+      ) : null}
 
       <div className="vendor-toast-region" aria-live="polite" aria-atomic="true">
         {toast ? (

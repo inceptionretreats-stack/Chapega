@@ -6,8 +6,89 @@ the findings of the 2026-10-08 project audit.
 
 ## [Unreleased]
 
+### Before you deploy
+
+- **Apply the migrations first, then merge (deploy) the app.** Review the
+  dry run, which lists what is pending (`20261009120000` too, if it was
+  never applied):
+
+  ```bash
+  npx supabase db push --linked --dry-run
+  npx supabase db push --linked
+  npm run supabase:verify
+  ```
+
+  `supabase:provision` is not needed. All three new migrations are safe for
+  the app that is live now:
+  - `20261030120000` schedules order redaction (`chapega-redact-orders`).
+  - `20261030121000` lets a shop rename itself; the current app never
+    changes `display_name`.
+  - `20261030122000` adds `vendor_users.must_change_password` (default false,
+    so no existing account is affected) and the team and password
+    functions.
+- If the app goes out before the migrations, sign-in and existing screens
+  keep working, but Team, change password, owner reset and Add vendor answer
+  503 until `20261030122000` is applied, and renaming a shop fails until
+  `20261030121000` is.
+- **The first nightly redaction is permanent.** It blanks customer details on
+  every order completed or cancelled more than 30 days ago and on every draft
+  prepared more than 30 days ago that the shop never confirmed. Export
+  anything the shop still needs before applying `20261030120000`.
+- Before applying, `select slug from private.vendors where slug in ('team',
+  'account');` must return nothing (both became reserved routes).
+- `npm run vendor:password` on Supabase now needs `SUPABASE_ADMIN_DATABASE_URL`.
+- People given a temporary password (new owners from Add vendor, new team
+  members, any reset) choose their own at the next sign-in. Rolling the app
+  back afterwards is safe; never roll back the migrations.
+- **Chapega Studio app (migration `20261101120000`).** Apply it with the
+  others, before merging; it is safe for the app that is live now (web
+  sessions are unchanged).
+  - If the app goes out first, the web Studio works as today, but phone
+    sign-in and push registration answer 503 `MIGRATION_REQUIRED` and new
+    orders are not announced.
+  - Before applying, `select slug from private.vendors where slug =
+    'studio-app';` must return nothing (it became a reserved route).
+  - Push notifications stay off until `FCM_SERVICE_ACCOUNT_JSON` is set
+    (`docs/RUNBOOK.md`). Rolling the app back signs phones out and leaves the
+    web alone; never roll back the migration.
+
+### Security
+
+- Next.js 16.3.8 → 16.4.3 (and `eslint-config-next` with it) for
+  GHSA-2464-fhr4-w9xw (image optimizer RCE with SVG), GHSA-p3m5-59mp-jv5r
+  (Server Actions denial of service) and GHSA-673q-mjm6-r5xr (`use cache`
+  RCE). The app uses neither Server Actions nor `use cache`, and `sharp`
+  was already 0.35.5, so these were not reachable here.
+- zod 4.4.3 → 4.6.7 for GHSA-mrhx-c7xc-m3w5: zod parsed every element of an
+  array before checking `.max()`, so the public kiosk order endpoint could
+  be made to parse an oversized `items` array (bounded by the 128 KB body
+  cap).
+- Both advisories made CI's `npm audit --omit=dev --audit-level=high` step
+  fail, so every pull request was red. It passes again.
+- A password someone else chose is now temporary: until the person replaces
+  it, the Studio shows only a "Set a new password" page and every other
+  endpoint answers `PASSWORD_CHANGE_REQUIRED` (OWASP ASVS 2.3.1).
+- On Supabase, accounts and sessions change only through narrow
+  `SECURITY DEFINER` functions that prove the caller from the session it
+  presented, and a shop-scoped write that touches them now fails (403)
+  instead of a silent no-op. `npm run supabase:verify` checks those
+  functions' grants and `search_path`.
+- Phone sessions (Chapega Studio app) are a separate kind from browser
+  sessions: a Bearer token is looked up only among phone sessions and a
+  cookie only among browser sessions, tokens carry a `chapega_app_` prefix
+  that secret scanning recognises (`.gitleaks.toml`), and app sign-in shares
+  the Studio's rate limits. Push tokens are reachable only through
+  `SECURITY DEFINER` functions and end with their session; notifications
+  carry no customer details.
+
 ### Changed
 
+- The repository's tools skip `mobile/` (Prettier, ESLint, TypeScript and the
+  Vercel upload). The pre-commit hook formats Dart, Dependabot updates the
+  app's packages weekly, and a separate CI workflow checks the app when it
+  changes: format, analyze, tests and a release APK, and committed Firebase
+  settings or signing keys are refused. The Stop hook runs the web or Flutter
+  checks for whichever side changed.
 - Server functions run in Vercel's Seoul region (`icn1`), next to the Supabase
   database, instead of the default US East. Each render makes several
   database round trips, which made the kiosk home page answer in about
@@ -26,11 +107,62 @@ the findings of the 2026-10-08 project audit.
 - Expired Studio and admin sessions are deleted daily at 03:15 UTC by a
   pg_cron job (migration `20261009120000`). Apply it after deploying; it is
   independent of the app code.
+- The privacy notice is final and indexable. It names Chapega.com as
+  responsible, states the 30-day rule, and (opened from a kiosk) gives that
+  shop's WhatsApp number for data requests. "Back to the kiosk" returns to
+  that shop's kiosk.
+- New owners created with Add vendor choose their own password at their
+  first sign-in.
+- Order search matches phone numbers in any format ("+91 98765 43210").
+- Studio "Restock" opens that product's editor.
+- The admin activity rail names team and password changes.
 
 ### Added
 
+- **`/delete-account`**, the account-deletion page the app stores require. It
+  covers how shop team members ask Chapega.com (on WhatsApp, the number from
+  the Chapega.com shop settings) to delete their account, and what is removed
+  and what the shop keeps. The procedure is in `docs/RUNBOOK.md`, and the
+  app links to the page from More → About.
+- A **"Shop teams" part in the privacy notice** (`/privacy#shop-teams`):
+  what Chapega.com keeps about owners, managers and staff, why, who receives
+  it (Google and Apple only for new-order alerts), and for how long.
+- **Chapega Studio, a Flutter phone app** for shop owners, managers and staff
+  (`mobile/`). It includes:
+  - orders with new-order alerts and Call and WhatsApp buttons for the
+    customer;
+  - products with camera photos, sent upright and without location data;
+  - shop settings, including pausing the kiosk;
+  - team, change password, appearance and notifications;
+  - light and dark themes, and checks for text at twice the size.
+
+  Android is built and tested on the emulator against a real server. iOS shares
+  the code but needs a Mac to build (`mobile/docs/RELEASE.md`). Push
+  notifications work once the Firebase project exists (`mobile/docs/PUSH.md`).
+  Ship the server first (migration `20261101120000`), then the app.
+- **Server side of the Chapega Studio phone app**: app sign-in, session and
+  sign-out at `/api/studio-app/v1/*`, with every Studio endpoint accepting the
+  app's Bearer token. A phone stays signed in for 14 days without use and
+  30 days at most, and signing in on a phone never signs the web Studio out
+  (or the other way round). Up to 3 phones per person; a fourth signs out the
+  one used least recently. All three limits are configurable.
+- **New-order push notifications** through Firebase Cloud Messaging, built in
+  and off until configured. Each new kiosk order is announced once, after
+  the kiosk has its answer, with the order number, total and item count.
 - `/.well-known/security.txt` and `SECURITY.md` with a private way to
   report vulnerabilities. GitHub private vulnerability reporting is on.
+- **Team** in Vendor Studio (owners): add managers and staff with a temporary
+  password, change their role, remove or restore their access, and set a
+  new temporary password. Owners are never changed there. An email already
+  on the platform is refused without saying where, and a temporary password
+  is set only for someone who belongs to this shop alone.
+- **Change password** in the Studio sidebar and the admin account menu.
+- **Reset owner password** in the admin vendor list, for a locked-out owner.
+- **Remove customer details** on a Studio order (owners and managers,
+  audited), so the privacy notice's deletion promise can be kept.
+- Automatic 30-day removal of customer details (migration `20261030120000`),
+  covering drafts the shop never confirmed, which used to keep them forever.
+  The local store applies the same rule when it saves.
 
 ### Fixed
 
@@ -42,6 +174,35 @@ the findings of the 2026-10-08 project audit.
 - Dialogs no longer move focus to their first control a frame after opening
   if focus is already inside them. On a slow device that could send the
   first keystrokes to the Close button and lose an edit.
+- `npm run vendor:password` did not work on Supabase (the documented
+  lockout recovery): it ran under the restricted role and either found no
+  account or was refused. It now uses the owner connection.
+- Renaming a shop in Settings now renames it everywhere (page titles, Studio
+  header, shop picker, admin); before, only the kiosk and WhatsApp name
+  changed. Migration `20261030121000` also repairs shops renamed earlier.
+- Admin "Accounts" did nothing when the vendor search had no results.
+- On mobile, each admin vendor row showed a navigation arrow that opened the
+  Suspend dialog; it now shows the pause or play icon.
+- Shop settings: a field the server refused (for example a WhatsApp number
+  that is too short) is now highlighted with its own message and focused.
+  Before, only a general error appeared at the top, and a short number added
+  a second, technical message.
+- Kiosk cart rail: two lines of one product (different option, or one gift
+  wrapped) looked identical. Each line now shows its option and "Gift
+  wrapped", and screen readers hear the option in the quantity and Remove
+  buttons, in the cart rail and in the cart.
+- Kiosk header: at about 1366 px wide the cart button's "1 of 5" wrapped
+  onto two lines under its badge.
+- A shop with no products yet told customers "No gifts match that search"
+  and offered occasion filters and sorting. It now says the shop is still
+  adding its gifts.
+- README: the Content Security Policy is enforced (it said report-only),
+  and retention runs automatically. RUNBOOK: the pg_cron example was invalid
+  SQL; it now describes the scheduled job and how to check it.
+
+### Removed
+
+- Four unused `NEXT_PUBLIC_*` lines from `.env.example`; nothing read them.
 
 ## [0.2.0] - 2026-10-08
 

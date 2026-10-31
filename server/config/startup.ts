@@ -6,6 +6,7 @@ import {
   type VendorDataBackend,
 } from "@/server/supabase/config";
 import { logger } from "@/server/observability/logger";
+import { pushConfigurationProblem, pushNotificationsEnabled } from "@/server/push/config";
 import { SESSION_SETTINGS, sessionSettingProblem } from "@/server/security/session-policy";
 import { getVendorCredentialConfiguration } from "@/server/vendor/config";
 import { warnIfClientAddressUnknown } from "@/server/vendor/throttle";
@@ -23,6 +24,10 @@ import { normalizeWhatsAppNumber } from "@/domain/whatsapp";
  *   VENDOR_EMAIL, VENDOR_PASSWORD, VENDOR_NAME  (local backend credentials)
  *   VENDOR_SESSION_HOURS (1-168, 12)   VENDOR_SESSION_IDLE_MINUTES (5-1440, 30)
  *   ADMIN_SESSION_HOURS (1-24, 8)      ADMIN_SESSION_IDLE_MINUTES (5-240, 15)
+ *   VENDOR_APP_SESSION_DAYS (1-90, 30) VENDOR_APP_SESSION_IDLE_DAYS (1-30, 14)
+ *   VENDOR_APP_MAX_DEVICES (1-10, 3)   phones per person in the Chapega Studio app
+ *   FCM_SERVICE_ACCOUNT_JSON, FCM_PROJECT_ID  new-order push (server/push/config.ts);
+ *                               a bad value is a warning and leaves push off
  *   TRUST_PROXY_HEADERS, ALLOW_VENDOR_PREVIEW_LOGIN,
  *   ALLOW_LOCAL_VENDOR_BACKEND         true | false
  *   CHAPEGA_OWNER_WHATSAPP_NUMBER, LOG_LEVEL (debug|info|warn|error|silent)
@@ -117,6 +122,10 @@ export function inspectServerConfiguration(): ConfigurationReport {
     }
   }
 
+  // Push is optional and runs after the response, so a bad key only turns it off.
+  const pushProblem = pushConfigurationProblem();
+  if (pushProblem) warnings.push(pushProblem);
+
   const logLevel = process.env.LOG_LEVEL?.trim().toLowerCase();
   if (logLevel && !["debug", "info", "warn", "error", "silent"].includes(logLevel)) {
     warnings.push(`LOG_LEVEL "${logLevel.slice(0, 20)}" is not recognised; using "info".`);
@@ -155,5 +164,6 @@ export function validateServerConfiguration(): void {
   logger.info("config.validated", {
     backend: getVendorDataBackend(),
     environment: process.env.NODE_ENV,
+    pushNotifications: pushNotificationsEnabled() ? "on" : "off",
   });
 }
