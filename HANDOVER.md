@@ -7,7 +7,7 @@ State on 2026-10-31. Update this file at the end of every session (AGENTS.md,
 
 - `main` is production (`chapega.vercel.app`, Supabase in `ap-northeast-2`,
   functions in Vercel `icn1`). Every push to `main` deploys.
-- Four stacked pull requests, merged in this order. Each one is retargeted
+- Five stacked pull requests, merged in this order. Each one is retargeted
   when the one below it merges:
   1. **#29 `fix/security-upgrade`**: Next.js 16.4.3 and zod 4.6.7 for the
      advisories. No migration.
@@ -16,8 +16,10 @@ State on 2026-10-31. Update this file at the end of every session (AGENTS.md,
      **Migration-first.**
   3. **#31 `feat/studio-app-api`**: phone sessions and push for the
      Chapega Studio app (migration `20261101120000`). **Migration-first.**
-  4. **`feat/studio-app`**: the Chapega Studio Flutter app in `mobile/`, plus
-     its CI workflow and repository housekeeping. No server change.
+  4. **#32 `feat/studio-app`**: the Chapega Studio Flutter app in `mobile/`,
+     plus its CI workflow and repository housekeeping. No server change.
+  5. **`feat/store-pages`**: the account-deletion page and the privacy
+     notice's shop-team part that the app stores require. No migration.
 
 ## Before merging #30 and #31
 
@@ -50,14 +52,15 @@ State on 2026-10-31. Update this file at the end of every session (AGENTS.md,
   - **iOS is not compiled.** Run the "Mobile app" workflow by hand with
     `ios: true` before the first iOS release.
   - **Push has not run end to end**, because no Firebase project exists yet.
-- **Waiting on the owner:**
-  - is `https://chapega.vercel.app` the API address for release builds, or will
-    there be a custom domain (`AppConfig.productionOrigin`)?
-  - who owns the Google Play and App Store accounts, the upload key, and the
-    Firebase project? A new personal Play account must run a closed test with
-    12 testers for 14 days before going public.
-  - an account-deletion page, and a privacy policy that covers shop teams;
-    today's `/privacy` covers kiosk customers. See `RELEASE.md`, "To decide".
+- **Decided on 2026-10-31:**
+  - Release builds use `https://chapega.vercel.app`.
+  - Account deletion requests go to Chapega.com's WhatsApp, through
+    `/delete-account`; the procedure is in `docs/RUNBOOK.md`.
+  - The privacy notice gained a "Shop teams" part (`/privacy#shop-teams`).
+  - Both pages are in **`feat/store-pages`**, stacked on `feat/studio-app`.
+- **Waiting on the owner:** who owns the Google Play and App Store accounts,
+  the upload key, and the Firebase project? A new personal Play account must
+  run a closed test with 12 testers for 14 days before going public.
 
 ## Working locally
 

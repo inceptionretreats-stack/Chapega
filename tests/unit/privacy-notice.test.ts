@@ -144,6 +144,23 @@ describe("privacy notice page", () => {
     expect(screen.getByRole("link", { name: "Back to the kiosk" })).toHaveAttribute("href", "/");
   });
 
+  it("covers shop teams and points them to account deletion", async () => {
+    await renderPage();
+    const heading = screen.getByRole("heading", {
+      name: "Shop teams: Vendor Studio and the Chapega Studio app",
+    });
+    // The app stores link to this part directly.
+    expect(heading).toHaveAttribute("id", "shop-teams");
+    expect(screen.getByRole("link", { name: "Delete your Chapega account" })).toHaveAttribute(
+      "href",
+      "/delete-account",
+    );
+    const text = document.body.textContent ?? "";
+    expect(text).toMatch(/Google \(Firebase Cloud Messaging\)/);
+    expect(text).toMatch(/never a\s+customer’s details/);
+    expect(text).toMatch(/14 days without use \(30 days at most\)/);
+  });
+
   it("falls back to general wording without a known shop", async () => {
     await renderPage();
     expect(mocks.loadKioskShop).not.toHaveBeenCalled();

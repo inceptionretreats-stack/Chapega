@@ -45,6 +45,7 @@ export const RESERVED_VENDOR_SLUGS: ReadonlySet<string> = new Set([
   "healthz",
   "readyz",
   "privacy",
+  "delete-account",
   "generated-products",
   "studio-app",
   // Reserved for platform features and well-known paths

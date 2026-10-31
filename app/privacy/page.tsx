@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 import { ORDER_RETENTION_DAYS } from "@/domain/order-privacy";
-import { formatWhatsAppNumber, normalizeWhatsAppNumber } from "@/domain/whatsapp";
+import { formatWhatsAppNumber } from "@/domain/whatsapp";
 import { DEFAULT_VENDOR_SLUG } from "@/server/vendor/database";
-import { loadKioskShop } from "../kiosk/shop-status";
+import { loadShopContact } from "../shop-contact";
 
 // Reads the shop from ?shop= so the contact is that shop's WhatsApp number.
 export const dynamic = "force-dynamic";
@@ -11,41 +11,15 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Privacy notice",
   description:
-    "How Chapega.com and the shop use the details you enter on the gift kiosk, how long they are kept, and how to ask for them to be deleted.",
+    "How Chapega.com and the shop use the details you enter on the gift kiosk, and what Chapega.com keeps about shop teams: how long, and how to ask for deletion.",
 };
 
 type PageProps = Readonly<{
   searchParams: Promise<{ shop?: string | string[] }>;
 }>;
 
-type ShopContact = Readonly<{
-  slug: string;
-  shopName: string;
-  whatsAppDigits: string;
-}>;
-
-async function shopContact(rawShop: string | string[] | undefined): Promise<ShopContact | null> {
-  const candidate = Array.isArray(rawShop) ? rawShop[0] : rawShop;
-  if (!candidate) return null;
-  const shop = await loadKioskShop(candidate);
-  if (shop.status !== "ok") return null;
-  const { settings, vendor } = shop.bootstrap;
-  try {
-    return {
-      slug: vendor.slug,
-      shopName: settings.shopName,
-      whatsAppDigits: normalizeWhatsAppNumber(
-        settings.ownerWhatsAppNumber,
-        settings.defaultCountryCode,
-      ),
-    };
-  } catch {
-    return null;
-  }
-}
-
 export default async function PrivacyPage({ searchParams }: PageProps) {
-  const contact = await shopContact((await searchParams).shop);
+  const contact = await loadShopContact((await searchParams).shop);
   const shop = contact?.shopName ?? "the shop";
   // A full page load, not client navigation: the kiosk then applies its
   // freshness rule instead of restoring the previous customer's screen.
@@ -126,6 +100,59 @@ export default async function PrivacyPage({ searchParams }: PageProps) {
         Include your order number (it starts with GFT-) or the phone number you entered. Messages
         you already sent stay in your WhatsApp chat with the shop; ask the shop to delete that chat
         too.
+      </p>
+
+      <h2 id="shop-teams">Shop teams: Vendor Studio and the Chapega Studio app</h2>
+      <p>
+        This part is for shop owners, managers and staff who sign in to Vendor Studio or the Chapega
+        Studio phone app. Chapega.com is responsible for these details too.
+      </p>
+      <h3>What we keep about you</h3>
+      <ul>
+        <li>
+          Your name, email address and role in each shop. Your password is kept only as a scrambled
+          value (a hash) that cannot be turned back into the password.
+        </li>
+        <li>
+          Your sign-ins: when they started and, in the phone app, the phone’s model, system and app
+          version. The app’s install number is kept only in scrambled form.
+        </li>
+        <li>
+          What you change in the shop (products, settings, orders and the team), with the time. Your
+          name appears in the timeline of each order you move forward.
+        </li>
+        <li>
+          If you turn on new-order notifications, the address your phone receives them at (a push
+          token).
+        </li>
+      </ul>
+      <h3>Why</h3>
+      <p>
+        To let you sign in and keep your account secure, to show the shop who did what, and to send
+        new-order alerts to your phone. We do not use these details for marketing or sell them.
+      </p>
+      <h3>Who receives them</h3>
+      <ul>
+        <li>The owner of your shop, who sees the team list and the order timelines.</li>
+        <li>Chapega.com, which runs the service.</li>
+        <li>
+          Google (Firebase Cloud Messaging) and, on iPhones, Apple, only to deliver new-order
+          alerts. An alert shows the order number, the total and the number of items, never a
+          customer’s details.
+        </li>
+      </ul>
+      <h3>How long we keep them</h3>
+      <p>
+        A sign-in in a browser ends after 30 minutes without use (12 hours at most), and in the
+        phone app after 14 days without use (30 days at most). It is deleted a day after it ends,
+        with that phone’s notification address. Your account is kept until you ask us to delete it;
+        losing access to a shop does not delete it.
+      </p>
+      <h3>Your rights and deleting your account</h3>
+      <p>
+        You may ask to see, correct or erase the details we keep about you.{" "}
+        <a href="/delete-account">Delete your Chapega account</a> explains how to ask and what is
+        removed.
       </p>
 
       <p>

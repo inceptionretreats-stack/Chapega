@@ -119,6 +119,14 @@ the findings of the 2026-10-08 project audit.
 
 ### Added
 
+- **`/delete-account`**, the account-deletion page the app stores require. It
+  covers how shop team members ask Chapega.com (on WhatsApp, the number from
+  the Chapega.com shop settings) to delete their account, and what is removed
+  and what the shop keeps. The procedure is in `docs/RUNBOOK.md`, and the
+  app links to the page from More → About.
+- A **"Shop teams" part in the privacy notice** (`/privacy#shop-teams`):
+  what Chapega.com keeps about owners, managers and staff, why, who receives
+  it (Google and Apple only for new-order alerts), and for how long.
 - **Chapega Studio, a Flutter phone app** for shop owners, managers and staff
   (`mobile/`). It includes:
   - orders with new-order alerts and Call and WhatsApp buttons for the

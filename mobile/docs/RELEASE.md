@@ -3,25 +3,28 @@
 How to ship the app to Google Play and the App Store. Run the commands from
 `mobile/`.
 
-## To decide before the first store release
+## Decided (2026-10-31)
 
-- **Which server release builds use.** They talk to `https://chapega.vercel.app`
+- **Server.** Release builds talk to `https://chapega.vercel.app`
   (`AppConfig.productionOrigin` in `lib/bootstrap/app_config.dart`). If the
-  web app moves to its own domain, change that constant (or build with
+  web app later moves to its own domain, change that constant (or build with
   `--dart-define=CHAPEGA_API_ORIGIN=https://<domain>`), and keep the old
   address answering until old app versions are gone.
+- **Account deletion link:** `https://chapega.vercel.app/delete-account`.
+  Requests go to Chapega.com's WhatsApp (the number in the Chapega.com shop's
+  settings); the procedure is in `docs/RUNBOOK.md`. The app links to it from
+  More → About.
+- **Privacy policy URL:** `https://chapega.vercel.app/privacy`. Its "Shop
+  teams" part (`/privacy#shop-teams`) covers the team's own data in the app.
+
+## To decide before the first store release
+
 - **Who owns the store accounts and the upload key.** Use accounts in the
   business's name. A new *personal* Google Play developer account must run a
   closed test with at least 12 testers for 14 days before it can publish to
   production. An *organisation* account skips that but needs a D-U-N-S
   number.
-- **The account deletion link.** Google Play asks for a web page where people
-  can ask for their account to be deleted, because owners create accounts in
-  the app (Team). The web app has none yet.
-- **A privacy policy for the app's users.** Both stores ask for a privacy
-  policy URL. The notice at `/privacy` is written for kiosk customers; the
-  stores need one that also covers the shop team's own data in the app (see
-  "Privacy answers").
+- **Who owns the Firebase project** for push (see PUSH.md).
 
 ## Every release
 

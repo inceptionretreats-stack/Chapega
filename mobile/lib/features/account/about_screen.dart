@@ -20,6 +20,7 @@ class AboutScreen extends ConsumerWidget {
     final text = Theme.of(context).textTheme;
     final colors = context.colors;
     final privacy = origin.replace(path: '/privacy', queryParameters: {'shop': slug});
+    final deleteAccount = origin.replace(path: '/delete-account');
     return Scaffold(
       appBar: AppBar(title: const Text('About')),
       body: ListView(
@@ -36,9 +37,17 @@ class AboutScreen extends ConsumerWidget {
                 ListTile(
                   leading: Icon(Icons.privacy_tip_outlined, color: colors.textAccent),
                   title: const Text('Privacy notice'),
-                  subtitle: const Text('How customer details are kept and removed'),
+                  subtitle: const Text('How customer and team details are kept and removed'),
                   trailing: const Icon(Icons.open_in_new, size: 18),
                   onTap: () => launchUrl(privacy, mode: LaunchMode.externalApplication),
+                ),
+                const Divider(),
+                ListTile(
+                  leading: Icon(Icons.person_remove_outlined, color: colors.textAccent),
+                  title: const Text('Delete your account'),
+                  subtitle: const Text('How to ask Chapega.com, and what is removed'),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () => launchUrl(deleteAccount, mode: LaunchMode.externalApplication),
                 ),
                 const Divider(),
                 ListTile(

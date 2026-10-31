@@ -6106,6 +6106,31 @@ select:focus-visible {
 .privacy-page p:last-child {
   margin-top: 28px;
 }
+/* Numbered steps (account deletion) and sub-headings (the shop-team part). */
+.privacy-page ol {
+  display: grid;
+  gap: 8px;
+  padding-left: 22px;
+  list-style: decimal;
+}
+.privacy-page ol + p,
+.privacy-page ul + p {
+  margin-top: 12px;
+}
+.privacy-page h3 {
+  margin: 20px 0 8px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  line-height: 1.3;
+}
+.privacy-page li > a {
+  color: var(--text-accent-strong);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 
 /* The chosen option and gift wrap, after the product name in the cart rail. */
 .mini-cart-line__extras {

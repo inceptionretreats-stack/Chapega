@@ -248,6 +248,59 @@ There is no tool to edit an order's details: for a correction, remove them
 and continue on WhatsApp. Messages already in WhatsApp are outside the
 app; the shop deletes that chat itself.
 
+### A shop team member asks to delete their account
+
+`/delete-account` (linked from the app's About screen and the privacy
+notice) sends these requests to Chapega.com's WhatsApp and promises
+deletion within 30 days. Confirm the request with the person first, for
+example from the phone number or email the shop has for them.
+
+1. Find the account and its shops (as the database owner):
+
+   ```sql
+   select users.id, users.name, users.platform_role,
+          vendors.slug, memberships.role, memberships.active
+   from private.vendor_users users
+   left join private.vendor_memberships memberships on memberships.user_id = users.id
+   left join private.vendors vendors on vendors.id = memberships.vendor_id
+   where users.email = 'person@example.com';
+   ```
+
+   Stop if they are a shop's only owner: agree the new owner or the shop's
+   closure first. Never delete the only `super_admin`.
+2. Check that nobody else in those shops has the same name:
+
+   ```sql
+   select distinct users.name
+   from private.vendor_memberships memberships
+   join private.vendor_users users on users.id = memberships.user_id
+   where memberships.vendor_id in (
+     select vendor_id from private.vendor_memberships where user_id = 'USER-ID'
+   );
+   ```
+
+3. Delete in one transaction:
+
+   ```sql
+   begin;
+   -- Order timelines store the name, not the account.
+   update private.order_events events
+   set actor_name = 'Former team member'
+   from private.orders orders
+   where events.order_id = orders.id
+     and orders.vendor_id in (
+       select vendor_id from private.vendor_memberships where user_id = 'USER-ID'
+     )
+     and events.actor_name = 'THEIR NAME';
+   -- Memberships, every session (browsers and phones) and push registrations
+   -- go with the account; their uploads keep no uploader.
+   delete from private.vendor_users where id = 'USER-ID';
+   commit;
+   ```
+
+4. Tell the person it is done. `private.audit_log` keeps the account
+   number (`actor_id`), which no longer leads to anyone.
+
 ### The site is slow or down
 
 1. Check `/api/readyz`. A 503 means the database is not answering: check
