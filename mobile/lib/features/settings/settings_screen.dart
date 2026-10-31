@@ -297,33 +297,44 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 112,
-                    child: _field(
-                      'defaultCountryCode',
-                      'Country code',
-                      value: draft.countryCode,
-                      prefix: '+ ',
-                      maxLength: 3,
-                      keyboard: TextInputType.number,
-                      onChanged: (v) => draft.countryCode = v,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _field(
-                      'ownerWhatsAppNumber',
-                      'Owner WhatsApp number',
-                      value: draft.whatsapp,
-                      maxLength: 24,
-                      keyboard: TextInputType.phone,
-                      onChanged: (v) => draft.whatsapp = v,
-                    ),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final countryCode = _field(
+                    'defaultCountryCode',
+                    'Country code',
+                    value: draft.countryCode,
+                    prefix: '+ ',
+                    maxLength: 3,
+                    keyboard: TextInputType.number,
+                    onChanged: (v) => draft.countryCode = v,
+                  );
+                  final number = _field(
+                    'ownerWhatsAppNumber',
+                    'Owner WhatsApp number',
+                    value: draft.whatsapp,
+                    maxLength: 24,
+                    keyboard: TextInputType.phone,
+                    onChanged: (v) => draft.whatsapp = v,
+                  );
+                  // On a phone, side by side would cut the labels short.
+                  if (constraints.maxWidth < 420) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(width: 168, child: countryCode),
+                        number,
+                      ],
+                    );
+                  }
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(width: 168, child: countryCode),
+                      const SizedBox(width: 10),
+                      Expanded(child: number),
+                    ],
+                  );
+                },
               ),
               const CautionNote(
                 child: Text(

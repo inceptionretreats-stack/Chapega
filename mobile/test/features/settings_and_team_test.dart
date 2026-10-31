@@ -75,6 +75,9 @@ void main() {
         -400,
         scrollable: find.byType(Scrollable).first,
       );
+      // Built again but maybe still under the app bar: bring it fully into view.
+      await tester.ensureVisible(find.text('Load latest settings'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Load latest settings'));
       await tester.pumpAndSettle();
       expect(find.textContaining('A newer settings revision is available'), findsNothing);
