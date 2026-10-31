@@ -474,6 +474,22 @@ class _ActionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final next = order.status.next;
+    final primary = next == null
+        ? null
+        : PendingButton(
+            label: next.actionLabel,
+            pendingLabel: 'Updating…',
+            pending: pending,
+            icon: Icons.check,
+            onPressed: onNext,
+          );
+    final cancel = OutlinedButton.icon(
+      onPressed: pending ? null : onCancel,
+      icon: const Icon(Icons.close, size: 18),
+      label: const Text('Cancel order'),
+    );
+    // With large text the two labels don't fit side by side: one per line.
+    final stacked = MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Material(
       color: context.colors.surface,
       child: SafeArea(
@@ -483,26 +499,21 @@ class _ActionBar extends StatelessWidget {
             border: Border(top: BorderSide(color: context.colors.border)),
           ),
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          child: Row(
-            children: [
-              if (next != null)
-                Expanded(
-                  child: PendingButton(
-                    label: next.actionLabel,
-                    pendingLabel: 'Updating…',
-                    pending: pending,
-                    icon: Icons.check,
-                    onPressed: onNext,
-                  ),
+          child: stacked
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (primary != null) ...[primary, const SizedBox(height: 8)],
+                    cancel,
+                  ],
+                )
+              : Row(
+                  children: [
+                    if (primary != null) ...[Expanded(child: primary), const SizedBox(width: 10)],
+                    cancel,
+                  ],
                 ),
-              const SizedBox(width: 10),
-              OutlinedButton.icon(
-                onPressed: pending ? null : onCancel,
-                icon: const Icon(Icons.close, size: 18),
-                label: const Text('Cancel order'),
-              ),
-            ],
-          ),
         ),
       ),
     );

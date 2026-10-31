@@ -40,6 +40,24 @@ dev_dependencies:
   flutter_lints: 6.0.0
   mocktail: 1.0.5
 
+# Launcher icons: run `dart run flutter_launcher_icons` after changing them.
+# The PNGs in assets/branding are rendered at 1024 px from the SVGs next to
+# them (the web app's app/icon.svg mark). The adaptive foreground keeps the
+# mark inside Android's safe zone itself, hence no extra inset.
+# store-icon-512.png is the Play Store listing icon.
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path_android: assets/branding/icon.png
+  image_path_ios: assets/branding/icon-full-bleed.png
+  remove_alpha_ios: true
+  background_color_ios: "#7a263a"
+  adaptive_icon_background: "#7a263a"
+  adaptive_icon_foreground: assets/branding/icon-foreground.png
+  adaptive_icon_foreground_inset: 0
+  adaptive_icon_monochrome: assets/branding/icon-monochrome.png
+  min_sdk_android: 24
+
 flutter:
   uses-material-design: true
   assets:
