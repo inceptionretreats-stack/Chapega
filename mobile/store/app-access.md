@@ -12,10 +12,12 @@ self-signup, purchase or subscription needed to use an assigned account.
 
 ## Verified setup and remaining acceptance
 
-- The internal track is Active and version 1 is available only to the
-  authorized owner tester. Console shows Not reviewed; this is not a public
-  production release or an app-review request. Its private opt-in link and
-  tester identity are retained outside this repository.
+- The latest internal release is Active: `1.0.1 (2) - Gift-ribbon logo`,
+  released 2 November at 11:07 AM IST, available only to the same authorized
+  owner tester. Console shows Not reviewed; this is not a public production
+  release or an app-review request. Its private opt-in link and tester
+  identity are retained outside this repository. The saved reviewer login
+  is unchanged; a physical Play-installed version 2 is still unverified.
 
 - The account has no platform role and belongs only to its isolated demo
   shop. A cross-tenant request was rejected.

@@ -6,11 +6,22 @@ the findings of the 2026-10-08 project audit.
 
 ## [Unreleased]
 
+### Gift-ribbon branding (1.0.1+2)
+
+- Replace the plain C-and-dot with a shared, editable gift-ribbon C mark for
+  the Play listing, Android/iOS launcher and launch images, notification icon
+  and website favicon. Keep the existing burgundy, cream and gold palette.
+- Signed version 2 AAB/APK builds reuse the existing upload key and Firebase
+  configuration. Version 2 is Active on the owner-only internal track as of
+  11:07 IST on 2026-11-02; version 1 artifacts remain historical. No new
+  migration, API contract, permission or paid service is needed;
+  public-launch requirements remain pending.
+
 ### Publication preparation (2026-11-02)
 
 - PRs #39 and #40 are merged and deployed on Inception's existing Vercel
   project. The Website Google account has the free Chapega Studio app and
-  an active owner-only internal release of the signed version 1 AAB. Listing
+  the earlier owner-only internal release of the signed version 1 AAB. Listing
   assets, Business category, private reviewer access, Advertising ID, IARC
   ratings and the owner's 13+ audience are saved; Data safety is a partial
   draft. Public contacts, moderation/reporting controls, remaining data and
@@ -20,6 +31,9 @@ the findings of the 2026-10-08 project audit.
 
 ### Before you deploy
 
+- **Gift-ribbon branding:** merge the checked branch to deploy the website
+  favicon/Apple/PWA assets; the matching signed Android version 2 is already
+  active in internal testing. No database migration or service change.
 - **Android upload signing/store pack:** release bundles require a real
   upload key; private settings remain local and `.p12` files are refused
   by the mobile CI safeguard. Listing materials and public certificates

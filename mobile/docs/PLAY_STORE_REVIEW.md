@@ -3,7 +3,9 @@
 **Decision: not ready for public production.** Upload signing and store preparation
 are implemented, PR #39 is merged and the web fixes are deployed. A Play
 app record has been created in the owner's selected Google account.
-Version 1 is published on the active internal-testing track for the single
+Source version is now `1.0.1+2` for the gift-ribbon logo update. Its signed
+AAB and APK are verified, and version 2 is the latest Active internal release,
+available only to the single
 authorized owner tester; its AAB is accepted and signing certificates are
 configured. A dedicated reviewer shop and reusable owner login are created,
 verified through the phone API and web dashboard, and saved privately in Play
@@ -36,11 +38,11 @@ superseded.
 
 | Area | Evidence |
 |---|---|
-| App identity | `com.chapega.studio`, Chapega Studio, version `1.0.0+1` |
-| Android compatibility | Packaged release APK: minimum API 24; target/compile API 36 |
-| Native code | ARMv7, ARM64 and x86_64 present; all 12 packaged libraries have at least 16 KB ELF LOAD alignment; APK `zipalign -P 16` passes |
+| App identity | `com.chapega.studio`, Chapega Studio, source and latest Active internal version `1.0.1+2`; version 1 evidence below is historical |
+| Android compatibility | Verified version 2 AAB/APK: package `com.chapega.studio`, version `1.0.1`/code 2, minimum API 24, target API 36, debug and backup disabled |
+| Native code | Version 2 AAB uses `PAGE_ALIGNMENT_16K`; all 12 libraries in AAB/APK pass ELF LOAD alignment and APK `zipalign -P 16` passes. Fifteen packaged APK icons match AAB/new source pixels and four Firebase resources match the ignored configuration |
 | Flutter | Fresh `flutter analyze --fatal-infos` passes; all 89 tests pass |
-| Web | Follow-up `npm run check -- --coverage --maxWorkers=2`: 667 tests in 87 files; typecheck, lint and coverage thresholds pass |
+| Web baseline | Prior `npm run check -- --coverage --maxWorkers=2`: 667 tests in 87 files; typecheck, lint and coverage thresholds passed. Final logo-branch web/CI results are recorded separately in HANDOVER.md |
 | Web release checks | Production build, formatting and production dependency audit pass; zero reported vulnerabilities |
 | Hosting preparation | Credential-free Netlify CLI/OpenNext packaging passes locally; no cloud deployment or service cutover |
 | Signing safeguard | Release AAB task graph refuses absent/debug upload signing; configured upload key builds successfully |
@@ -52,12 +54,13 @@ superseded.
 | Firebase | FCM HTTP v1 enabled, Sensitive production service-account credential installed; Google OAuth/validation-only request HTTP 200; all three Play signing certificates registered and persisted |
 | App transport/storage | Release API origin is HTTPS; cleartext rejected; backup disabled; cloud/device-transfer exclusions present; session token uses secure storage |
 | Permissions | No advertising-ID, location or broad photo/storage permissions in inspected release APK; notification permission is requested by the alerts flow |
-| Store icon | Fixed RGB export to 512×512 RGBA PNG, 14,916 bytes; decoded pixels are unchanged |
+| Store icon and banner | New gift-ribbon C: 512×512 RGBA icon (14,792 bytes) and 1024×500 RGB banner (37,769 bytes); both saved in Play listing draft and verified after reload |
+| Logo exports | Canonical editable SVG drives native launchers/notification mark, iOS launch assets and website/PWA icons; color/monochrome 32px/64px checks cover circle/squircle masks and adaptive safe area. iOS asset export is not an iOS build |
 | Store screenshots | Four real 1080×1920 app-view captures, visually checked and exported as RGB with unchanged pixels; local demo debug build, not Play acceptance |
 | App capture flow | Flutter integration test signs in, opens Home/Orders/Order detail/Products, then signs out and verifies secure-token removal; synthetic local data only |
 | Privacy links | Live privacy and account-deletion pages return HTTP 200; About links to these and open-source licences |
 | Play account access | The existing organization account is accessible through the selected Google account, and a Chapega Studio app record is now created |
-| Play internal release | Track Active and version 1 (1.0.0) available to the single authorized owner tester, released 2 November at 10:32 AM IST; API 24/36, three ABIs, R8 mapping and native symbols. Final preview had zero errors/warnings; Console status Not reviewed; no public production release or app-review request |
+| Play internal release | Latest release `1.0.1 (2) - Gift-ribbon logo` Active / Available to internal testers, released 2 November at 11:07 AM IST, Not reviewed; same single authorized owner group. Google accepted API 24/36, three ABIs, R8 mapping and native symbols; final preview had zero errors/warnings and unchanged supported-device counts; no public production release or app-review request |
 | Play signing configuration | Google-managed signing active; current and two previous certificates registered in Firebase with SHA-1/SHA-256; Android key has five package/certificate entries and its unchanged 25-API allowlist |
 | Console listing | en-IN title, 61-character short description, 1,112-character full description, icon, feature graphic and four ordered phone screenshots saved |
 | Saved App content | Privacy URL, No ads, No government affiliation, No financial features, No health features and No Advertising ID saved; IARC ratings and 13+ audience saved; final Data safety remains incomplete |
@@ -72,7 +75,49 @@ Final release-branch CI (`dad0ac8`) passed 667 unit tests, 35 database tests,
 Android release build. Browser logs contain no hydration/uncaught-browser
 errors. The merged production tree is identical to that tested head.
 
-## Built Android App Bundle
+## Logo update and version 2 internal release
+
+`../assets/branding/mark.svg` is the canonical cream gift-box C and gold
+ribbon on burgundy. Its local deterministic renderer creates the Android,
+iOS, website and listing exports; the store banner reuses the same mark.
+Visual checks cover 32px/64px color and monochrome output under circle and
+squircle masks, with adaptive foreground safe-area checks. Play has saved
+the new listing icon and banner, verified after reload. The version 2 AAB
+containing the new native icon assets is also now Active internally; a
+listing-only change would not have changed the former version 1 launcher.
+
+`pubspec.yaml` is now `1.0.1+2`. Analysis and 89 Flutter tests pass. The
+signed AAB retry succeeded in 266.8 seconds using process-only 2 GiB heap
+and one worker after host memory pressure; source Gradle configuration is
+unchanged. Bundletool validation, Java signature and current upload-certificate
+identity checks pass. Package `com.chapega.studio`, version `1.0.1`, code 2,
+minimum API 24, target API 36, debug false and backup false are verified.
+BundleConfig has `PAGE_ALIGNMENT_16K`; all 12 native libraries pass ELF LOAD
+alignment, and all 15 packaged native icon PNGs match the new source pixels.
+
+The stable AAB is
+`D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.aab`:
+59,481,555 bytes; SHA-256
+`6E16B0952E38E861B6713D5EE14D4E536019D6CBA30B4C6678ACC3380F2F2DA4`.
+The matching signed APK is preserved at
+`D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.apk`:
+61,622,704 bytes; SHA-256
+`BD7749BCB61702417F527976F1621CB4ABBB0281C9158F1267B87FD7B1DACD5C`.
+Apksigner and the exact upload-certificate check pass, as do APK
+`zipalign -P 16` and all 12 ELF LOAD alignments. The 15 APK icon PNGs match
+the new source/AAB; all four Firebase client resources match the ignored
+configuration, without printing their values.
+
+Google accepted the AAB and the latest
+release `1.0.1 (2) - Gift-ribbon logo` is Active / Available to internal
+testers, released 2 November at 11:07 AM IST and Not reviewed. The same
+owner-only group is selected, with no public audience added. The final
+Ready to release preview showed zero errors/warnings and unchanged supported-
+device counts. Keep the version 1 hashes below as historical evidence.
+No public review or production release is claimed; physical Play-installed
+logo/photo/push/16 KB acceptance is still unverified.
+
+## Historical version 1 Android App Bundle
 
 The upload-signed AAB is preserved at
 `mobile/build/play-store/chapega-studio-1.0.0-1-upload.aab`:
@@ -112,14 +157,14 @@ This does not replace a test of a build actually installed through Play.
 
 ## Submission blockers
 
-1. **Installed signing identity.** Play accepted version 1 and the internal
-   track is now Active, available only to the single authorized owner tester.
-   Console shows Released 2 November at 10:32 AM IST and Not reviewed; the
-   final release preview had zero errors and warnings. Google-managed app
-   signing and certificate registration are complete. Verify a real Play
-   installation before treating installed acceptance as complete. The existing
-   release name `1.0.0 (1) - internal draft` is only a label; it no longer
-   describes the track state. Until setup/review completes, the temporary
+1. **Installed signing identity.** Play accepted version 2 and its latest
+   internal release `1.0.1 (2) - Gift-ribbon logo` is Active, available only
+   to the same single authorized owner tester. Console shows Released
+   2 November at 11:07 AM IST and Not reviewed; the final preview had zero
+   errors and warnings. Google-managed app signing and certificate
+   registration are complete. Verify a real Play installation before
+   treating installed acceptance as complete. Until setup/review completes,
+   the temporary
    download name is `com.chapega.studio (unreviewed)`. No public production
    release or Google app-review request was made. See
    [Android signing guidance](https://developer.android.com/studio/publish/app-signing).
@@ -177,6 +222,8 @@ This does not replace a test of a build actually installed through Play.
 
 ## Acceptance checks still required
 
+- Verify the new logo in a Play-installed version 2 launcher and notification,
+  including adaptive/themed icon masks; listing artwork alone is not this check.
 - Use the private owner-only test opt-in link to install the signed build
   from the now-active internal track on a real Android phone. The authorized
   tester identity and link stay in private delivery records. Do not treat a
@@ -209,8 +256,10 @@ This does not replace a test of a build actually installed through Play.
 
 The canonical name, descriptions and release notes are in
 `../store/listing/en-IN/`. The main listing text and graphics have been saved
-in Play Console and meet the checked limits. Final submission review and
-real-device screenshot acceptance remain pending.
+in Play Console and meet the checked limits. The new logo icon/banner are
+saved in the listing draft. The existing screenshots predate the version 2
+branding, so recheck their accuracy against the final installed binary.
+Final submission review and real-device screenshot acceptance remain pending.
 
 ## Draft Data safety inventory
 

@@ -3,7 +3,7 @@ description: "Chapega Studio: the shop team app for Chapega.com kiosks."
 publish_to: "none"
 
 # Android versionName+versionCode / iOS CFBundleShortVersionString+CFBundleVersion.
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.12.2
@@ -40,9 +40,10 @@ dev_dependencies:
   flutter_lints: 6.0.0
   mocktail: 1.0.5
 
-# Launcher icons: run `dart run flutter_launcher_icons` after changing them.
+# Launcher icons: run `node assets/branding/render-branding.cjs` from mobile/,
+# then `dart run flutter_launcher_icons` after changing mark.svg.
 # The PNGs in assets/branding are rendered at 1024 px from the SVGs next to
-# them (the web app's app/icon.svg mark). The adaptive foreground keeps the
+# them (the web app's app/icon.svg uses the same mark). The adaptive foreground keeps the
 # mark inside Android's safe zone itself, hence no extra inset.
 # store-icon-512.png is the Play Store listing icon.
 flutter_launcher_icons:

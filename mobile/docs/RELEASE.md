@@ -26,14 +26,50 @@ blockers are in [the Google Play review](PLAY_STORE_REVIEW.md).
   paid upgrade or paid store enrollment is authorized. An existing Play
   organization account is accessible; no new registration was purchased.
 
+## Gift-ribbon logo update (2026-11-02)
+
+The canonical `assets/branding/mark.svg` is a cream gift-box C wrapped in
+gold on the existing burgundy palette. `render-branding.cjs` derives the
+native launchers, notification mark, iOS launch assets, website/PWA icons
+and listing icon. The store banner uses the same mark. Color and monochrome
+exports were visually checked at 32px/64px under circular and squircle masks,
+including the adaptive safe area. The new 512px listing icon and 1024×500
+banner are saved in the Play listing draft and persisted after reload.
+
+Source version is `1.0.1+2` because version code 1 is already used. Analysis
+and all 89 Flutter tests pass. The signed version 2 AAB build and bundletool/
+signature/current-certificate checks pass. Package, version code 2, API 24/36,
+disabled debug/backup, 16 KB bundle/ELF alignment and all 15 packaged native
+icon PNGs are verified. The 59,481,555-byte stable AAB is preserved at
+`D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.aab`;
+its SHA-256 is
+`6E16B0952E38E861B6713D5EE14D4E536019D6CBA30B4C6678ACC3380F2F2DA4`.
+The matching 61,622,704-byte signed APK is preserved at
+`D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.apk`;
+its SHA-256 is
+`BD7749BCB61702417F527976F1621CB4ABBB0281C9158F1267B87FD7B1DACD5C`.
+Apksigner/current upload-certificate, APK `zipalign -P 16` and all 12 ELF
+LOAD alignment checks pass. Its 15 icons match the new source/AAB, and four
+Firebase client resources match the ignored configuration without exposing
+values. iOS artwork is exported, but no iOS build acceptance is claimed.
+Google accepted version 2
+and `1.0.1 (2) - Gift-ribbon logo` is now the latest Active internal release,
+available to the same single owner tester, released 2 November at 11:07 AM
+IST and Not reviewed. The final preview showed zero errors/warnings with
+unchanged supported-device counts; API 24/36, three ABIs, R8 mapping and
+native symbols were processed. Listing artwork alone would not change an
+installed launcher, so verify the actual Play-installed version 2. Preserve
+version 1 artifacts/hashes as historical records; never relabel them as
+version 2.
+
 ## Before the first public production release
 
 - **Publisher and review setup.** An existing Play organization account
   is accessible through the Website Google account. The free Chapega Studio
-  record now exists and version 1 is published to an Active internal-testing
-  track, available only to the single authorized owner tester. Its retained
-  name `1.0.0 (1) - internal draft` is a label, not its current state. Console
-  shows Released 2 November at 10:32 AM IST and Not reviewed. No public
+  record now exists and version 2 (`1.0.1 (2) - Gift-ribbon logo`) is the
+  latest Active internal-testing release, available only to the same single
+  authorized owner tester. Console shows Released 2 November at 11:07 AM
+  IST and Not reviewed. Version 1 is the historical earlier release. No public
   production release or Google app-review request occurred. Git and Vercel
   remain on Inception. Public contacts stay
   deferred. The owner has now authorized isolated reviewer provisioning;
@@ -64,15 +100,16 @@ The final internal release preview had zero errors/warnings. Its private
 owner-only opt-in link and authorized account are retained outside this
 repository. The temporary download name is `com.chapega.studio (unreviewed)`
 until setup/review completes. Real installation, native photos, push and
-16 KB runtime checks are still pending. Version code 1 is already uploaded
-and active internally; increment the code for a new binary upload.
+16 KB runtime checks are still pending. Version code 2 is already uploaded
+and Active internally; increment the code for a new binary upload.
 
 ## Every release
 
 1. `flutter analyze --fatal-infos` and `flutter test` pass, and the
    integration test passes against a production build of the web app (see
    README.md → "Integration test").
-2. Raise the version in `pubspec.yaml`: `version: 1.0.1+2`. The part before
+2. Raise the version in `pubspec.yaml` for each new binary; source is now
+   `1.0.1+2`, so a subsequent binary would use, for example, `1.0.2+3`. The part before
    `+` is what people see. The number after it must go up with every upload,
    to either store.
 3. If push is set up, every build command below also takes
@@ -160,7 +197,9 @@ about 60 MB; Play sends each phone only its own, so downloads are smaller.
    [Google's UGC policy](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en).
 6. Upload the `.aab` to **Internal testing** first. Install it from Play on a
    real phone, sign in, place a controlled demo order and check the alert.
-   Complete the remaining production gates in PLAY_STORE_REVIEW.md before
+   Verify the new launcher/notification icons and recheck the existing
+   screenshots against the updated branding. Complete the remaining
+   production gates in PLAY_STORE_REVIEW.md before
    promoting it to public production.
 
 ## iOS

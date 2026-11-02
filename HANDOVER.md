@@ -3,6 +3,66 @@
 State on 2026-11-02. Update this file at the end of every session (AGENTS.md,
 "Start of every session").
 
+## Gift-ribbon logo and version 2 internal release (2026-11-02)
+
+- The owner requested a better logo. The canonical editable source is now
+  `mobile/assets/branding/mark.svg`: a cream gift-box C with a gold ribbon
+  on burgundy. The deterministic `render-branding.cjs` pipeline supplies
+  Android legacy/adaptive/monochrome and notification assets, iOS icons and
+  launch images, website favicon/Apple/PWA icons, and the Play listing icon.
+  The store banner uses the same mark and existing brand palette. No new
+  paid service or dependency was added.
+- Visual QA covers color and monochrome at 32px and 64px with circle and
+  squircle masks. The adaptive foreground stays within the central safe
+  circle. The new 512px store icon is 14,792 bytes; the 1024×500 RGB banner
+  is 37,769 bytes. Chrome confirms the new icon/banner are saved in the Play
+  listing draft and persisted after reload. This is not public approval.
+- Source version is `1.0.1+2`: version code 1 was used by the earlier
+  owner-only internal release, and changing the listing alone does not
+  replace its installed launcher icon. The signed version 2 AAB is verified
+  and now Active as the latest owner-only internal release. Version 1
+  artifacts/hashes below remain historical records; do not relabel or
+  overwrite them as version 2. The matching signed version 2 APK is verified.
+- Flutter analysis and all 89 tests pass for this change. The first signed
+  Gradle attempt failed under host memory pressure; the process-only 2 GiB,
+  one-worker retry passed in 266.8 seconds. Source Gradle memory settings were
+  not changed. Bundletool validation, Java signature and exact current upload
+  certificate checks pass for version 2. Package/version/API/debug/backup
+  values are correct, BundleConfig uses `PAGE_ALIGNMENT_16K`, all 12 native
+  libraries pass ELF LOAD alignment, and 15 packaged native icon PNGs match
+  the new source pixels. The matching APK passes apksigner/current upload
+  certificate, `zipalign -P 16` and all 12 ELF LOAD alignment checks; its
+  15 icon PNGs match the AAB/new source and all four Firebase client resources
+  match the ignored configuration. No client values were printed. Android
+  artifacts are verified; iOS icon exports do not claim an iOS build.
+- The stable version 2 AAB is
+  `D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.aab`,
+  59,481,555 bytes, SHA-256
+  `6E16B0952E38E861B6713D5EE14D4E536019D6CBA30B4C6678ACC3380F2F2DA4`.
+  The stable signed APK is
+  `D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.apk`,
+  61,622,704 bytes, SHA-256
+  `BD7749BCB61702417F527976F1621CB4ABBB0281C9158F1267B87FD7B1DACD5C`.
+- Google accepted code 2 with API 24/36, three ABIs, R8 mapping and native
+  symbols. The release `1.0.1 (2) - Gift-ribbon logo` is verified as Active /
+  Latest release / Available to internal testers, released 2 November at
+  11:07 IST and Not reviewed. Final Ready to release preview showed no
+  errors or warnings; supported-device counts are unchanged. The existing
+  single Website owner tester group is unchanged. No public audience or
+  app-review request was added. Actual Play installation and native behavior
+  are not established by Console availability.
+- Final local `npm run check -- --maxWorkers=2` passes with exit 0:
+  typecheck, lint and 667 tests in 87 files; formatting also passes. New-PR
+  GitHub checks and production deployment remain pending; record their
+  actual outcomes separately before claiming CI or deployment completion.
+- Reviewer credentials, IARC ratings, 13+ audience and partial Data safety
+  remain as recorded below. Public contacts, UGC safeguards, compliant free
+  business hosting and actual Play-installed photo/push/16 KB acceptance
+  remain gates. No public production release or app-review request was made.
+
+The sections below record earlier states, including version 1 as the then-
+current internal release; the version 2 section above supersedes that status.
+
 ## PR #40 merge, reviewer access and internal publication (2026-11-02)
 
 - PR [#40](https://github.com/inceptionretreats-stack/Chapega/pull/40) merged

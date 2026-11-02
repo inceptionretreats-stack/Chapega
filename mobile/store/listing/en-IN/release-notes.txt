@@ -1,1 +1,1 @@
-First release of Chapega Studio for shop teams: orders, product and stock management, shop settings, team access and optional new-order alerts.
+Refreshed Chapega Studio with a gift-ribbon logo across app icons, launch screens and store artwork.

@@ -2,7 +2,9 @@
 
 Prepared on 2026-10-31; verification follow-up on 2026-11-02.
 The Website Google account has the free Chapega Studio app and an active
-owner-only internal-testing release with the accepted signed version 1 AAB.
+owner-only internal-testing release with the accepted signed version 2 AAB,
+`1.0.1 (2) - Gift-ribbon logo`, released 2 November at 11:07 AM IST. Console
+shows Active / Available to internal testers and Not reviewed.
 The listing, Business category, reviewer sign-in details, Advertising ID
 answer, IARC ratings and owner-confirmed 13+ audience are saved in Console.
 Data safety is a partial draft. Public production is not released and no
@@ -10,30 +12,52 @@ app-review request was sent. No billing or public-support-contact change
 occurred. Git/Vercel remain on Inception; PRs #39 and #40 are merged and
 deployed. See `../docs/PLAY_STORE_REVIEW.md` for completed steps and the
 remaining contact, moderation, data-handling, hosting and device gates.
-Asset generation itself uses local tools only.
+Asset generation itself uses local tools only. The new gift-ribbon logo
+icon and feature banner are saved in the Play listing draft and verified
+after reload. Source version `1.0.1+2` prepares the installed-logo update;
+its signed AAB is verified (59,481,555 bytes, bundletool/signature/current
+upload certificate, package/version/API/debug/backup, 16 KB alignment and
+15 packaged native icons). Google accepted its three ABIs, R8 mapping and
+native symbols; the final release preview had no errors/warnings and
+unchanged supported-device counts. The existing single owner tester group
+is unchanged. The matching signed APK is verified (61,622,704 bytes, exact
+upload certificate, 16 KB ZIP/ELF alignment, 15 matching icons and four
+matching Firebase client resources). See the release review for both
+version 2 artifact paths, sizes and SHA-256 values. Version 1 artifacts
+are historical; no iOS build or real-device acceptance is claimed.
 
 ## Files
 
 | File | Purpose | Status |
 |---|---|---|
-| `../assets/branding/store-icon-512.png` | 512 × 512 RGBA Play listing icon | Export checked; 14,916 bytes |
-| `feature-graphic-1024x500.png` | 1024 × 500 RGB feature graphic, no alpha | Ready for owner review |
+| `../assets/branding/store-icon-512.png` | 512 × 512 RGBA gift-ribbon C listing icon | Saved in Play listing draft and reloaded; 14,792 bytes |
+| `feature-graphic-1024x500.png` | 1024 × 500 RGB feature graphic, no alpha | New canonical logo saved in Play listing draft and reloaded; 37,769 bytes |
 | `feature-graphic-1024x500.svg` | Editable vector source generated from the same design | Not a Play upload format |
 | `listing/en-IN/title.txt` | App name | Draft; limit 30 characters |
 | `listing/en-IN/short-description.txt` | Short description | Draft; limit 80 characters |
 | `listing/en-IN/full-description.txt` | Full description | Draft; limit 4,000 characters |
-| `listing/en-IN/release-notes.txt` | First-release notes | Draft; limit 500 characters per language |
+| `listing/en-IN/release-notes.txt` | Version 1.0.1 logo-update notes | Saved with the Active version 2 internal release; limit 500 characters per language |
 | `app-access.md` | Reviewer-account setup and English instructions | Isolated owner account and instructions saved privately; no credentials included |
 | `metadata.json` | Paths, draft declarations and explicit pending fields | IARC completed; Data safety partial; public app review pending |
 | `screenshots/` | Four genuine 1080 × 1920 RGB app captures | Local demo debug build; visually checked, no fabricated UI |
 | `signing/` | Public upload certificate and registered Google Play fingerprints | Private keys and passwords excluded |
 
-The feature graphic is newly composed vector artwork in the existing
-burgundy, linen and gold brand palette. It uses the existing Chapega mark,
-a geometric gift illustration and capability copy. It contains no screenshot,
+The canonical artwork is `../assets/branding/mark.svg`: a cream gift-box C
+with a gold ribbon on burgundy. The feature graphic now uses this same mark,
+a geometric gift illustration and capability copy in the established palette.
+It contains no screenshot,
 ranking, pricing, delivery, payment or performance claim. Text uses the
 bundled DM Sans and Playfair Display fonts; their OFL licences are retained
 in `../assets/fonts/`.
+
+The local branding renderer exports Android legacy/adaptive/monochrome and
+notification assets, iOS icons/launch images and website/PWA icons from the
+same editable vector. Color and monochrome marks were checked at 32px and
+64px with circle/squircle masks and the adaptive foreground safe area. See
+`../assets/branding/README.md` for regeneration. A new signed binary is
+required for installed launcher changes; saved listing artwork does not
+replace a launcher. Version 2 is available internally with the packaged
+new icons; verify its actual installed appearance on the tester device.
 
 Regenerate the feature graphic and validate text/asset constraints from the
 repository root, with the project's existing Node dependencies installed:
@@ -56,7 +80,8 @@ Desktop capture, device input automation and permission grants were not used.
 
 The capture build is **local-demo-debug**, pointed only at
 `http://10.0.2.2:3340`. It is separate from the signed production AAB/APK;
-confirm these images still represent the final Play build before submission.
+confirm these images still represent the final Play build, including the
+new version 2 branding, before submission.
 This is not physical-device, Play-distribution or push-delivery acceptance.
 Catalogue photos show placeholders in these local captures. Verify photo
 decoding in the final signed build before choosing the submission screenshots;

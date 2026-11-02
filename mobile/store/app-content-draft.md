@@ -7,9 +7,11 @@ Play Console, along with the Business category. No Advertising ID, IARC
 ratings, 13+ audience and private sign-in details are now saved too.
 Data safety remains a partial draft, and public contact/deletion, UGC
 safeguards, business hosting and installed-device acceptance remain pending.
-Version 1 is available on an Active internal-testing track only to the
-authorized owner tester; it is Not reviewed and has no public production
-release or Google app-review request. Its private tester identity and opt-in
+Version 2 (`1.0.1 (2) - Gift-ribbon logo`) is the latest Active internal
+release, available only to the same authorized owner tester and released
+2 November at 11:07 AM IST. It is Not reviewed and has no public production
+release or Google app-review request. Version 1 is an earlier historical
+release. Its private tester identity and opt-in
 link are not included here. Review the current questions and the final
 uploaded build before public submission.
 
