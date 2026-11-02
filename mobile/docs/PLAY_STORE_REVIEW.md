@@ -1,11 +1,14 @@
-# Google Play release review — 2026-10-31
+# Google Play release review — 2026-11-02
 
-**Decision: not ready to publish.** Upload signing and store preparation
+**Decision: not ready for public production.** Upload signing and store preparation
 are implemented, PR #39 is merged and the web fixes are deployed. A Play
 app record has been created in the owner's selected Google account.
-An internal-testing draft is saved, its AAB accepted and signing certificates
-configured. Public contact, reviewer access, final Console declarations,
-internal-test acceptance and business-hosting cutover remain publication gates.
+Version 1 is published on the active internal-testing track for the single
+authorized owner tester; its AAB is accepted and signing certificates are
+configured. A dedicated reviewer shop and reusable owner login are created,
+verified through the phone API and web dashboard, and saved privately in Play
+Console. Public contact, final Data safety, UGC safeguards, installed-build
+acceptance and business-hosting cutover remain publication gates.
 This is a readiness review, not a guarantee of Google approval.
 
 Verification and deployment follow-up on 2026-11-02 is recorded in
@@ -13,17 +16,21 @@ Verification and deployment follow-up on 2026-11-02 is recorded in
 [#39](https://github.com/inceptionretreats-stack/Chapega/pull/39).
 
 The owner authorized a new upload key, required free services, and asked to
-leave public contact details unchanged. Reviewer-account creation was also
-explicitly deferred. Git/Vercel remain on Inception; Play Console uses the
+leave public contact details unchanged. The owner subsequently authorized
+creating the isolated reviewer account and providing its credentials privately
+to Google Play. Git/Vercel remain on Inception; Play Console uses the
 owner's selected Website Google account. No public Play release is live.
 No billing or paid upgrade was enabled. Browser work uses Chrome's tab
 extension; desktop/full-screen control remains excluded.
 
-Reviewed source: release head `dad0ac8`, merged without tree changes as
-`71ea80f56904756160ecd0f647ff6f8e9d7a93a7`. Inception's production deployment
-`dpl_B3AodHSC2YkqcTiDTarD1vReTTFk` is READY at `https://chapega.vercel.app`;
-the corrected privacy notice is live. The earlier `d9b4b8a` production and
-"source-only" statements in historical notes are superseded.
+Reviewed runtime source: release head `dad0ac8`, merged without tree changes
+as `71ea80f`. Documentation PR
+[#40](https://github.com/inceptionretreats-stack/Chapega/pull/40) is now merged
+as `e3ea0f64fa305f4ff02828df6360094f5608e086`. Inception's production
+deployment `dpl_2QfHPx1MaLRA21ByShf84LyvtiAm` is READY at
+`https://chapega.vercel.app`; the corrected privacy notice is live. The
+earlier production and "source-only" statements in historical notes are
+superseded.
 
 ## Verified
 
@@ -37,9 +44,11 @@ the corrected privacy notice is live. The earlier `d9b4b8a` production and
 | Web release checks | Production build, formatting and production dependency audit pass; zero reported vulnerabilities |
 | Hosting preparation | Credential-free Netlify CLI/OpenNext packaging passes locally; no cloud deployment or service cutover |
 | Signing safeguard | Release AAB task graph refuses absent/debug upload signing; configured upload key builds successfully |
-| Production | Merge `71ea80f` is deployed; health/readiness HTTP 200 with Supabase ready; all four approved migrations were already applied |
+| Production | Documentation merge `e3ea0f6` is deployed; runtime fixes from `71ea80f` remain live; health/readiness pass with Supabase ready; all four approved migrations were already applied |
 | Post-deploy logs | Zero error rows in the bounded deployment query; startup reports push on; no actual push delivery was tested |
-| Phone API authentication | Unauthenticated session and nonexistent `.invalid` login return expected HTTP 401 |
+| Phone API authentication | Isolated reviewer sign-in, permanent-password change, session and logout verified; cross-tenant access rejected; signed-out session returns HTTP 401. This does not establish a Play/native installation |
+| Reviewer shop | Dedicated owner account has no platform role and only its demo-shop membership; three synthetic products and three orders (confirmed/preparing/ready), blank customer phone fields and HTTP 200 product images; web dashboard verified. Preview label is on and public kiosk ordering is paused |
+| Play sign-in details | Reusable credentials and 460-character English instructions saved privately; optional Google-partner device testing is off. No credentials or private account identifiers are included here |
 | Firebase | FCM HTTP v1 enabled, Sensitive production service-account credential installed; Google OAuth/validation-only request HTTP 200; all three Play signing certificates registered and persisted |
 | App transport/storage | Release API origin is HTTPS; cleartext rejected; backup disabled; cloud/device-transfer exclusions present; session token uses secure storage |
 | Permissions | No advertising-ID, location or broad photo/storage permissions in inspected release APK; notification permission is requested by the alerts flow |
@@ -48,10 +57,13 @@ the corrected privacy notice is live. The earlier `d9b4b8a` production and
 | App capture flow | Flutter integration test signs in, opens Home/Orders/Order detail/Products, then signs out and verifies secure-token removal; synthetic local data only |
 | Privacy links | Live privacy and account-deletion pages return HTTP 200; About links to these and open-source licences |
 | Play account access | The existing organization account is accessible through the selected Google account, and a Chapega Studio app record is now created |
-| Play draft upload | Internal-testing draft saved; version 1 (1.0.0) AAB processed with API 24/36, three ABIs, R8 mapping and native symbols; preview has zero errors and one warning (no testers); no rollout or review submission |
+| Play internal release | Track Active and version 1 (1.0.0) available to the single authorized owner tester, released 2 November at 10:32 AM IST; API 24/36, three ABIs, R8 mapping and native symbols. Final preview had zero errors/warnings; Console status Not reviewed; no public production release or app-review request |
 | Play signing configuration | Google-managed signing active; current and two previous certificates registered in Firebase with SHA-1/SHA-256; Android key has five package/certificate entries and its unchanged 25-API allowlist |
 | Console listing | en-IN title, 61-character short description, 1,112-character full description, icon, feature graphic and four ordered phone screenshots saved |
-| Saved App content | Privacy URL, No ads, No government affiliation, No financial features and No health features saved; changes have not been sent for review |
+| Saved App content | Privacy URL, No ads, No government affiliation, No financial features, No health features and No Advertising ID saved; IARC ratings and 13+ audience saved; final Data safety remains incomplete |
+| IARC ratings | Owner approved the IARC terms; saved ratings include ESRB Everyone, PEGI 3, USK 16 (Increased Communication Risks), other displayed regional ratings 3, and Users Interact |
+| Target audience | Ages 13–15, 16–17 and 18+ saved; the target audience does not override regional content ratings |
+| Data safety progress | Partial draft saved: collection Yes, encryption in transit Yes and username/password account creation. Deletion URL remains blank because the live route uses a sample contact; data types, handling and remaining answers are incomplete |
 | Store settings | Business category saved separately; store contact email, phone and website remain blank and untouched |
 | Costs | Firebase Spark and Supabase Free unchanged; Inception's Vercel team is verified Hobby; the existing Play account is used without a new registration purchase |
 
@@ -100,13 +112,16 @@ This does not replace a test of a build actually installed through Play.
 
 ## Submission blockers
 
-1. **Play setup and installed signing identity.** The Play app record and
-   saved internal-testing draft exist, and Play accepted the version 1 AAB.
-   Google-managed app signing and certificate registration are complete.
-   The release preview has zero errors and a no-testers warning; select an
-   authorized test group and verify a Play installation before treating
-   internal acceptance as complete. Google's app-signing certificate differs
-   from the upload certificate. No rollout or review submission has occurred. See
+1. **Installed signing identity.** Play accepted version 1 and the internal
+   track is now Active, available only to the single authorized owner tester.
+   Console shows Released 2 November at 10:32 AM IST and Not reviewed; the
+   final release preview had zero errors and warnings. Google-managed app
+   signing and certificate registration are complete. Verify a real Play
+   installation before treating installed acceptance as complete. The existing
+   release name `1.0.0 (1) - internal draft` is only a label; it no longer
+   describes the track state. Until setup/review completes, the temporary
+   download name is `com.chapega.studio (unreviewed)`. No public production
+   release or Google app-review request was made. See
    [Android signing guidance](https://developer.android.com/studio/publish/app-signing).
 2. **Real contact.** The live `/delete-account` page links to the documented
    sample WhatsApp number `919876543210`. The owner has deferred replacing
@@ -123,17 +138,21 @@ This does not replace a test of a build actually installed through Play.
    1024×500 feature graphic and four phone screenshots are saved in Console.
    Business category and five App content forms are saved: Privacy URL,
    No ads, No government affiliation, No financial features and No health
-   features. Owner decisions for audience, IARC content rating,
-   provider-dependent Data safety and restricted App access remain pending;
-   nothing has been sent for review. The local
+   features. No Advertising ID, IARC ratings, 13+ audience and restricted
+   sign-in instructions are now saved. Data safety remains a partial draft,
+   with collection/encryption/account-creation answers saved and its deletion
+   URL deliberately blank. Final categories, sharing/provider handling and
+   an operational deletion route still need completion. The local
    `../store/` pack retains the assets and declaration drafts. Screenshot
    acceptance limitations are recorded in its metadata. See
    [asset requirements](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en).
-4. **Reviewer access.** Prepare a dedicated demo shop with sample products,
-   sample orders and a reusable owner login whose temporary password has
-   already been replaced. Provide English instructions in App access. Do
-   not give reviewers a real shop's account or publish credentials in git.
-   The owner explicitly chose to leave this account pending.
+4. **Installed reviewer acceptance.** Reviewer provisioning is complete
+   following the owner's new authorization. The isolated owner account has
+   a permanent password and synthetic products/orders; phone API and browser
+   checks pass, and English sign-in instructions and credentials are saved
+   privately in Console. Verify that this same account works in the actual
+   Play-installed binary, including native photo and notification flows.
+   No real shop or customer account is supplied to Google.
    See [review login requirements](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en).
 5. **Commercial hosting.** Vercel Hobby is restricted to personal,
    noncommercial use. Chapega handles business shop orders, so this review
@@ -144,11 +163,24 @@ This does not replace a test of a build actually installed through Play.
    adapter build are prepared; live runtime, upload-size and service gates
    remain in `../../docs/deployment-netlify.md`. See
    [Vercel Hobby terms](https://vercel.com/legal/terms).
+6. **User-generated content safeguards.** The app permits native exchange
+   of product text/photos and order information among shop teams, as
+   disclosed by Users Interact in the saved IARC questionnaire. Google's
+   UGC policy also covers a defined company user set. The current app has
+   no in-app content/user reporting path or moderation workflow, and a
+   reviewed objectionable-content policy and terms-acceptance flow remain
+   missing. Owner access removal and product archiving do not establish
+   these safeguards. Implement and verify proportionate terms, reporting
+   and moderation before public submission; no such runtime change was
+   made in this documentation update. See
+   [Google Play UGC policy](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en).
 
 ## Acceptance checks still required
 
-- Install a properly signed build from Play's internal track on a real
-  Android phone. Do not treat a locally debug-signed APK as that check.
+- Use the private owner-only test opt-in link to install the signed build
+  from the now-active internal track on a real Android phone. The authorized
+  tester identity and link stay in private delivery records. Do not treat a
+  locally debug-signed APK or Console availability as an installed check.
 - Review Play's bundle/SDK warnings and pre-launch report after that upload;
   local validation cannot establish the Console's final policy checks.
 - Sign in, replace a temporary password, resume an existing session, switch
@@ -182,7 +214,10 @@ real-device screenshot acceptance remain pending.
 
 ## Draft Data safety inventory
 
-This inventory comes from the app/API source, not a submitted form. Confirm
+Console has only a partial draft: collection Yes, encryption Yes and
+username/password account creation. No deletion URL was supplied while its
+contact route remains a sample. This inventory comes from the app/API
+source and does not complete the remaining form answers. Confirm
 each category against the final build, provider contracts and actual
 operations. Collection is encrypted in transit; most server-retained data
 is not ephemeral. Do not select "no data collected".
@@ -211,7 +246,7 @@ The full deletion procedure is manual and needs verified attribution for
 historical order-event names; RUNBOOK.md now stops on ambiguous names and
 uses both tenant and order IDs. No real deletion was performed to test it.
 
-## Policy notes checked on 2026-10-31
+## Policy notes checked on 2026-11-02
 
 - Google currently requires API 36 for new ordinary Android apps; the
   inspected build meets that requirement.

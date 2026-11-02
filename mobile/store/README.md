@@ -1,13 +1,16 @@
 # Chapega Studio store pack
 
 Prepared on 2026-10-31; verification follow-up on 2026-11-02.
-The Website Google account now has the free Chapega Studio app record and a
-saved internal-testing draft with the signed version 1 AAB. The listing
-text/assets, Business category and five factual app-content answers are
-saved in Console. Nothing was submitted for review or rolled out; no billing
-or public-contact change occurred. Git and Vercel remain on Inception, and
-PR #39's fixes are deployed. See `../docs/PLAY_STORE_REVIEW.md` for the exact
-completed and pending steps. Asset generation itself uses local tools only.
+The Website Google account has the free Chapega Studio app and an active
+owner-only internal-testing release with the accepted signed version 1 AAB.
+The listing, Business category, reviewer sign-in details, Advertising ID
+answer, IARC ratings and owner-confirmed 13+ audience are saved in Console.
+Data safety is a partial draft. Public production is not released and no
+app-review request was sent. No billing or public-support-contact change
+occurred. Git/Vercel remain on Inception; PRs #39 and #40 are merged and
+deployed. See `../docs/PLAY_STORE_REVIEW.md` for completed steps and the
+remaining contact, moderation, data-handling, hosting and device gates.
+Asset generation itself uses local tools only.
 
 ## Files
 
@@ -20,8 +23,8 @@ completed and pending steps. Asset generation itself uses local tools only.
 | `listing/en-IN/short-description.txt` | Short description | Draft; limit 80 characters |
 | `listing/en-IN/full-description.txt` | Full description | Draft; limit 4,000 characters |
 | `listing/en-IN/release-notes.txt` | First-release notes | Draft; limit 500 characters per language |
-| `app-access.md` | Reviewer-account setup and English instructions | Account and shop pending; no credentials included |
-| `metadata.json` | Paths, draft declarations and explicit pending fields | Not a submitted Data safety or content-rating form |
+| `app-access.md` | Reviewer-account setup and English instructions | Isolated owner account and instructions saved privately; no credentials included |
+| `metadata.json` | Paths, draft declarations and explicit pending fields | IARC completed; Data safety partial; public app review pending |
 | `screenshots/` | Four genuine 1080 × 1920 RGB app captures | Local demo debug build; visually checked, no fabricated UI |
 | `signing/` | Public upload certificate and registered Google Play fingerprints | Private keys and passwords excluded |
 
@@ -94,8 +97,8 @@ and no support email is selected in this pack. Keep these blockers visible.
 Do not invent contacts, reuse the Firebase account email as public support
 without authorization, or put review credentials in git.
 
-Confirm the signed build, reviewer account, hosting, screenshots, real-device
-acceptance and the current Console forms using
+Confirm the Play-installed reviewer login, content-policy/reporting controls,
+hosting, screenshots, real-device acceptance and remaining Console forms using
 `../docs/PLAY_STORE_REVIEW.md`. Draft copy describes implemented features;
 it does not certify push delivery, policy compliance or Google approval.
 

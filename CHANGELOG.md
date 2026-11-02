@@ -8,21 +8,24 @@ the findings of the 2026-10-08 project audit.
 
 ### Publication preparation (2026-11-02)
 
-- PR #39 is merged and deployed on Inception's existing Vercel project. The
-  Website Google account now has the free Chapega Studio app and a saved
-  internal-testing draft with the accepted version 1 AAB. Listing assets,
-  Business category and five factual app-content declarations are saved;
-  contacts, reviewer access, final declarations/testing and public rollout
-  remain pending. Google-managed signing fingerprints are registered in
-  Firebase and the Android API restriction. No migration or paid plan change.
+- PRs #39 and #40 are merged and deployed on Inception's existing Vercel
+  project. The Website Google account has the free Chapega Studio app and
+  an active owner-only internal release of the signed version 1 AAB. Listing
+  assets, Business category, private reviewer access, Advertising ID, IARC
+  ratings and the owner's 13+ audience are saved; Data safety is a partial
+  draft. Public contacts, moderation/reporting controls, remaining data and
+  device checks, compliant hosting and public rollout remain pending. Play
+  signing fingerprints are registered in Firebase and the Android API
+  restriction. No migration or paid plan change.
 
 ### Before you deploy
 
 - **Android upload signing/store pack:** release bundles require a real
   upload key; private settings remain local and `.p12` files are refused
   by the mobile CI safeguard. Listing materials and public certificates
-  are under `mobile/store/`. Contacts/reviewer setup remain deferred;
-  no Play upload or paid service is enabled. No new database migration.
+  are under `mobile/store/`. Public contacts remain deferred. The reviewer
+  setup and owner-only internal upload/rollout are complete; no paid service
+  is enabled. No new database migration.
 - **Optional Netlify evaluation:** local config and a trusted request-context
   client-IP integration are prepared. Set the documented server runtime
   marker; verify the live adapter, payload limits and services before any

@@ -3,6 +3,69 @@
 State on 2026-11-02. Update this file at the end of every session (AGENTS.md,
 "Start of every session").
 
+## PR #40 merge, reviewer access and internal publication (2026-11-02)
+
+- PR [#40](https://github.com/inceptionretreats-stack/Chapega/pull/40) merged
+  after every applicable check passed, as
+  `e3ea0f64fa305f4ff02828df6360094f5608e086`. Its Git tree matches the
+  checked head `e67d460`. Inception's production deployment
+  `dpl_2QfHPx1MaLRA21ByShf84LyvtiAm` is READY at
+  `https://chapega.vercel.app`, build 28.892 seconds. Health/readiness and
+  privacy/deletion pages pass; the scoped error-log query returned zero rows.
+  Hobby remains active, with no billing or hosting-account change.
+- The owner reversed the earlier reviewer deferral and authorized an isolated
+  demo owner account. After the owner said the admin credentials were lost,
+  the existing super-admin was recovered through an authenticated owner-level
+  Supabase CLI transaction matching the supported password-recovery semantics:
+  exact existing account, advisory lock, new hash, prior session revocation
+  and audit. No new super-admin or security bypass was created. Normal Chrome
+  admin sign-in and subsequent sign-out both verified.
+- Normal admin provisioning created the isolated shop; its owner completed
+  the ordinary temporary-password change through the phone API. Permanent
+  sign-in verifies owner role, no platform role and only the demo membership.
+  The shop contains three fictional products and three sample orders
+  (confirmed, preparing and ready), blank customer phones and valid product
+  image responses. Preview labeling is on and its public kiosk is paused.
+  Other-shop access and use of a logged-out phone token return HTTP 401.
+  Normal web sign-in also shows the expected isolated dashboard. No push
+  token was registered and no external message was sent. Existing real-shop
+  orders/products were not changed.
+- Google Play's Sign in details contains the permanent reviewer credentials
+  and English instructions privately. Optional partner-device testing is off.
+  No credential, private account identity, Console ID or supplied demo phone
+  belongs in this public repository or delivery ZIP. Admin/reviewer passwords
+  are encrypted using DPAPI CurrentUser in the owner's private local recovery
+  directory, with user-only ACLs; plaintext task inputs were removed after
+  encrypted round-trip verification. The credential-copy helper was prepared
+  for the owner and was not run automatically.
+- Advertising ID is saved as No. The owner approved private IARC correspondence
+  and explicitly accepted its terms at the agreement step. IARC is Completed:
+  ESRB Everyone, PEGI 3, USK 16+ (Increased Communication Risks), generic 3+,
+  with Users Interact. The owner's intended audience is saved as 13–15, 16–17
+  and 18+. Native team content exchange is disclosed; reporting, blocking and
+  chat moderation are not falsely claimed.
+- Data safety has only a saved partial draft: collection Yes, encryption in
+  transit Yes and username/password account creation. The deletion URL is
+  intentionally undeclared while its actual request channel remains a sample.
+  Provider/data-category/retention answers still need completion.
+- Version 1 (1.0.0) is now **Active / Available to internal testers**, released
+  on 2 November at 10:32 IST, **Not reviewed**. The only selected tester is
+  the Website owner account. Final preview showed no errors or warnings. The
+  retained release name ends in `internal draft`, but it is an active release,
+  and Google's temporary download name is `com.chapega.studio (unreviewed)`.
+  The private install link is in the local publication report; no public
+  production release or app-review request occurred.
+- Public support/privacy/deletion contacts remain unchanged at the owner's
+  request. A functional deletion route, public support email, completed Data
+  safety, content-policy acceptance/reporting/moderation, compliant free
+  business hosting and real Play-installed device/photo/push/16 KB checks
+  remain launch gates. Google explicitly requires reporting even for UGC
+  shared within a known company user set; see the release review's policy link.
+  No new migration, paid option or desktop/full-screen control was used.
+
+The sections below record earlier states; this section supersedes their
+reviewer-deferral, draft/no-tester and production-status statements.
+
 ## Production merge and Play setup (2026-11-02)
 
 - The user explicitly authorized merging PR #39 and deploying the fixes,

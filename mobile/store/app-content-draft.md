@@ -3,18 +3,26 @@
 Prepared on 2026-10-31 from the application source and inspected Android
 manifest; status updated 2026-11-02. Privacy URL, No ads, No government
 affiliation, No financial features and No health features are now saved in
-Play Console, along with the Business category. Nothing has been sent for
-review. Audience, IARC, Data safety and App access remain incomplete.
-Review the current questions and the final uploaded build before submission.
+Play Console, along with the Business category. No Advertising ID, IARC
+ratings, 13+ audience and private sign-in details are now saved too.
+Data safety remains a partial draft, and public contact/deletion, UGC
+safeguards, business hosting and installed-device acceptance remain pending.
+Version 1 is available on an Active internal-testing track only to the
+authorized owner tester; it is Not reviewed and has no public production
+release or Google app-review request. Its private tester identity and opt-in
+link are not included here. Review the current questions and the final
+uploaded build before public submission.
 
 ## Access and support
 
 - **Sign-in:** required. The app is for existing shop-team accounts and has
   no public self-registration or purchase/subscription gate.
-- **Reviewer access:** pending at the owner's request. Use the English
-  walkthrough in `app-access.md` after a dedicated demo shop and stable
-  owner login have been provisioned and tested. Never submit the local
-  development preview login or a real shop's credentials.
+- **Reviewer access:** now provisioned after the owner's new authorization.
+  The isolated demo owner has a permanent password and only its demo-shop
+  membership, with no platform role. API and web dashboard checks pass;
+  private credentials and English instructions are saved in Console. See
+  `app-access.md` for setup and remaining Play/native acceptance. Never
+  substitute the local preview login or a real shop's credentials.
 - **Support and deletion contact:** deferred by the owner. No email or
   phone is invented in this pack. The live deletion page still uses a
   sample WhatsApp number; do not declare that channel verified.
@@ -29,14 +37,30 @@ Review the current questions and the final uploaded build before submission.
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Ads                             | No advertising SDK or ad-placement UI found. The manifest does not request Advertising ID access.                                                                                                                                     |
 | Category                        | Business is saved in Play Console; final listing review remains pending.                                                                                                                                                                           |
-| Audience                        | Intended for shop owners, managers and staff; the current release guide proposes adults. The owner must confirm the actual intended audience.                                                                                         |
-| Content rating                  | Complete the IARC questionnaire accurately; do not invent a rating. There is no public social feed/chat, but merchants enter product text/images and teams see order notes. Account for those actual content features.                |
+| Audience                        | Ages 13–15, 16–17 and 18+ are saved for the shop-team audience. Regional content ratings still apply.                                                                                         |
+| Content rating                  | Owner-approved IARC questionnaire saved: ESRB Everyone, PEGI 3, USK 16 Increased Communication Risks, other displayed regional ratings 3; Users Interact.                |
 | Financial features              | No banking, credit, investing, insurance or digital-payment SDK found; shop order totals are displayed and payment is at the counter. Answer the actual Console questionnaire accordingly.                                            |
 | Health / government / news      | No corresponding functionality found; confirm the current form's exact scope rather than skipping required declarations.                                                                                                              |
 | Sensitive permissions           | Internet/FCM and notification-related permissions are present. No location, contacts, Advertising ID or broad photo-library/storage permissions were found in the release manifest. Product photos use the system picker/camera flow. |
 | Independent security validation | No independent certification has been obtained. Automated project tests are not a certification.                                                                                                                                      |
 
+## UGC safeguards still required
+
+The IARC answers disclose native user interaction through shared team
+content. The current app has no in-app reporting or moderation workflow;
+owner access administration and product archiving do not establish these
+features. A reviewed objectionable-content policy and terms-acceptance flow
+are also still required. Google's UGC policy explicitly covers apps shared
+within a defined company user set. Implement and verify proportionate
+terms, reporting and moderation before public submission.
+[UGC policy](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en).
+
 ## Data safety draft
+
+Only the initial collection Yes, encryption-in-transit Yes and
+username/password account-creation answers are saved. The deletion URL is
+blank because the live route still uses a sample contact. Data types,
+sharing/handling and remaining answers are incomplete.
 
 **Data is collected.** Do not declare the app data-free merely because it
 has no advertising or analytics SDK. See `../docs/PLAY_STORE_REVIEW.md` for
@@ -63,8 +87,8 @@ the category inventory and `../docs/RELEASE.md` for source-based data flows.
 
 Before submission, verify the actual hosted privacy notice, monitored
 request channel, provider arrangements, retention practices and final SDK
-versions. The owner has deferred contact and reviewer provisioning, so
-these declarations remain drafts.
+versions. The owner has deferred public contact details; reviewer access
+is now saved. The Data safety declaration remains incomplete.
 
 Sources: [App setup and required support email](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en),
 [App review access](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en),
