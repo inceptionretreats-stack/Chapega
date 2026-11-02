@@ -28,11 +28,24 @@ blockers are in [the Google Play review](PLAY_STORE_REVIEW.md).
 ## To decide before the first store release
 
 - **Publisher and review setup.** An existing Play organization account
-  is accessible through the configured Google account.
-  The owner has deferred the public contact and reviewer account; no app
-  was created or uploaded. A dedicated upload key is now configured below.
+  is accessible through the Website Google account. The free Chapega Studio
+  record and internal-testing draft `1.0.0 (1) - internal draft` now exist.
+  The signed AAB was accepted and saved; no review submission or rollout
+  occurred. Git and Vercel remain on Inception. Public contacts and reviewer
+  access stay deferred. The dedicated upload key is configured below, and
+  Google's three signing certificates are registered in Firebase/API-key
+  restrictions (`../store/signing/play-app-signing-certificates.json`).
   Follow the actual app's Console tasks rather than assuming the newer
   personal-account 12-testers/14-days rule applies to this organization.
+
+The listing text, icon, feature graphic and four ordered phone screenshots
+are saved in an en-IN listing draft. Business category and the privacy URL,
+No ads, non-government, no financial features and no health features answers
+are saved. IARC, target audience, Data safety, App access and real contacts
+remain incomplete. Internal testing has no selected testers; the release
+preview reports zero errors and that single warning. These saved changes
+have not been sent for review. Version code 1 is already uploaded: use the
+existing draft for it, and increment the code for a new binary upload.
 
 ## Every release
 

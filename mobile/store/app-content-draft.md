@@ -1,7 +1,10 @@
 # Play App content — working answers
 
 Prepared on 2026-10-31 from the application source and inspected Android
-manifest. These answers have not been entered or submitted in Play Console.
+manifest; status updated 2026-11-02. Privacy URL, No ads, No government
+affiliation, No financial features and No health features are now saved in
+Play Console, along with the Business category. Nothing has been sent for
+review. Audience, IARC, Data safety and App access remain incomplete.
 Review the current questions and the final uploaded build before submission.
 
 ## Access and support
@@ -25,7 +28,7 @@ Review the current questions and the final uploaded build before submission.
 | Form                            | Source-based draft                                                                                                                                                                                                                    |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Ads                             | No advertising SDK or ad-placement UI found. The manifest does not request Advertising ID access.                                                                                                                                     |
-| Category                        | Business is the proposed category, subject to owner review.                                                                                                                                                                           |
+| Category                        | Business is saved in Play Console; final listing review remains pending.                                                                                                                                                                           |
 | Audience                        | Intended for shop owners, managers and staff; the current release guide proposes adults. The owner must confirm the actual intended audience.                                                                                         |
 | Content rating                  | Complete the IARC questionnaire accurately; do not invent a rating. There is no public social feed/chat, but merchants enter product text/images and teams see order notes. Account for those actual content features.                |
 | Financial features              | No banking, credit, investing, insurance or digital-payment SDK found; shop order totals are displayed and payment is at the counter. Answer the actual Console questionnaire accordingly.                                            |

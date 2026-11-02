@@ -3,7 +3,76 @@
 State on 2026-11-02. Update this file at the end of every session (AGENTS.md,
 "Start of every session").
 
+## Production merge and Play setup (2026-11-02)
+
+- The user explicitly authorized merging PR #39 and deploying the fixes,
+  while keeping Git/Vercel on Inception and using the selected Website
+  Google account for Play Console. Keep all services free and leave public
+  contact details and reviewer provisioning pending.
+- PR [#39](https://github.com/inceptionretreats-stack/Chapega/pull/39) is
+  merged as `71ea80f56904756160ecd0f647ff6f8e9d7a93a7`. Its tree is identical
+  to tested `dad0ac8`: 667 web tests/87 files, 35 database tests, 84 browser
+  cases (16 intentional skips), 89 Flutter tests and the Android release
+  build passed. Final browser logs contain no hydration errors. iOS was
+  intentionally skipped.
+- Automatic post-merge main workflows also pass: Quality checks
+  [41386880406](https://github.com/inceptionretreats-stack/Chapega/actions/runs/41386880406)
+  and Mobile app
+  [41386880420](https://github.com/inceptionretreats-stack/Chapega/actions/runs/41386880420).
+  Main's browser log also has no hydration or uncaught-browser errors.
+- Inception's existing `chapega` project automatically deployed that merge:
+  `dpl_B3AodHSC2YkqcTiDTarD1vReTTFk`, production **READY**, build 38.4 seconds.
+  `https://chapega.vercel.app` resolves to it. Current team billing metadata
+  confirms Hobby; no paid upgrade, billing or hosting-account change occurred.
+- Post-deploy checks: health/readiness HTTP 200 with Supabase ready; updated
+  privacy notice (31 October, Firebase Installations, provider/metadata prose)
+  is live; deletion page HTTP 200 with its existing sample contact unchanged;
+  vendor sign-in HTTP 200; unauthenticated phone session HTTP 401. The bounded
+  deployment error-log query returned zero rows and startup reports push on.
+  A signed-in production dashboard/phone was not exercised without credentials.
+- A Chapega Studio Play app record has been created in the owner's selected
+  Google account. The internal-testing release draft is saved (Console
+  confirms "Changes saved"). Play accepted upload-signed version code 1,
+  version 1.0.0, minimum API 24, target API 36 and three ABIs, with R8 mapping
+  and native symbols. Google-managed app signing is active. No rollout,
+  review submission or tester-email list was created. Its release preview
+  reports zero errors and one warning: no internal testers selected. This
+  does not establish overall publication readiness or installed Play-build
+  acceptance. The en-IN main listing is saved: name, short/full descriptions,
+  512×512 icon, 1024×500 feature graphic and four genuine 1080×1920 screenshots
+  (Home, Orders, Order detail, Products). Privacy URL and No ads declaration
+  are saved, along with No government affiliation, No financial features
+  and No health features. All five Console forms explicitly confirm saved
+  changes awaiting Send for review in Publishing overview. Business category
+  is saved separately; store contact email, phone and website remain blank
+  and untouched. No review submission, production publication, internal
+  rollout or tester-email list was created.
+  Do not put the private Console account/app IDs, account email or reviewer
+  credentials into this public repository.
+- App-signing setup is complete: Firebase retains the debug/upload entries
+  and now has SHA-1/SHA-256 fingerprints for all three certificates shown by
+  Play (current in-use and two previous quantum-ready beta certificates).
+  Reopening Google's Android API-key restriction verifies five package/
+  certificate SHA-1 rows and the unchanged 25-API allowlist. The client key
+  and Google-managed signing key were not changed. Public-only fingerprints
+  are in `mobile/store/signing/play-app-signing-certificates.json`. Firebase
+  remains Spark ($0). These are configuration checks, not push delivery.
+- Contacts and reviewer access remain deferred. IARC content rating, target
+  audience, provider-dependent Data safety and restricted App access remain
+  incomplete. Authorized testers, real-device/push/photo/16 KB acceptance and
+  compliant business hosting remain publication gates. No production data,
+  new migration or real notification was created by this deployment.
+- Refreshed the stable delivery pack at
+  `D:\chapega\releases\chapega-studio-1.0.0-1\` with current publication
+  status, public Play signing fingerprints and this handover. Its 45 entries
+  are verified against the SHA-256 manifest; nested build checksum paths and
+  the external ZIP checksum match. Signed AAB/APK hashes are unchanged. The
+  private Console status report remains outside Git and the public ZIP.
+
 ## Final verification follow-up (2026-11-02)
+
+This records the pre-merge verification. Its production/Play status was true
+at that point; the section above supersedes those status statements.
 
 - Draft PR [#39](https://github.com/inceptionretreats-stack/Chapega/pull/39)
   is in the Inception repository. Initial release commit `d408a21` passed all
@@ -38,6 +107,9 @@ State on 2026-11-02. Update this file at the end of every session (AGENTS.md,
   Play Console, billing and hosting are unchanged by this follow-up.
 
 ## Upload signing and store preparation (2026-10-31)
+
+This is the historical preparation record. Key/artifact details still apply;
+production and Play progress are superseded by the latest section above.
 
 - Release branch: `release/play-store-preparation-20261031`, based on
   `d9b4b8a`. Do not merge to `main` until its automatic deployment is intended.
@@ -166,6 +238,9 @@ below is historical and must not be uploaded.
   review; the final release branch is recorded in the latest section above.
 
 ## Firebase connection (2026-10-31)
+
+This records the initial connection. Later production deployments and Play
+progress are recorded in the latest section above.
 
 - Created Firebase project `chapega-studio` (Chapega Studio), project number
   `909514098484`, under the user's chosen Google account, with approval.

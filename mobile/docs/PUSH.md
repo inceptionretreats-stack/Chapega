@@ -17,7 +17,7 @@ A phone stops getting pushes when its person signs out, changes their
 password elsewhere, loses access to the shop, or doesn't open the app for 14
 days (the session's idle limit).
 
-## Current connection (2026-10-31)
+## Current connection (2026-11-02)
 
 - Firebase project: `chapega-studio` (Chapega Studio), on Spark ($0/month),
   under the owner's chosen Google account. Both app identifiers are
@@ -35,13 +35,17 @@ days (the session's idle limit).
   function grants are verified. The approved 30-day customer redaction is
   scheduled nightly at 03:45 UTC (09:15 IST); it was not invoked manually.
 - The ignored `config/firebase.json` contains Android and iOS build settings.
-  Android's key is restricted to the package and both the debug and upload
-  certificates; iOS's key is restricted to the bundle. The upload SHA-1 is
+  Android's key is restricted to the package and the debug, upload and three
+  Google Play signing certificates; iOS's key is restricted to the bundle.
+  The upload SHA-1 is
   `9D:02:E3:15:11:BB:AF:20:2D:48:18:84:FD:E7:DC:51:61:93:FB:6C`.
   Firebase also has the upload SHA-256; public fingerprints are in
-  `../store/signing/certificate.json`. Google's Play app-signing certificate
-  is separate and still needs adding before testing a Play installation.
-  Apple APNs credentials are still required for iOS.
+  `../store/signing/certificate.json`. Google's separate signing fingerprints
+  are in `../store/signing/play-app-signing-certificates.json`. All six Play
+  fingerprints persisted in Firebase, and all five Android package/SHA-1
+  entries persisted with the same 25-API allowlist. Actual Play-installed
+  phone registration/delivery still needs acceptance testing. Apple APNs
+  credentials are still required for iOS.
 - Keep this setup on free versions. Firebase remains on Spark, Vercel on
   Hobby and Supabase on Free; no billing was activated or plan upgraded.
   Do not enroll in paid Apple/Google store programs under the current

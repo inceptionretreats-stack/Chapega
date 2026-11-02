@@ -1,7 +1,9 @@
 # Free hosting options for the Chapega backend
 
-Research checked on 2026-10-31. No host has been selected, linked or deployed,
-and no billing, account or production configuration was changed.
+Research checked on 2026-10-31. No replacement host was selected, linked or
+deployed by this evaluation, and no billing or hosting account was changed.
+The existing Inception Vercel deployment was updated on 2026-11-02; see
+`../docs/PLAY_STORE_REVIEW.md` for current publication gates.
 
 **Best candidate to evaluate: Netlify Free.** Netlify expressly allows
 commercial projects on Free. Its current Free plan has 300 monthly credits,

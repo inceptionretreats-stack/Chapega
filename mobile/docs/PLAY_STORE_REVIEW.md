@@ -1,22 +1,29 @@
 # Google Play release review — 2026-10-31
 
 **Decision: not ready to publish.** Upload signing and store preparation
-are now implemented. Public contact, reviewer access, Console declarations,
-Play signing/internal testing and business-hosting cutover remain incomplete.
-This is a readiness review, not a Play upload or a guarantee of approval.
+are implemented, PR #39 is merged and the web fixes are deployed. A Play
+app record has been created in the owner's selected Google account.
+An internal-testing draft is saved, its AAB accepted and signing certificates
+configured. Public contact, reviewer access, final Console declarations,
+internal-test acceptance and business-hosting cutover remain publication gates.
+This is a readiness review, not a guarantee of Google approval.
 
-Verification follow-up on 2026-11-02 is recorded in `../../HANDOVER.md` and
-draft PR [#39](https://github.com/inceptionretreats-stack/Chapega/pull/39).
+Verification and deployment follow-up on 2026-11-02 is recorded in
+`../../HANDOVER.md` and merged PR
+[#39](https://github.com/inceptionretreats-stack/Chapega/pull/39).
 
 The owner authorized a new upload key, required free services, and asked to
 leave public contact details unchanged. Reviewer-account creation was also
-explicitly deferred. No app listing was created and no bundle was uploaded.
-No billing or paid upgrade was enabled. Desktop screen control was stopped
-at the owner's request; subsequent captures use the app's integration tests.
+explicitly deferred. Git/Vercel remain on Inception; Play Console uses the
+owner's selected Website Google account. No public Play release is live.
+No billing or paid upgrade was enabled. Browser work uses Chrome's tab
+extension; desktop/full-screen control remains excluded.
 
-Reviewed source: `d9b4b8a` plus the release preparation on
-`release/play-store-preparation-20261031`. Production remains on `d9b4b8a`;
-the privacy source changes require deployment before submission.
+Reviewed source: release head `dad0ac8`, merged without tree changes as
+`71ea80f56904756160ecd0f647ff6f8e9d7a93a7`. Inception's production deployment
+`dpl_B3AodHSC2YkqcTiDTarD1vReTTFk` is READY at `https://chapega.vercel.app`;
+the corrected privacy notice is live. The earlier `d9b4b8a` production and
+"source-only" statements in historical notes are superseded.
 
 ## Verified
 
@@ -30,21 +37,28 @@ the privacy source changes require deployment before submission.
 | Web release checks | Production build, formatting and production dependency audit pass; zero reported vulnerabilities |
 | Hosting preparation | Credential-free Netlify CLI/OpenNext packaging passes locally; no cloud deployment or service cutover |
 | Signing safeguard | Release AAB task graph refuses absent/debug upload signing; configured upload key builds successfully |
-| Production | Health/readiness HTTP 200, Supabase healthy, all four approved migrations applied |
+| Production | Merge `71ea80f` is deployed; health/readiness HTTP 200 with Supabase ready; all four approved migrations were already applied |
+| Post-deploy logs | Zero error rows in the bounded deployment query; startup reports push on; no actual push delivery was tested |
 | Phone API authentication | Unauthenticated session and nonexistent `.invalid` login return expected HTTP 401 |
-| Firebase | FCM HTTP v1 enabled, Sensitive production service-account credential installed; Google OAuth/validation-only request HTTP 200 |
+| Firebase | FCM HTTP v1 enabled, Sensitive production service-account credential installed; Google OAuth/validation-only request HTTP 200; all three Play signing certificates registered and persisted |
 | App transport/storage | Release API origin is HTTPS; cleartext rejected; backup disabled; cloud/device-transfer exclusions present; session token uses secure storage |
 | Permissions | No advertising-ID, location or broad photo/storage permissions in inspected release APK; notification permission is requested by the alerts flow |
 | Store icon | Fixed RGB export to 512×512 RGBA PNG, 14,916 bytes; decoded pixels are unchanged |
 | Store screenshots | Four real 1080×1920 app-view captures, visually checked and exported as RGB with unchanged pixels; local demo debug build, not Play acceptance |
 | App capture flow | Flutter integration test signs in, opens Home/Orders/Order detail/Products, then signs out and verifies secure-token removal; synthetic local data only |
 | Privacy links | Live privacy and account-deletion pages return HTTP 200; About links to these and open-source licences |
-| Play account access | An existing organization account is accessible through the configured Google account; no Chapega result in its app search |
-| Costs | Firebase Spark, Supabase Free and Vercel Hobby unchanged; existing Play account avoids new registration if selected for this app |
+| Play account access | The existing organization account is accessible through the selected Google account, and a Chapega Studio app record is now created |
+| Play draft upload | Internal-testing draft saved; version 1 (1.0.0) AAB processed with API 24/36, three ABIs, R8 mapping and native symbols; preview has zero errors and one warning (no testers); no rollout or review submission |
+| Play signing configuration | Google-managed signing active; current and two previous certificates registered in Firebase with SHA-1/SHA-256; Android key has five package/certificate entries and its unchanged 25-API allowlist |
+| Console listing | en-IN title, 61-character short description, 1,112-character full description, icon, feature graphic and four ordered phone screenshots saved |
+| Saved App content | Privacy URL, No ads, No government affiliation, No financial features and No health features saved; changes have not been sent for review |
+| Store settings | Business category saved separately; store contact email, phone and website remain blank and untouched |
+| Costs | Firebase Spark and Supabase Free unchanged; Inception's Vercel team is verified Hobby; the existing Play account is used without a new registration purchase |
 
-The initial release-branch CI (`d408a21`) passed 35 database tests and 84
-browser cases (16 intentional duplicate skips), plus the Android release
-build. PR #39 contains the latest CI results for the hydration follow-up.
+Final release-branch CI (`dad0ac8`) passed 667 unit tests, 35 database tests,
+84 browser cases (16 intentional duplicate skips), 89 Flutter tests and the
+Android release build. Browser logs contain no hydration/uncaught-browser
+errors. The merged production tree is identical to that tested head.
 
 ## Built Android App Bundle
 
@@ -75,12 +89,24 @@ APK-only CI checks retain their debug fallback. See RELEASE.md for recovery.
 The generated build directory was moved to C: with a junction after D: filled;
 the signed artifacts' hashes survived unchanged. See HANDOVER.md.
 
+Google-managed Play signing is active. The current in-use app-signing
+certificate and both previous quantum-ready beta certificates are recorded
+in `../store/signing/play-app-signing-certificates.json`. All six SHA-1/
+SHA-256 fingerprints were registered in Firebase and persisted after reload.
+Google's Android API-key settings were reopened to verify five certificate
+entries (debug, upload and the three Play certificates) with the same
+25-API allowlist. Neither the client key nor Google's signing key changed.
+This does not replace a test of a build actually installed through Play.
+
 ## Submission blockers
 
-1. **Play setup and final signing identity.** Local upload signing is fixed,
-   but the Play app has not been created or uploaded. Keep Play App Signing
-   enabled and add Google's app-signing certificate before testing a Play
-   installation. Upload and app-signing certificates are different. See
+1. **Play setup and installed signing identity.** The Play app record and
+   saved internal-testing draft exist, and Play accepted the version 1 AAB.
+   Google-managed app signing and certificate registration are complete.
+   The release preview has zero errors and a no-testers warning; select an
+   authorized test group and verify a Play installation before treating
+   internal acceptance as complete. Google's app-signing certificate differs
+   from the upload certificate. No rollout or review submission has occurred. See
    [Android signing guidance](https://developer.android.com/studio/publish/app-signing).
 2. **Real contact.** The live `/delete-account` page links to the documented
    sample WhatsApp number `919876543210`. The owner has deferred replacing
@@ -88,14 +114,20 @@ the signed artifacts' hashes survived unchanged. See HANDOVER.md.
    needed; Google requires a support email for the listing. Do not assume
    the Firebase account's email is authorized as public support. See
    [store contact requirements](https://support.google.com/googleplay/android-developer/answer/9859152?hl=en).
-   The privacy source now explains Firebase identifiers/metadata, operational
+   The deployed privacy notice now explains Firebase identifiers/metadata, operational
    records, photo publication, providers and retention. Contacts and the
-   deletion channel are unchanged. Verify the corrected notice is deployed
-   and reflects actual operations before submission.
-3. **Final listing and declarations.** The local `../store/` pack contains
-   the 1024×500 feature graphic, corrected icon, listing text, public upload
-   certificate and App content drafts. Screenshot status is recorded in its
-   metadata. Owner review and actual Console declarations remain pending. See
+   deletion channel are unchanged. Confirm the notice reflects actual
+   operations before submission; deployment alone does not establish a
+   monitored request route.
+3. **Final listing and declarations.** The en-IN main listing, icon,
+   1024×500 feature graphic and four phone screenshots are saved in Console.
+   Business category and five App content forms are saved: Privacy URL,
+   No ads, No government affiliation, No financial features and No health
+   features. Owner decisions for audience, IARC content rating,
+   provider-dependent Data safety and restricted App access remain pending;
+   nothing has been sent for review. The local
+   `../store/` pack retains the assets and declaration drafts. Screenshot
+   acceptance limitations are recorded in its metadata. See
    [asset requirements](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en).
 4. **Reviewer access.** Prepare a dedicated demo shop with sample products,
    sample orders and a reusable owner login whose temporary password has
@@ -103,12 +135,7 @@ the signed artifacts' hashes survived unchanged. See HANDOVER.md.
    not give reviewers a real shop's account or publish credentials in git.
    The owner explicitly chose to leave this account pending.
    See [review login requirements](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en).
-5. **Play signing and Firebase restriction.** The Android API key is
-   restricted to the debug and new upload certificates. Before testing a Play
-   install, add the Play app-signing certificate's SHA-1 to Firebase and
-   the Android key restriction. Keep the upload certificate distinct from
-   Google's app-signing certificate.
-6. **Commercial hosting.** Vercel Hobby is restricted to personal,
+5. **Commercial hosting.** Vercel Hobby is restricted to personal,
    noncommercial use. Chapega handles business shop orders, so this review
    treats compliant business hosting as a launch requirement. Preserve the
    free-only constraint by selecting hosting whose free terms permit the
@@ -149,8 +176,9 @@ the signed artifacts' hashes survived unchanged. See HANDOVER.md.
 ## Draft listing text
 
 The canonical name, descriptions and release notes are in
-`../store/listing/en-IN/`. They meet the checked character limits and still
-need owner review before entering them in Play Console.
+`../store/listing/en-IN/`. The main listing text and graphics have been saved
+in Play Console and meet the checked limits. Final submission review and
+real-device screenshot acceptance remain pending.
 
 ## Draft Data safety inventory
 
@@ -193,7 +221,7 @@ uses both tenant and order IDs. No real deletion was performed to test it.
   [16 KB guidance](https://developer.android.com/guide/practices/page-sizes)
 - The observed developer account is an organization account. Do not apply
   the newer-personal-account 12-testers/14-days rule automatically to it;
-  follow the actual app's Console tasks when it is created.
+  follow the actual app's Console tasks.
   [Personal-account testing rule](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en)
 - Data safety must include applicable SDK collection, including Firebase
   Installations identifiers used by FCM. A service-provider exception may
