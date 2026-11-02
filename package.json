@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "@netlify/functions": "6.0.3",
-    "@supabase/supabase-js": "2.116.0",
+    "@supabase/supabase-js": "2.118.0",
     "lucide-react": "^1.31.0",
     "next": "16.4.3",
     "postgres": "3.4.9",
