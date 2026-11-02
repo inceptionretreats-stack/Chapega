@@ -63,3 +63,6 @@ scratch/
 **/key.properties
 **/*.jks
 **/*.keystore
+**/*.p12
+# Public upload certificate only; the private keystore remains outside Git.
+!/mobile/store/signing/upload-certificate.pem

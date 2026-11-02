@@ -3,6 +3,9 @@
 How to ship the app to Google Play and the App Store. Run the commands from
 `mobile/`.
 
+The latest Android submission decision, verified checks and remaining
+blockers are in [the Google Play review](PLAY_STORE_REVIEW.md).
+
 ## Decided (2026-10-31)
 
 - **Server.** Release builds talk to `https://chapega.vercel.app`
@@ -16,15 +19,20 @@ How to ship the app to Google Play and the App Store. Run the commands from
   More → About.
 - **Privacy policy URL:** `https://chapega.vercel.app/privacy`. Its "Shop
   teams" part (`/privacy#shop-teams`) covers the team's own data in the app.
+- **Firebase.** `chapega-studio` is configured under the owner's chosen
+  Google account for Android and iOS (see PUSH.md).
+- **Cost.** The user requires free versions only. No billing activation,
+  paid upgrade or paid store enrollment is authorized. An existing Play
+  organization account is accessible; no new registration was purchased.
 
 ## To decide before the first store release
 
-- **Who owns the store accounts and the upload key.** Use accounts in the
-  business's name. A new *personal* Google Play developer account must run a
-  closed test with at least 12 testers for 14 days before it can publish to
-  production. An *organisation* account skips that but needs a D-U-N-S
-  number.
-- **Who owns the Firebase project** for push (see PUSH.md).
+- **Publisher and review setup.** An existing Play organization account
+  is accessible through the configured Google account.
+  The owner has deferred the public contact and reviewer account; no app
+  was created or uploaded. A dedicated upload key is now configured below.
+  Follow the actual app's Console tasks rather than assuming the newer
+  personal-account 12-testers/14-days rule applies to this organization.
 
 ## Every release
 
@@ -51,26 +59,41 @@ Phones keep old app versions for months. On the server:
 
 ## Android
 
-### The upload key (once)
+### Upload signing
 
-```sh
-keytool -genkeypair -v -keystore chapega-upload.jks -alias upload \
-  -keyalg RSA -keysize 2048 -validity 10000
-```
+A dedicated upload key was created on 2026-10-31: RSA 3072, alias `upload`,
+certificate subject `CN=Chapega Studio Upload`, valid for 10,000 days. Keep
+using this key; do not generate a replacement for each release.
 
-Keep `chapega-upload.jks` and its passwords in the business's password
-manager, never in the repository (`.gitignore` blocks `*.jks`, `*.keystore`
-and `key.properties`). Then create `android/key.properties`:
+On the configured Windows machine its files are outside Git, under
+`%USERPROFILE%\.chapega-signing\chapega-studio-upload-20261031\`:
 
-```properties
-storeFile=C:/path/to/chapega-upload.jks
-storePassword=...
-keyAlias=upload
-keyPassword=...
-```
+- `chapega-studio-upload.p12`: the private upload keystore.
+- `upload-certificate.pem` and `certificate-fingerprints.txt`: public
+  certificate details for Play and Firebase configuration.
+- `upload-password.dpapi`: password recovery protected with Windows DPAPI
+  CurrentUser; it works only under the same Windows user/profile.
+- `RECOVERY.txt`: local build and recovery instructions.
 
-Without this file a release build is signed with the debug key. That is
-fine for testing, but Google Play refuses it.
+The directory and ignored `android/key.properties` allow only the current
+Windows user. Gradle reads its signing password from that local file; never
+display or commit it. If it is missing, run the signing directory's
+`Restore-AndroidSigning.ps1` under that Windows account (optionally pass
+`-ProjectRoot` for another checkout). The helper restores the settings
+without displaying the password and refuses to replace existing settings.
+
+Keep an encrypted off-device backup of the keystore **and its password** in
+the business password manager. Copying the DPAPI file to another account or
+machine is insufficient. The local `Copy-UploadPasswordToClipboard.ps1`
+helper can copy the password for that backup without printing it; clear the
+clipboard afterwards. It is not run automatically.
+
+Release App Bundle builds refuse missing signing settings and Android
+Debug certificates. Release APK checks may still use the debug fallback
+when settings are absent, so CI needs no private key. Verify the signer of
+the final AAB before uploading. Play-distributed builds use Google's app
+signing certificate; add that certificate to Firebase/API-key restrictions
+before testing a Play installation.
 
 ### Build
 
@@ -90,14 +113,15 @@ about 60 MB; Play sends each phone only its own, so downloads are smaller.
 2. Keep **Play App Signing** on (the default). Google holds the key that
    signs the app; your upload key only signs what you upload, and Google can
    reset it if it is lost.
-3. **Store listing.** Icon: `assets/branding/store-icon-512.png`. Also needed:
-   a 1024×500 feature graphic and at least two phone screenshots.
+3. **Store listing.** Icon: `assets/branding/store-icon-512.png`. The feature
+   graphic, listing drafts and screenshot status are in `store/README.md`.
 4. **App access.** Reviewers can't get past sign-in on their own. Give them
    an owner's sign-in on a demo shop with sample products and orders, never
    a real shop's account.
-5. **Data safety**, **Content rating** (a business tool with no public user
-   content) and **Target audience** (18 and over). See "Privacy answers"
-   below.
+5. **Data safety**, **Content rating** and **Target audience**: use
+   `store/app-content-draft.md` and the privacy inventory below. Complete
+   the current questionnaire accurately; merchant catalogue content and
+   order notes exist even though there is no public social feed.
 6. Upload the `.aab` to **Internal testing** first. Install it from Play on a
    real phone, sign in, place a kiosk order and check the alert. Then
    promote it to production.
@@ -124,22 +148,42 @@ Needs a Mac with Xcode and a paid Apple developer account.
 
 ## Privacy answers
 
-What the app sends, for Google's Data safety form and Apple's App Privacy.
-Check these against the app's privacy policy (above) before
-submitting.
+Source-based notes for Google's Data safety form and Apple's App Privacy.
+The owner must review the final store questions, the SDKs in the submitted
+build and the actual handling of data before submitting; these notes are
+not a completed declaration.
 
 | What | When | Why |
 |---|---|---|
-| Email address and password | Sign-in. The password is never stored on the phone. | Account |
-| A random installation ID, platform, phone model and app version | Sign-in | Telling a person's phones apart, the three-phone limit |
-| Push token | Only after the person turns push on | New-order notifications |
-| Product photos, product, shop and team details | When the person saves them | The shop's catalogue. Camera metadata, including location, is removed on the phone first. |
+| Email address and password; team members' names, emails and roles | Sign-in, password changes and owner-managed team changes | Account access and management. The app does not persist passwords; the server keeps salted password hashes. |
+| A random installation ID, platform, phone model and app version | Sign-in | Telling a person's phones apart and enforcing the three-phone limit. The server stores a hash of this app-generated installation ID. |
+| Firebase Cloud Messaging registration token | Registered with Chapega after the person turns push on | New-order notifications. Firebase Messaging also depends on Firebase Installations, which has separate identifier and metadata collection. |
+| Product photos, product content and shop settings, including the shop's WhatsApp number | When an authorized person saves them | Running the shop's catalogue and order handoff. Photo metadata, including location, is removed before upload and checked again by the server. |
+| Shop actions and operational request metadata | Sign-in and API requests; catalogue, order, settings and team changes | Account security, troubleshooting and the shop's audit history. This is not an advertising or analytics feature. |
 
-- The app shows customers' names, phone numbers and notes from the server,
-  but keeps them only in memory and never sends them anywhere.
-- No analytics, advertising or crash-reporting SDKs. Nothing is shared with
-  third parties. Firebase Cloud Messaging delivers notifications as a
-  service provider, only once push is set up.
+- Customer names, phone numbers and notes downloaded from the server stay
+  in memory on the phone and are cleared on sign-out. Tapping **Call** or
+  **WhatsApp** hands the customer's number to an external app. Owners can
+  also copy or share newly issued temporary team credentials explicitly.
+- Firebase's [Android data-disclosure guidance](https://firebase.google.com/docs/android/play-data-disclosure)
+  covers the Messaging SDK and its Installations dependency, including the
+  Firebase installation ID (FID), app version and Firebase user agent.
+  The FID is separate from Chapega's own random installation ID. Account
+  for SDK data as well as the app's API payloads.
+- No analytics, advertising or crash-reporting SDK is included in the
+  app's dependencies. This does not mean that no data is collected:
+  Firebase handles push delivery, and Vercel and Supabase host and store
+  the service's data. Review the stores' service-provider and
+  user-initiated-transfer exceptions before declaring whether any data
+  is "shared"; do not use a blanket claim that nothing reaches third
+  parties.
 - Everything goes over HTTPS; release builds refuse plain HTTP.
-- Privacy policy URL: the policy decided above (`/privacy` today covers kiosk
-  customers only).
+- The app keeps its session token and install ID in secure storage;
+  non-sensitive preferences stay on the phone. It does not use a persistent
+  cache for downloaded orders or customer details.
+- Privacy policy URL: `https://chapega.vercel.app/privacy`; the **Shop
+  teams** section covers Vendor Studio and the phone app. Account-deletion
+  instructions are at `https://chapega.vercel.app/delete-account`, also
+  linked from **More → About**. Removing access through **Team** retains the
+  platform account; full account deletion is a separate verified support
+  request.

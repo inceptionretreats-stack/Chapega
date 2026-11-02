@@ -36,10 +36,11 @@ import { VendorSettings } from "./vendor-settings";
 import { VendorFormDialog } from "./vendor-form-dialog";
 import { VendorPasswordForm } from "./vendor-password-form";
 import { VendorTeam } from "./vendor-team";
+import type { VendorCalendarReference } from "./vendor-calendar";
 
 type VendorView = "dashboard" | "products" | "orders" | "settings" | "team";
 
-type PortalProps = { initialData: VendorBootstrap };
+type PortalProps = { initialData: VendorBootstrap; initialCalendar?: VendorCalendarReference };
 
 type RefreshOptions = Readonly<{
   /** Timer-driven: authenticates without counting as user activity. */
@@ -93,7 +94,7 @@ function syncLabel(status: SyncStatus, lastSuccessfulSyncAt: number | null) {
   return `Synced ${elapsedMinutes}m ago`;
 }
 
-export function VendorPortal({ initialData }: PortalProps) {
+export function VendorPortal({ initialData, initialCalendar }: PortalProps) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
   const [view, setView] = useState<VendorView>("dashboard");
@@ -637,6 +638,7 @@ export function VendorPortal({ initialData }: PortalProps) {
           {view === "dashboard" ? (
             <VendorDashboard
               data={data}
+              initialCalendar={initialCalendar}
               canManageCatalogue={canManageCatalogue}
               onViewOrders={() => selectView("orders")}
               onViewProducts={() => selectView("products")}

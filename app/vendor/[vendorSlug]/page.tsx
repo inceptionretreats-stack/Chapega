@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { VendorStudioSkeleton } from "@/components/skeletons";
 import { VendorPasswordRequired } from "@/components/vendor/vendor-password-required";
 import { VendorPortal } from "@/components/vendor/vendor-portal";
+import { currentVendorCalendarReference } from "@/components/vendor/vendor-calendar";
 import { getCurrentVendorContext, getCurrentVendorUser } from "@/server/vendor/auth";
 import { getVendorBootstrap } from "@/server/vendor/service";
 
@@ -46,5 +47,5 @@ async function VendorWorkspace({
   access,
 }: Readonly<{ access: Parameters<typeof getVendorBootstrap>[0] }>) {
   const data = await getVendorBootstrap(access);
-  return <VendorPortal initialData={data} />;
+  return <VendorPortal initialData={data} initialCalendar={currentVendorCalendarReference()} />;
 }

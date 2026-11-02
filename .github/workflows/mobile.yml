@@ -58,7 +58,7 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
-          tracked="$(git ls-files mobile | grep -E '(^|/)(google-services\.json|GoogleService-Info\.plist|firebase_options\.dart|key\.properties)$|\.(jks|keystore)$|^mobile/config/firebase\.json$' || true)"
+          tracked="$(git ls-files mobile | grep -E '(^|/)(google-services\.json|GoogleService-Info\.plist|firebase_options\.dart|key\.properties)$|\.(jks|keystore|p12)$|^mobile/config/firebase\.json$' || true)"
           if [ -n "${tracked}" ]; then
             echo "::error::These files must never be committed:"
             echo "${tracked}"

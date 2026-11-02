@@ -109,8 +109,10 @@ integration_test/   the end-to-end walk above
 Orders carry customer names and phone numbers, so the app keeps them off the
 phone as far as it can:
 
-- Only the session token is stored, in the Android Keystore or iOS Keychain.
-  Orders, products and photos stay in memory and are gone when the app closes.
+- The session token and random install ID use secure device storage.
+  Theme and alert preferences stay on the phone. Downloaded orders,
+  products and catalogue photos stay in memory rather than a persistent
+  offline database; sign-out clears the order and account state.
 - The recent-apps thumbnail (Android 13+) and the iOS app switcher show a
   cover, not the screen.
 - Notifications show the order number, total and item count only, and are

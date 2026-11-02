@@ -1,0 +1,1 @@
+First release of Chapega Studio for shop teams: orders, product and stock management, shop settings, team access and optional new-order alerts.

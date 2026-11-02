@@ -1,0 +1,15 @@
+Chapega Studio is the companion app for shop teams using Chapega.com gift kiosks. Sign in with an account provided by your shop to view orders, update their progress and keep the catalogue up to date.
+
+Keep orders moving
+View the order queue, find an order and update its status as your team prepares it. Contact the customer by phone or WhatsApp when a number has been supplied.
+
+Keep your catalogue current
+Owners and managers can manage product details, photos, prices and stock, and choose which products appear on the kiosk.
+
+Manage your shop team
+Owners can update shop settings and manage team access. Managers and staff see the tools permitted by their role. Each person uses their own account.
+
+Choose your alerts
+Optional new-order notifications help your team keep up with incoming kiosk orders. Notification availability depends on this phone's settings and permissions.
+
+An existing Chapega shop account and an internet connection are required. This app is for shop owners, managers and staff. Customers place gift orders at the shop's kiosk; the shop confirms requests and takes payment separately.

@@ -1,0 +1,12 @@
+{
+  "type": "public-upload-certificate",
+  "applicationId": "com.chapega.studio",
+  "alias": "upload",
+  "subject": "CN=Chapega Studio Upload",
+  "sha1": "9D:02:E3:15:11:BB:AF:20:2D:48:18:84:FD:E7:DC:51:61:93:FB:6C",
+  "sha256": "13:51:FC:69:1D:B7:F8:65:2C:55:F7:7A:BC:EA:5F:80:AF:6D:72:2B:F9:3E:43:DF:35:63:03:33:A9:63:29:B1",
+  "validFrom": "Oct 31 11:29:42 2026 GMT",
+  "validTo": "Mar 18 11:29:42 2054 GMT",
+  "privateKeyIncluded": false,
+  "playAppSigningCertificate": false
+}

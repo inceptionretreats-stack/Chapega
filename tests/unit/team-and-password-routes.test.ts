@@ -221,10 +221,17 @@ describe("team and password routes", () => {
 
 describe("team and credentials migration 20261030122000", () => {
   it("adds narrow, owner-run functions and no policies", async () => {
-    const sql = await readFile(
-      path.join(process.cwd(), "supabase", "migrations", "20261030122000_team_and_credentials.sql"),
-      "utf8",
-    );
+    const sql = (
+      await readFile(
+        path.join(
+          process.cwd(),
+          "supabase",
+          "migrations",
+          "20261030122000_team_and_credentials.sql",
+        ),
+        "utf8",
+      )
+    ).replace(/\r\n/g, "\n");
     const functions = [...sql.matchAll(/create function private\.(\w+)\(/g)].map(
       (match) => match[1],
     );

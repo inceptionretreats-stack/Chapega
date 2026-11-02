@@ -1,5 +1,8 @@
+import java.security.KeyStore
+import java.security.cert.X509Certificate
 import java.util.Base64
 import java.util.Properties
+import javax.naming.ldap.LdapName
 
 plugins {
     id("com.android.application")
@@ -13,6 +16,42 @@ plugins {
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("key.properties")
     if (file.exists()) file.inputStream().use { load(it) }
+}
+
+// Store bundles must use a real upload key; local/CI APK checks may still
+// use the debug signing fallback. Inspect the graph so indirect bundle tasks
+// receive the same check as `flutter build appbundle`.
+gradle.taskGraph.whenReady {
+    val releaseBundleTasks = listOf(
+        ":app:bundleRelease",
+        ":app:signReleaseBundle",
+        ":app:packageReleaseBundle",
+        ":app:finalizeBundleRelease",
+    )
+    if (releaseBundleTasks.any { gradle.taskGraph.hasTask(it) }) {
+        val required = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+        check(required.all { !keystoreProperties.getProperty(it).isNullOrBlank() }) {
+            "Release App Bundles require android/key.properties and an upload key."
+        }
+        val uploadStore = project.file(keystoreProperties.getProperty("storeFile"))
+        check(uploadStore.isFile) { "The configured upload keystore does not exist." }
+        val password = keystoreProperties.getProperty("storePassword").toCharArray()
+        val uploadKeyStore = try {
+            KeyStore.getInstance(uploadStore, password)
+        } finally {
+            password.fill('\u0000')
+        }
+        val alias = keystoreProperties.getProperty("keyAlias")
+        val certificate = uploadKeyStore.getCertificate(alias) as? X509Certificate
+        check(uploadKeyStore.isKeyEntry(alias) && certificate != null) {
+            "The configured upload alias must contain a private key and certificate."
+        }
+        val isDebugCertificate = LdapName(certificate.subjectX500Principal.name).rdns.any {
+            it.type.equals("CN", ignoreCase = true) &&
+                it.value.toString().equals("Android Debug", ignoreCase = true)
+        }
+        check(!isDebugCertificate) { "Release App Bundles cannot use an Android Debug certificate." }
+    }
 }
 
 // Values passed with --dart-define / --dart-define-from-file reach Gradle as
@@ -32,6 +71,10 @@ android {
     namespace = "com.chapega.studio"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    buildFeatures {
+        resValues = true
+    }
 
     compileOptions {
         // flutter_local_notifications uses java.time APIs on older Android versions.

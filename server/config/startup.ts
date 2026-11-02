@@ -29,6 +29,7 @@ import { normalizeWhatsAppNumber } from "@/domain/whatsapp";
  *   FCM_SERVICE_ACCOUNT_JSON, FCM_PROJECT_ID  new-order push (server/push/config.ts);
  *                               a bad value is a warning and leaves push off
  *   TRUST_PROXY_HEADERS, ALLOW_VENDOR_PREVIEW_LOGIN,
+ *   CHAPEGA_HOST_PLATFORM       netlify | unset (server runtime marker)
  *   ALLOW_LOCAL_VENDOR_BACKEND         true | false
  *   CHAPEGA_OWNER_WHATSAPP_NUMBER, LOG_LEVEL (debug|info|warn|error|silent)
  */
@@ -66,6 +67,11 @@ export function inspectServerConfiguration(): ConfigurationReport {
     if (value && value !== "true" && value !== "false") {
       errors.push(`${name} must be "true" or "false" (got "${value.slice(0, 40)}").`);
     }
+  }
+
+  const hostPlatform = process.env.CHAPEGA_HOST_PLATFORM?.trim();
+  if (hostPlatform && hostPlatform !== "netlify") {
+    errors.push('CHAPEGA_HOST_PLATFORM must be "netlify" or unset.');
   }
 
   for (const range of Object.values(SESSION_SETTINGS)) {

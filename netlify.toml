@@ -1,0 +1,13 @@
+# Local preparation only. No site is linked by this file.
+# Review docs/deployment-netlify.md before supplying credentials or deploying.
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Netlify automatically installs its current OpenNext adapter for Next.js.
+# Keep server features; do not use `next export` or an SPA fallback rewrite.
+# Runtime secrets, the function runtime and region belong in reviewed site
+# configuration, not this file. No paid function resources are requested.

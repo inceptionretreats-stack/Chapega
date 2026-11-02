@@ -1,0 +1,66 @@
+{
+  "captureBuild": "local-demo-debug",
+  "apiOrigin": "http://10.0.2.2:3340",
+  "device": "emulator-5556 (ChapegaCapture20261031)",
+  "dataset": "Synthetic local demo: fictional orders, no customer phone numbers",
+  "captureMethod": "Flutter integration-test app-view PNG, original bytes",
+  "physicalPhoneAcceptance": false,
+  "playDistributionAcceptance": false,
+  "screenshots": [
+    {
+      "file": "01-home.png",
+      "altText": "Home dashboard with six fictional orders, today's order value and shop status.",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "channels": 3,
+      "hasAlpha": false,
+      "bytes": 121886,
+      "originalSha256": "b9e2328a6acf020bc634b2eb20cc86f4f085177c49c3c4da10cdd2cb568c4d6f",
+      "sha256": "cc4b5075604e66202bde4efc7bd9cc232a0a334d3324e21b7c63a9e92a37c9b7",
+      "decodedPixelsUnchanged": true
+    },
+    {
+      "file": "02-orders.png",
+      "altText": "Active order queue with search, status filters and fictional customer names.",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "channels": 3,
+      "hasAlpha": false,
+      "bytes": 119287,
+      "originalSha256": "6e15cc83c16d80ffbb6ef84cae18ba9c073c12feebf3b7124ff254ba477bbfc3",
+      "sha256": "bb21e794c1fe761e2d0d6b15c65298c57d3a7d17b2b74bf52835b12cd6dde5ea",
+      "decodedPixelsUnchanged": true
+    },
+    {
+      "file": "03-order-detail.png",
+      "altText": "Fictional order details, item totals and confirm/cancel actions.",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "channels": 3,
+      "hasAlpha": false,
+      "bytes": 113002,
+      "originalSha256": "3732e8619ff9d8d55e98f538b559dbb246597b54900e24ec5cda8368a73f9ae6",
+      "sha256": "163ec4dfe42f2aa2fe0a2eb7c60bc9af9dc10abc2f90fa14782ae674f9625444",
+      "decodedPixelsUnchanged": true
+    },
+    {
+      "file": "04-products.png",
+      "altText": "Product catalogue with prices, stock, visibility switches and Add product.",
+      "width": 1080,
+      "height": 1920,
+      "format": "PNG",
+      "channels": 3,
+      "hasAlpha": false,
+      "bytes": 123383,
+      "originalSha256": "23d0ce7e82652c9bf9a6ae6a161dc8c7ed86eaabb4c711e9e11b5841d8b2f055",
+      "sha256": "78464ca8d8d4cce48e603fd7f33a456fe90d4b8a5f8c5fdb9811e06ca95cc444",
+      "decodedPixelsUnchanged": true
+    }
+  ],
+  "capturedOn": "2026-10-31",
+  "visuallyReviewed": true,
+  "exportEncoding": "24-bit RGB PNG; only alpha removal/PNG encoding; decoded pixels unchanged"
+}
