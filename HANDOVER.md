@@ -1,7 +1,41 @@
 # Handover
 
-State on 2026-10-31. Update this file at the end of every session (AGENTS.md,
+State on 2026-11-02. Update this file at the end of every session (AGENTS.md,
 "Start of every session").
+
+## Final verification follow-up (2026-11-02)
+
+- Draft PR [#39](https://github.com/inceptionretreats-stack/Chapega/pull/39)
+  is in the Inception repository. Initial release commit `d408a21` passed all
+  applicable GitHub checks: 665 web tests/86 files with coverage, 35 database
+  tests/4 files, 84 browser tests (16 intentional duplicate skips), history
+  secret scan, 89 Flutter tests, analysis and the release APK build. iOS is
+  intentionally skipped; no Mac/iOS acceptance is claimed.
+- A bounded attempt to install the official Android 35 x86_64 16 KB emulator
+  image made no download progress and was stopped. No image/AVD was installed.
+  Static ELF/ZIP alignment checks pass; 16 KB runtime acceptance remains open.
+- The release ZIP's internal checksum paths now match its nested AAB/APK
+  entries. All 43 ZIP entries and the external ZIP checksum were reverified.
+  The private key/password remain outside both Git and the delivery pack.
+- CI logs exposed a Safari date-punctuation hydration warning. The follow-up
+  sends a small initial clock/timezone reference through web components,
+  uses deterministic date parts for the heading and order-day comparison,
+  then follows the device clock after hydration. Two real hydration tests
+  cover punctuation/timezone differences and midnight; they fail before the
+  fix. There is no mobile API or signed Android artifact change.
+- Follow-up local verification passes: `npm run check -- --coverage
+  --maxWorkers=2` reports 667 tests/87 files with typecheck, lint and coverage
+  thresholds met. Formatting and whitespace checks pass. The PR shows the
+  latest GitHub build/browser/database/mobile results.
+- Catalogue photos in the local demo screenshots show placeholders. The
+  host serves the expected PNGs successfully and API paths are valid, but
+  device image decoding was not established. A temporary diagnostic APK was
+  built outside source; automatic approval review rejected restarting its
+  headless emulator/local server with only "blocked by policy". No retry or
+  production image fix was made without evidence. Photo acceptance remains
+  a real-device check; the four existing captures are unchanged.
+- Contacts and reviewer provisioning remain deferred. Production source,
+  Play Console, billing and hosting are unchanged by this follow-up.
 
 ## Upload signing and store preparation (2026-10-31)
 

@@ -1,6 +1,6 @@
 {
   "status": "draft-not-uploaded",
-  "reviewedOn": "2026-10-31",
+  "reviewedOn": "2026-11-02",
   "applicationId": "com.chapega.studio",
   "appType": "app",
   "suggestedCategory": "Business",
@@ -51,5 +51,8 @@
   },
   "screenshotCaptureBuild": "local-demo-debug",
   "screenshotCaptureMetadata": "screenshots/capture-metadata.json",
-  "screenshotRepresentsPlayDistributedBuildVerified": false
+  "screenshotRepresentsPlayDistributedBuildVerified": false,
+  "productPhotoDecodingVerified": false,
+  "productImageDiagnosticStatus": "Probe build prepared; runtime launch blocked by automatic approval review",
+  "sourceReviewUrl": "https://github.com/inceptionretreats-stack/Chapega/pull/39"
 }

@@ -5,6 +5,9 @@ are now implemented. Public contact, reviewer access, Console declarations,
 Play signing/internal testing and business-hosting cutover remain incomplete.
 This is a readiness review, not a Play upload or a guarantee of approval.
 
+Verification follow-up on 2026-11-02 is recorded in `../../HANDOVER.md` and
+draft PR [#39](https://github.com/inceptionretreats-stack/Chapega/pull/39).
+
 The owner authorized a new upload key, required free services, and asked to
 leave public contact details unchanged. Reviewer-account creation was also
 explicitly deferred. No app listing was created and no bundle was uploaded.
@@ -23,7 +26,7 @@ the privacy source changes require deployment before submission.
 | Android compatibility | Packaged release APK: minimum API 24; target/compile API 36 |
 | Native code | ARMv7, ARM64 and x86_64 present; all 12 packaged libraries have at least 16 KB ELF LOAD alignment; APK `zipalign -P 16` passes |
 | Flutter | Fresh `flutter analyze --fatal-infos` passes; all 89 tests pass |
-| Web | Final `npm run check -- --coverage --maxWorkers=2`: 665 tests in 86 files; typecheck, lint and coverage thresholds pass |
+| Web | Follow-up `npm run check -- --coverage --maxWorkers=2`: 667 tests in 87 files; typecheck, lint and coverage thresholds pass |
 | Web release checks | Production build, formatting and production dependency audit pass; zero reported vulnerabilities |
 | Hosting preparation | Credential-free Netlify CLI/OpenNext packaging passes locally; no cloud deployment or service cutover |
 | Signing safeguard | Release AAB task graph refuses absent/debug upload signing; configured upload key builds successfully |
@@ -39,9 +42,9 @@ the privacy source changes require deployment before submission.
 | Play account access | An existing organization account is accessible through the configured Google account; no Chapega result in its app search |
 | Costs | Firebase Spark, Supabase Free and Vercel Hobby unchanged; existing Play account avoids new registration if selected for this app |
 
-The previous same-day integration run passed 35 database tests and the web
-browser suite passed 84 cases (16 intentional duplicate skips). Those suites
-were not rerun for this review's icon/documentation changes.
+The initial release-branch CI (`d408a21`) passed 35 database tests and 84
+browser cases (16 intentional duplicate skips), plus the Android release
+build. PR #39 contains the latest CI results for the hydration follow-up.
 
 ## Built Android App Bundle
 
@@ -126,6 +129,9 @@ the signed artifacts' hashes survived unchanged. See HANDOVER.md.
 - Exercise order updates, stock/product editing, photo capture and photo
   selection, shop settings, team changes and conflict/retry handling on a
   controlled demo shop.
+- Verify catalogue-photo decoding on the signed build. The genuine local
+  screenshots show placeholders; valid API paths and HTTP 200 PNG responses
+  were verified, but an additional device image probe could not run.
 - Turn push on and test foreground, background and closed-app delivery,
   notification taps, denied permission, push off and sign-out. No actual
   signed-in phone registration or notification delivery was established by

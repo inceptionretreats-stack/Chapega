@@ -1,6 +1,7 @@
 # Chapega Studio store pack
 
-Prepared on 2026-10-31. These files are local drafts, not a published Play
+Prepared on 2026-10-31; verification follow-up on 2026-11-02.
+These files are local drafts, not a published Play
 listing. No account, listing, upload, billing or public-contact change is
 performed by generating this pack.
 
@@ -50,6 +51,9 @@ The capture build is **local-demo-debug**, pointed only at
 `http://10.0.2.2:3340`. It is separate from the signed production AAB/APK;
 confirm these images still represent the final Play build before submission.
 This is not physical-device, Play-distribution or push-delivery acceptance.
+Catalogue photos show placeholders in these local captures. Verify photo
+decoding in the final signed build before choosing the submission screenshots;
+an HTTP 200 image response alone did not establish device rendering.
 `screenshots/capture-metadata.json` records alt text, provenance and hashes.
 Only opaque alpha removal/PNG re-encoding was applied; decoded pixels are
 unchanged. There was no crop, composition or alteration of app controls.

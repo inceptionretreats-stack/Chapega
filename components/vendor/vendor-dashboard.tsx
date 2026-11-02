@@ -2,12 +2,19 @@
 
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
+import { useSyncExternalStore } from "react";
 import { formatInr } from "@/domain/money";
 import type { VendorBootstrap, VendorOrder, VendorProduct } from "@/types/vendor";
 import { customerLabel, relativeVendorTime, VendorOrderStatusBadge } from "./vendor-shared";
+import {
+  currentVendorCalendarReference,
+  vendorCalendar,
+  type VendorCalendarReference,
+} from "./vendor-calendar";
 
 type DashboardProps = {
   data: VendorBootstrap;
+  initialCalendar?: VendorCalendarReference;
   canManageCatalogue?: boolean;
   onViewOrders: () => void;
   onViewProducts: () => void;
@@ -16,25 +23,26 @@ type DashboardProps = {
   onRestockProduct?: (product: VendorProduct) => void;
 };
 
-function isToday(value: string): boolean {
-  const date = new Date(value);
-  const today = new Date();
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  );
-}
+const subscribeToHydration = () => () => {};
+const clientHydrated = () => true;
+const serverHydrated = () => false;
 
 export function VendorDashboard({
   data,
+  initialCalendar,
   canManageCatalogue = true,
   onViewOrders,
   onViewProducts,
   onOpenOrder,
   onRestockProduct,
 }: DashboardProps) {
-  const todayOrders = data.orders.filter((order) => isToday(order.createdAt));
+  // Hydration reuses the server's clock and timezone, even across midnight.
+  // Afterwards each normal bootstrap/poll render uses the device's local day.
+  const hydrated = useSyncExternalStore(subscribeToHydration, clientHydrated, serverHydrated);
+  const calendar = vendorCalendar(
+    !hydrated && initialCalendar ? initialCalendar : currentVendorCalendarReference(),
+  );
+  const todayOrders = data.orders.filter((order) => calendar.includes(order.createdAt));
   const activeOrders = data.orders.filter(
     (order) => order.status !== "completed" && order.status !== "cancelled",
   );
@@ -52,13 +60,7 @@ export function VendorDashboard({
       <section className="vendor-summary-band" aria-labelledby="today-summary-title">
         <div className="vendor-summary-heading">
           <p id="today-summary-title">Today</p>
-          <span>
-            {new Intl.DateTimeFormat("en-IN", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            }).format(new Date())}
-          </span>
+          <span>{calendar.label}</span>
         </div>
         {/* Value first in the DOM ("6 Low stock"); CSS shows the label above it. */}
         <div className="vendor-summary-stat">

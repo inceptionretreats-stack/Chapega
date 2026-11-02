@@ -183,6 +183,11 @@ the findings of the 2026-10-08 project audit.
 
 ### Fixed
 
+- Vendor Studio's Today summary uses the same initial calendar reference on
+  the server and during hydration, then follows the device's local day.
+  Deterministic date-part formatting prevents Safari ICU punctuation from
+  regenerating the dashboard; order counts and revenue use that same day.
+  This needs no database migration.
 - Reject missing/debug signing for release Android App Bundles while
   retaining the APK-only CI fallback. Add genuine local-demo capture tools
   that use the app's test runner and refuse production origins.
