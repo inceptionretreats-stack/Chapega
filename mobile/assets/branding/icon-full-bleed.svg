@@ -1,1 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#7a263a"/><path d="M340 176A128 128 0 1 0 340 336" fill="none" stroke="#fff9f2" stroke-width="46" stroke-linecap="round"/><circle cx="364" cy="352" r="26" fill="#c69b57"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<rect width="1024" height="1024" fill="#7a263a"/>
+<g transform="translate(512 512) scale(1.15) translate(-517 -522)">
+    <path d="M736 430H432C344 430 282 492 282 578V646C282 734 344 796 432 796H736Q752 796 752 780V716Q752 700 736 700H432C398 700 378 680 378 646V578C378 544 398 526 432 526H736Q752 526 752 510V446Q752 430 736 430Z" fill="#fff9f2"/>
+    <path d="M482 430h70v96h-70zM482 700h70v96h-70z" fill="#c69b57"/>
+    <path d="M487 394C463 332 391 248 351 248C319 248 303 273 311 300C327 345 397 386 487 408ZM466 377C441 338 390 281 352 278C337 277 332 288 340 302C359 325 408 358 466 377Z" fill="#c69b57" fill-rule="evenodd"/>
+    <path d="M547 394C571 332 643 248 683 248C715 248 731 273 723 300C707 345 637 386 547 408ZM568 377C593 338 644 281 682 278C697 277 702 288 694 302C675 325 626 358 568 377Z" fill="#c69b57" fill-rule="evenodd"/>
+    <rect x="482" y="384" width="70" height="62" rx="18" fill="#c69b57"/>
+  </g>
+</svg>

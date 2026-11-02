@@ -6,7 +6,7 @@ How to ship the app to Google Play and the App Store. Run the commands from
 The latest Android submission decision, verified checks and remaining
 blockers are in [the Google Play review](PLAY_STORE_REVIEW.md).
 
-## Decided (2026-10-31)
+## Decided (updated 2026-11-02)
 
 - **Server.** Release builds talk to `https://chapega.vercel.app`
   (`AppConfig.productionOrigin` in `lib/bootstrap/app_config.dart`). If the
@@ -14,9 +14,10 @@ blockers are in [the Google Play review](PLAY_STORE_REVIEW.md).
   `--dart-define=CHAPEGA_API_ORIGIN=https://<domain>`), and keep the old
   address answering until old app versions are gone.
 - **Account deletion link:** `https://chapega.vercel.app/delete-account`.
-  Requests go to Chapega.com's WhatsApp (the number in the Chapega.com shop's
-  settings); the procedure is in `docs/RUNBOOK.md`. The app links to it from
-  More → About.
+  The live route still uses the sample WhatsApp number in Chapega.com's
+  settings; a verified monitored request route remains pending at the
+  owner's request. The procedure is in `docs/RUNBOOK.md`. The app links to
+  the route from More → About. Do not declare it operational in Data safety.
 - **Privacy policy URL:** `https://chapega.vercel.app/privacy`. Its "Shop
   teams" part (`/privacy#shop-teams`) covers the team's own data in the app.
 - **Firebase.** `chapega-studio` is configured under the owner's chosen
@@ -25,14 +26,55 @@ blockers are in [the Google Play review](PLAY_STORE_REVIEW.md).
   paid upgrade or paid store enrollment is authorized. An existing Play
   organization account is accessible; no new registration was purchased.
 
-## To decide before the first store release
+## Gift-ribbon logo update (2026-11-02)
+
+The canonical `assets/branding/mark.svg` is a cream gift-box C wrapped in
+gold on the existing burgundy palette. `render-branding.cjs` derives the
+native launchers, notification mark, iOS launch assets, website/PWA icons
+and listing icon. The store banner uses the same mark. Color and monochrome
+exports were visually checked at 32px/64px under circular and squircle masks,
+including the adaptive safe area. The new 512px listing icon and 1024×500
+banner are saved in the Play listing draft and persisted after reload.
+
+Source version is `1.0.1+2` because version code 1 is already used. Analysis
+and all 89 Flutter tests pass. The signed version 2 AAB build and bundletool/
+signature/current-certificate checks pass. Package, version code 2, API 24/36,
+disabled debug/backup, 16 KB bundle/ELF alignment and all 15 packaged native
+icon PNGs are verified. The 59,481,555-byte stable AAB is preserved at
+`D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.aab`;
+its SHA-256 is
+`6E16B0952E38E861B6713D5EE14D4E536019D6CBA30B4C6678ACC3380F2F2DA4`.
+The matching 61,622,704-byte signed APK is preserved at
+`D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.apk`;
+its SHA-256 is
+`BD7749BCB61702417F527976F1621CB4ABBB0281C9158F1267B87FD7B1DACD5C`.
+Apksigner/current upload-certificate, APK `zipalign -P 16` and all 12 ELF
+LOAD alignment checks pass. Its 15 icons match the new source/AAB, and four
+Firebase client resources match the ignored configuration without exposing
+values. iOS artwork is exported, but no iOS build acceptance is claimed.
+Google accepted version 2
+and `1.0.1 (2) - Gift-ribbon logo` is now the latest Active internal release,
+available to the same single owner tester, released 2 November at 11:07 AM
+IST and Not reviewed. The final preview showed zero errors/warnings with
+unchanged supported-device counts; API 24/36, three ABIs, R8 mapping and
+native symbols were processed. Listing artwork alone would not change an
+installed launcher, so verify the actual Play-installed version 2. Preserve
+version 1 artifacts/hashes as historical records; never relabel them as
+version 2.
+
+## Before the first public production release
 
 - **Publisher and review setup.** An existing Play organization account
   is accessible through the Website Google account. The free Chapega Studio
-  record and internal-testing draft `1.0.0 (1) - internal draft` now exist.
-  The signed AAB was accepted and saved; no review submission or rollout
-  occurred. Git and Vercel remain on Inception. Public contacts and reviewer
-  access stay deferred. The dedicated upload key is configured below, and
+  record now exists and version 2 (`1.0.1 (2) - Gift-ribbon logo`) is the
+  latest Active internal-testing release, available only to the same single
+  authorized owner tester. Console shows Released 2 November at 11:07 AM
+  IST and Not reviewed. Version 1 is the historical earlier release. No public
+  production release or Google app-review request occurred. Git and Vercel
+  remain on Inception. Public contacts stay
+  deferred. The owner has now authorized isolated reviewer provisioning;
+  it is complete and sign-in details are saved privately in Console. The
+  dedicated upload key is configured below, and
   Google's three signing certificates are registered in Firebase/API-key
   restrictions (`../store/signing/play-app-signing-certificates.json`).
   Follow the actual app's Console tasks rather than assuming the newer
@@ -41,18 +83,33 @@ blockers are in [the Google Play review](PLAY_STORE_REVIEW.md).
 The listing text, icon, feature graphic and four ordered phone screenshots
 are saved in an en-IN listing draft. Business category and the privacy URL,
 No ads, non-government, no financial features and no health features answers
-are saved. IARC, target audience, Data safety, App access and real contacts
-remain incomplete. Internal testing has no selected testers; the release
-preview reports zero errors and that single warning. These saved changes
-have not been sent for review. Version code 1 is already uploaded: use the
-existing draft for it, and increment the code for a new binary upload.
+are saved. No Advertising ID, IARC ratings (ESRB Everyone, PEGI 3, USK 16
+with Increased Communication Risks; Users Interact) and a 13+ target audience
+are saved. A dedicated reviewer owner account with no platform privileges
+and one demo-shop membership has three synthetic products and three orders,
+blank customer phone fields, successful image responses and verified API/web
+access. Its permanent password and English instructions are saved only in
+Console/private owner records. The public demo kiosk is paused and labelled
+preview. Optional Google-partner device testing is off.
+
+Data safety is only a partial saved draft: collection Yes, encryption Yes
+and username/password account creation; deletion URL and final handling
+answers remain incomplete. Real contacts, in-app UGC terms/reporting/moderation,
+business hosting and installed-device acceptance remain publication gates.
+The final internal release preview had zero errors/warnings. Its private
+owner-only opt-in link and authorized account are retained outside this
+repository. The temporary download name is `com.chapega.studio (unreviewed)`
+until setup/review completes. Real installation, native photos, push and
+16 KB runtime checks are still pending. Version code 2 is already uploaded
+and Active internally; increment the code for a new binary upload.
 
 ## Every release
 
 1. `flutter analyze --fatal-infos` and `flutter test` pass, and the
    integration test passes against a production build of the web app (see
    README.md → "Integration test").
-2. Raise the version in `pubspec.yaml`: `version: 1.0.1+2`. The part before
+2. Raise the version in `pubspec.yaml` for each new binary; source is now
+   `1.0.1+2`, so a subsequent binary would use, for example, `1.0.2+3`. The part before
    `+` is what people see. The number after it must go up with every upload,
    to either store.
 3. If push is set up, every build command below also takes
@@ -134,10 +191,16 @@ about 60 MB; Play sends each phone only its own, so downloads are smaller.
 5. **Data safety**, **Content rating** and **Target audience**: use
    `store/app-content-draft.md` and the privacy inventory below. Complete
    the current questionnaire accurately; merchant catalogue content and
-   order notes exist even though there is no public social feed.
+   order notes exist even though there is no public social feed. The
+   saved IARC questionnaire discloses Users Interact; do not claim content
+   reporting/moderation safeguards that the app does not implement. See
+   [Google's UGC policy](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en).
 6. Upload the `.aab` to **Internal testing** first. Install it from Play on a
-   real phone, sign in, place a kiosk order and check the alert. Then
-   promote it to production.
+   real phone, sign in, place a controlled demo order and check the alert.
+   Verify the new launcher/notification icons and recheck the existing
+   screenshots against the updated branding. Complete the remaining
+   production gates in PLAY_STORE_REVIEW.md before
+   promoting it to public production.
 
 ## iOS
 
@@ -164,7 +227,9 @@ Needs a Mac with Xcode and a paid Apple developer account.
 Source-based notes for Google's Data safety form and Apple's App Privacy.
 The owner must review the final store questions, the SDKs in the submitted
 build and the actual handling of data before submitting; these notes are
-not a completed declaration.
+not a completed declaration. The Console partial draft records collection
+and encryption Yes, plus username/password account creation; its deletion
+URL is blank because the owner has deferred the monitored contact route.
 
 | What | When | Why |
 |---|---|---|

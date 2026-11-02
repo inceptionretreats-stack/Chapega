@@ -3,6 +3,129 @@
 State on 2026-11-02. Update this file at the end of every session (AGENTS.md,
 "Start of every session").
 
+## Gift-ribbon logo and version 2 internal release (2026-11-02)
+
+- The owner requested a better logo. The canonical editable source is now
+  `mobile/assets/branding/mark.svg`: a cream gift-box C with a gold ribbon
+  on burgundy. The deterministic `render-branding.cjs` pipeline supplies
+  Android legacy/adaptive/monochrome and notification assets, iOS icons and
+  launch images, website favicon/Apple/PWA icons, and the Play listing icon.
+  The store banner uses the same mark and existing brand palette. No new
+  paid service or dependency was added.
+- Visual QA covers color and monochrome at 32px and 64px with circle and
+  squircle masks. The adaptive foreground stays within the central safe
+  circle. The new 512px store icon is 14,792 bytes; the 1024×500 RGB banner
+  is 37,769 bytes. Chrome confirms the new icon/banner are saved in the Play
+  listing draft and persisted after reload. This is not public approval.
+- Source version is `1.0.1+2`: version code 1 was used by the earlier
+  owner-only internal release, and changing the listing alone does not
+  replace its installed launcher icon. The signed version 2 AAB is verified
+  and now Active as the latest owner-only internal release. Version 1
+  artifacts/hashes below remain historical records; do not relabel or
+  overwrite them as version 2. The matching signed version 2 APK is verified.
+- Flutter analysis and all 89 tests pass for this change. The first signed
+  Gradle attempt failed under host memory pressure; the process-only 2 GiB,
+  one-worker retry passed in 266.8 seconds. Source Gradle memory settings were
+  not changed. Bundletool validation, Java signature and exact current upload
+  certificate checks pass for version 2. Package/version/API/debug/backup
+  values are correct, BundleConfig uses `PAGE_ALIGNMENT_16K`, all 12 native
+  libraries pass ELF LOAD alignment, and 15 packaged native icon PNGs match
+  the new source pixels. The matching APK passes apksigner/current upload
+  certificate, `zipalign -P 16` and all 12 ELF LOAD alignment checks; its
+  15 icon PNGs match the AAB/new source and all four Firebase client resources
+  match the ignored configuration. No client values were printed. Android
+  artifacts are verified; iOS icon exports do not claim an iOS build.
+- The stable version 2 AAB is
+  `D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.aab`,
+  59,481,555 bytes, SHA-256
+  `6E16B0952E38E861B6713D5EE14D4E536019D6CBA30B4C6678ACC3380F2F2DA4`.
+  The stable signed APK is
+  `D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.apk`,
+  61,622,704 bytes, SHA-256
+  `BD7749BCB61702417F527976F1621CB4ABBB0281C9158F1267B87FD7B1DACD5C`.
+- Google accepted code 2 with API 24/36, three ABIs, R8 mapping and native
+  symbols. The release `1.0.1 (2) - Gift-ribbon logo` is verified as Active /
+  Latest release / Available to internal testers, released 2 November at
+  11:07 IST and Not reviewed. Final Ready to release preview showed no
+  errors or warnings; supported-device counts are unchanged. The existing
+  single Website owner tester group is unchanged. No public audience or
+  app-review request was added. Actual Play installation and native behavior
+  are not established by Console availability.
+- Final local `npm run check -- --maxWorkers=2` passes with exit 0:
+  typecheck, lint and 667 tests in 87 files; formatting also passes. New-PR
+  GitHub checks and production deployment remain pending; record their
+  actual outcomes separately before claiming CI or deployment completion.
+- Reviewer credentials, IARC ratings, 13+ audience and partial Data safety
+  remain as recorded below. Public contacts, UGC safeguards, compliant free
+  business hosting and actual Play-installed photo/push/16 KB acceptance
+  remain gates. No public production release or app-review request was made.
+
+The sections below record earlier states, including version 1 as the then-
+current internal release; the version 2 section above supersedes that status.
+
+## PR #40 merge, reviewer access and internal publication (2026-11-02)
+
+- PR [#40](https://github.com/inceptionretreats-stack/Chapega/pull/40) merged
+  after every applicable check passed, as
+  `e3ea0f64fa305f4ff02828df6360094f5608e086`. Its Git tree matches the
+  checked head `e67d460`. Inception's production deployment
+  `dpl_2QfHPx1MaLRA21ByShf84LyvtiAm` is READY at
+  `https://chapega.vercel.app`, build 28.892 seconds. Health/readiness and
+  privacy/deletion pages pass; the scoped error-log query returned zero rows.
+  Hobby remains active, with no billing or hosting-account change.
+- The owner reversed the earlier reviewer deferral and authorized an isolated
+  demo owner account. After the owner said the admin credentials were lost,
+  the existing super-admin was recovered through an authenticated owner-level
+  Supabase CLI transaction matching the supported password-recovery semantics:
+  exact existing account, advisory lock, new hash, prior session revocation
+  and audit. No new super-admin or security bypass was created. Normal Chrome
+  admin sign-in and subsequent sign-out both verified.
+- Normal admin provisioning created the isolated shop; its owner completed
+  the ordinary temporary-password change through the phone API. Permanent
+  sign-in verifies owner role, no platform role and only the demo membership.
+  The shop contains three fictional products and three sample orders
+  (confirmed, preparing and ready), blank customer phones and valid product
+  image responses. Preview labeling is on and its public kiosk is paused.
+  Other-shop access and use of a logged-out phone token return HTTP 401.
+  Normal web sign-in also shows the expected isolated dashboard. No push
+  token was registered and no external message was sent. Existing real-shop
+  orders/products were not changed.
+- Google Play's Sign in details contains the permanent reviewer credentials
+  and English instructions privately. Optional partner-device testing is off.
+  No credential, private account identity, Console ID or supplied demo phone
+  belongs in this public repository or delivery ZIP. Admin/reviewer passwords
+  are encrypted using DPAPI CurrentUser in the owner's private local recovery
+  directory, with user-only ACLs; plaintext task inputs were removed after
+  encrypted round-trip verification. The credential-copy helper was prepared
+  for the owner and was not run automatically.
+- Advertising ID is saved as No. The owner approved private IARC correspondence
+  and explicitly accepted its terms at the agreement step. IARC is Completed:
+  ESRB Everyone, PEGI 3, USK 16+ (Increased Communication Risks), generic 3+,
+  with Users Interact. The owner's intended audience is saved as 13–15, 16–17
+  and 18+. Native team content exchange is disclosed; reporting, blocking and
+  chat moderation are not falsely claimed.
+- Data safety has only a saved partial draft: collection Yes, encryption in
+  transit Yes and username/password account creation. The deletion URL is
+  intentionally undeclared while its actual request channel remains a sample.
+  Provider/data-category/retention answers still need completion.
+- Version 1 (1.0.0) is now **Active / Available to internal testers**, released
+  on 2 November at 10:32 IST, **Not reviewed**. The only selected tester is
+  the Website owner account. Final preview showed no errors or warnings. The
+  retained release name ends in `internal draft`, but it is an active release,
+  and Google's temporary download name is `com.chapega.studio (unreviewed)`.
+  The private install link is in the local publication report; no public
+  production release or app-review request occurred.
+- Public support/privacy/deletion contacts remain unchanged at the owner's
+  request. A functional deletion route, public support email, completed Data
+  safety, content-policy acceptance/reporting/moderation, compliant free
+  business hosting and real Play-installed device/photo/push/16 KB checks
+  remain launch gates. Google explicitly requires reporting even for UGC
+  shared within a known company user set; see the release review's policy link.
+  No new migration, paid option or desktop/full-screen control was used.
+
+The sections below record earlier states; this section supersedes their
+reviewer-deferral, draft/no-tester and production-status statements.
+
 ## Production merge and Play setup (2026-11-02)
 
 - The user explicitly authorized merging PR #39 and deploying the fixes,

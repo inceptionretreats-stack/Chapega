@@ -125,13 +125,20 @@ app need a Firebase project. See [docs/PUSH.md](docs/PUSH.md).
 
 ## Icons and launch screen
 
-The launcher icons come from `assets/branding` (rendered from the SVGs there,
-which are the web app's `app/icon.svg` mark). After changing them, run
-`dart run flutter_launcher_icons`. Then undo two things it gets wrong in
-version 0.14.4: its edit to `ios/Runner.xcodeproj/project.pbxproj` (it sets
-`ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS` to `AppIcon`),
-and its rewrite of `ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json`
-(it adds iOS 6 sizes). Keep the regenerated PNGs.
+`assets/branding/mark.svg` is the canonical gift-ribbon C mark. From the
+repository root, run `node mobile/assets/branding/render-branding.cjs` to
+render the SVG wrappers, 1024px PNG masters, 512px Play icon, web icon, iOS
+launch images and Android notification vector. The transparent Android
+foreground and monochrome masters include their safe-area padding; keep
+`adaptive_icon_foreground_inset: 0`.
+
+Then run `dart run flutter_launcher_icons` from `mobile/` to regenerate the
+Android and iOS launcher sizes. Preserve the pre-run contents of
+`ios/Runner.xcodeproj/project.pbxproj` and
+`ios/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json`, and restore
+these two files after generation: version 0.14.4 sets the wrong Swift asset
+symbol build option and adds obsolete iOS 6 catalog entries. Keep the
+regenerated PNGs. Run one Flutter/Dart command at a time.
 
 ## Releasing
 

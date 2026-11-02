@@ -46,10 +46,7 @@ const illustration = `
   <path d="M702 190h230" stroke="${linen}" opacity=".65"/>
   <path d="M763 254v72" stroke="#ddc9b0" stroke-width="2"/>
   <path d="M871 254v72" stroke="#ddc9b0" stroke-width="2"/>
-  <g transform="translate(704 416) scale(.072)">
-    <path d="M340 176A128 128 0 1 0 340 336" fill="none" stroke="${linen}" stroke-width="46" stroke-linecap="round"/>
-    <circle cx="364" cy="352" r="26" fill="${gold}"/>
-  </g>`;
+  <g transform="translate(704 405) scale(.042)">CHAPEGA_BRAND_MARK</g>`;
 
 function escapeXml(value) {
   return value
@@ -69,6 +66,13 @@ function fontFileFor(label) {
 }
 
 async function main() {
+  const brandMark = (
+    await fs.readFile(path.resolve(directory, "../assets/branding/mark.svg"), "utf8")
+  )
+    .replace(/<svg\b[^>]*>/, "")
+    .replace(/<\/svg>\s*$/, "")
+    .trim();
+  const renderedIllustration = illustration.replace("CHAPEGA_BRAND_MARK", brandMark);
   const layers = [];
   for (const label of labels) {
     const layer = await sharp({
@@ -97,11 +101,11 @@ async function main() {
     .join("\n");
   await fs.writeFile(
     path.join(directory, "feature-graphic-1024x500.svg"),
-    `${svgStart}${illustration}\n${editableText}\n</svg>\n`,
+    `${svgStart}${renderedIllustration}\n${editableText}\n</svg>\n`,
   );
 
   const output = path.join(directory, "feature-graphic-1024x500.png");
-  await sharp(Buffer.from(`${svgStart}${illustration}</svg>`))
+  await sharp(Buffer.from(`${svgStart}${renderedIllustration}</svg>`))
     .composite(layers)
     .flatten({ background })
     .removeAlpha()

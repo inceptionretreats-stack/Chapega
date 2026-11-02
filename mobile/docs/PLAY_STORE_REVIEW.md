@@ -1,11 +1,16 @@
-# Google Play release review — 2026-10-31
+# Google Play release review — 2026-11-02
 
-**Decision: not ready to publish.** Upload signing and store preparation
+**Decision: not ready for public production.** Upload signing and store preparation
 are implemented, PR #39 is merged and the web fixes are deployed. A Play
 app record has been created in the owner's selected Google account.
-An internal-testing draft is saved, its AAB accepted and signing certificates
-configured. Public contact, reviewer access, final Console declarations,
-internal-test acceptance and business-hosting cutover remain publication gates.
+Source version is now `1.0.1+2` for the gift-ribbon logo update. Its signed
+AAB and APK are verified, and version 2 is the latest Active internal release,
+available only to the single
+authorized owner tester; its AAB is accepted and signing certificates are
+configured. A dedicated reviewer shop and reusable owner login are created,
+verified through the phone API and web dashboard, and saved privately in Play
+Console. Public contact, final Data safety, UGC safeguards, installed-build
+acceptance and business-hosting cutover remain publication gates.
 This is a readiness review, not a guarantee of Google approval.
 
 Verification and deployment follow-up on 2026-11-02 is recorded in
@@ -13,45 +18,55 @@ Verification and deployment follow-up on 2026-11-02 is recorded in
 [#39](https://github.com/inceptionretreats-stack/Chapega/pull/39).
 
 The owner authorized a new upload key, required free services, and asked to
-leave public contact details unchanged. Reviewer-account creation was also
-explicitly deferred. Git/Vercel remain on Inception; Play Console uses the
+leave public contact details unchanged. The owner subsequently authorized
+creating the isolated reviewer account and providing its credentials privately
+to Google Play. Git/Vercel remain on Inception; Play Console uses the
 owner's selected Website Google account. No public Play release is live.
 No billing or paid upgrade was enabled. Browser work uses Chrome's tab
 extension; desktop/full-screen control remains excluded.
 
-Reviewed source: release head `dad0ac8`, merged without tree changes as
-`71ea80f56904756160ecd0f647ff6f8e9d7a93a7`. Inception's production deployment
-`dpl_B3AodHSC2YkqcTiDTarD1vReTTFk` is READY at `https://chapega.vercel.app`;
-the corrected privacy notice is live. The earlier `d9b4b8a` production and
-"source-only" statements in historical notes are superseded.
+Reviewed runtime source: release head `dad0ac8`, merged without tree changes
+as `71ea80f`. Documentation PR
+[#40](https://github.com/inceptionretreats-stack/Chapega/pull/40) is now merged
+as `e3ea0f64fa305f4ff02828df6360094f5608e086`. Inception's production
+deployment `dpl_2QfHPx1MaLRA21ByShf84LyvtiAm` is READY at
+`https://chapega.vercel.app`; the corrected privacy notice is live. The
+earlier production and "source-only" statements in historical notes are
+superseded.
 
 ## Verified
 
 | Area | Evidence |
 |---|---|
-| App identity | `com.chapega.studio`, Chapega Studio, version `1.0.0+1` |
-| Android compatibility | Packaged release APK: minimum API 24; target/compile API 36 |
-| Native code | ARMv7, ARM64 and x86_64 present; all 12 packaged libraries have at least 16 KB ELF LOAD alignment; APK `zipalign -P 16` passes |
+| App identity | `com.chapega.studio`, Chapega Studio, source and latest Active internal version `1.0.1+2`; version 1 evidence below is historical |
+| Android compatibility | Verified version 2 AAB/APK: package `com.chapega.studio`, version `1.0.1`/code 2, minimum API 24, target API 36, debug and backup disabled |
+| Native code | Version 2 AAB uses `PAGE_ALIGNMENT_16K`; all 12 libraries in AAB/APK pass ELF LOAD alignment and APK `zipalign -P 16` passes. Fifteen packaged APK icons match AAB/new source pixels and four Firebase resources match the ignored configuration |
 | Flutter | Fresh `flutter analyze --fatal-infos` passes; all 89 tests pass |
-| Web | Follow-up `npm run check -- --coverage --maxWorkers=2`: 667 tests in 87 files; typecheck, lint and coverage thresholds pass |
+| Web baseline | Prior `npm run check -- --coverage --maxWorkers=2`: 667 tests in 87 files; typecheck, lint and coverage thresholds passed. Final logo-branch web/CI results are recorded separately in HANDOVER.md |
 | Web release checks | Production build, formatting and production dependency audit pass; zero reported vulnerabilities |
 | Hosting preparation | Credential-free Netlify CLI/OpenNext packaging passes locally; no cloud deployment or service cutover |
 | Signing safeguard | Release AAB task graph refuses absent/debug upload signing; configured upload key builds successfully |
-| Production | Merge `71ea80f` is deployed; health/readiness HTTP 200 with Supabase ready; all four approved migrations were already applied |
+| Production | Documentation merge `e3ea0f6` is deployed; runtime fixes from `71ea80f` remain live; health/readiness pass with Supabase ready; all four approved migrations were already applied |
 | Post-deploy logs | Zero error rows in the bounded deployment query; startup reports push on; no actual push delivery was tested |
-| Phone API authentication | Unauthenticated session and nonexistent `.invalid` login return expected HTTP 401 |
+| Phone API authentication | Isolated reviewer sign-in, permanent-password change, session and logout verified; cross-tenant access rejected; signed-out session returns HTTP 401. This does not establish a Play/native installation |
+| Reviewer shop | Dedicated owner account has no platform role and only its demo-shop membership; three synthetic products and three orders (confirmed/preparing/ready), blank customer phone fields and HTTP 200 product images; web dashboard verified. Preview label is on and public kiosk ordering is paused |
+| Play sign-in details | Reusable credentials and 460-character English instructions saved privately; optional Google-partner device testing is off. No credentials or private account identifiers are included here |
 | Firebase | FCM HTTP v1 enabled, Sensitive production service-account credential installed; Google OAuth/validation-only request HTTP 200; all three Play signing certificates registered and persisted |
 | App transport/storage | Release API origin is HTTPS; cleartext rejected; backup disabled; cloud/device-transfer exclusions present; session token uses secure storage |
 | Permissions | No advertising-ID, location or broad photo/storage permissions in inspected release APK; notification permission is requested by the alerts flow |
-| Store icon | Fixed RGB export to 512×512 RGBA PNG, 14,916 bytes; decoded pixels are unchanged |
+| Store icon and banner | New gift-ribbon C: 512×512 RGBA icon (14,792 bytes) and 1024×500 RGB banner (37,769 bytes); both saved in Play listing draft and verified after reload |
+| Logo exports | Canonical editable SVG drives native launchers/notification mark, iOS launch assets and website/PWA icons; color/monochrome 32px/64px checks cover circle/squircle masks and adaptive safe area. iOS asset export is not an iOS build |
 | Store screenshots | Four real 1080×1920 app-view captures, visually checked and exported as RGB with unchanged pixels; local demo debug build, not Play acceptance |
 | App capture flow | Flutter integration test signs in, opens Home/Orders/Order detail/Products, then signs out and verifies secure-token removal; synthetic local data only |
 | Privacy links | Live privacy and account-deletion pages return HTTP 200; About links to these and open-source licences |
 | Play account access | The existing organization account is accessible through the selected Google account, and a Chapega Studio app record is now created |
-| Play draft upload | Internal-testing draft saved; version 1 (1.0.0) AAB processed with API 24/36, three ABIs, R8 mapping and native symbols; preview has zero errors and one warning (no testers); no rollout or review submission |
+| Play internal release | Latest release `1.0.1 (2) - Gift-ribbon logo` Active / Available to internal testers, released 2 November at 11:07 AM IST, Not reviewed; same single authorized owner group. Google accepted API 24/36, three ABIs, R8 mapping and native symbols; final preview had zero errors/warnings and unchanged supported-device counts; no public production release or app-review request |
 | Play signing configuration | Google-managed signing active; current and two previous certificates registered in Firebase with SHA-1/SHA-256; Android key has five package/certificate entries and its unchanged 25-API allowlist |
 | Console listing | en-IN title, 61-character short description, 1,112-character full description, icon, feature graphic and four ordered phone screenshots saved |
-| Saved App content | Privacy URL, No ads, No government affiliation, No financial features and No health features saved; changes have not been sent for review |
+| Saved App content | Privacy URL, No ads, No government affiliation, No financial features, No health features and No Advertising ID saved; IARC ratings and 13+ audience saved; final Data safety remains incomplete |
+| IARC ratings | Owner approved the IARC terms; saved ratings include ESRB Everyone, PEGI 3, USK 16 (Increased Communication Risks), other displayed regional ratings 3, and Users Interact |
+| Target audience | Ages 13–15, 16–17 and 18+ saved; the target audience does not override regional content ratings |
+| Data safety progress | Partial draft saved: collection Yes, encryption in transit Yes and username/password account creation. Deletion URL remains blank because the live route uses a sample contact; data types, handling and remaining answers are incomplete |
 | Store settings | Business category saved separately; store contact email, phone and website remain blank and untouched |
 | Costs | Firebase Spark and Supabase Free unchanged; Inception's Vercel team is verified Hobby; the existing Play account is used without a new registration purchase |
 
@@ -60,7 +75,49 @@ Final release-branch CI (`dad0ac8`) passed 667 unit tests, 35 database tests,
 Android release build. Browser logs contain no hydration/uncaught-browser
 errors. The merged production tree is identical to that tested head.
 
-## Built Android App Bundle
+## Logo update and version 2 internal release
+
+`../assets/branding/mark.svg` is the canonical cream gift-box C and gold
+ribbon on burgundy. Its local deterministic renderer creates the Android,
+iOS, website and listing exports; the store banner reuses the same mark.
+Visual checks cover 32px/64px color and monochrome output under circle and
+squircle masks, with adaptive foreground safe-area checks. Play has saved
+the new listing icon and banner, verified after reload. The version 2 AAB
+containing the new native icon assets is also now Active internally; a
+listing-only change would not have changed the former version 1 launcher.
+
+`pubspec.yaml` is now `1.0.1+2`. Analysis and 89 Flutter tests pass. The
+signed AAB retry succeeded in 266.8 seconds using process-only 2 GiB heap
+and one worker after host memory pressure; source Gradle configuration is
+unchanged. Bundletool validation, Java signature and current upload-certificate
+identity checks pass. Package `com.chapega.studio`, version `1.0.1`, code 2,
+minimum API 24, target API 36, debug false and backup false are verified.
+BundleConfig has `PAGE_ALIGNMENT_16K`; all 12 native libraries pass ELF LOAD
+alignment, and all 15 packaged native icon PNGs match the new source pixels.
+
+The stable AAB is
+`D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.aab`:
+59,481,555 bytes; SHA-256
+`6E16B0952E38E861B6713D5EE14D4E536019D6CBA30B4C6678ACC3380F2F2DA4`.
+The matching signed APK is preserved at
+`D:\chapega\releases\chapega-studio-1.0.1-2\chapega-studio-1.0.1-2-upload.apk`:
+61,622,704 bytes; SHA-256
+`BD7749BCB61702417F527976F1621CB4ABBB0281C9158F1267B87FD7B1DACD5C`.
+Apksigner and the exact upload-certificate check pass, as do APK
+`zipalign -P 16` and all 12 ELF LOAD alignments. The 15 APK icon PNGs match
+the new source/AAB; all four Firebase client resources match the ignored
+configuration, without printing their values.
+
+Google accepted the AAB and the latest
+release `1.0.1 (2) - Gift-ribbon logo` is Active / Available to internal
+testers, released 2 November at 11:07 AM IST and Not reviewed. The same
+owner-only group is selected, with no public audience added. The final
+Ready to release preview showed zero errors/warnings and unchanged supported-
+device counts. Keep the version 1 hashes below as historical evidence.
+No public review or production release is claimed; physical Play-installed
+logo/photo/push/16 KB acceptance is still unverified.
+
+## Historical version 1 Android App Bundle
 
 The upload-signed AAB is preserved at
 `mobile/build/play-store/chapega-studio-1.0.0-1-upload.aab`:
@@ -100,13 +157,16 @@ This does not replace a test of a build actually installed through Play.
 
 ## Submission blockers
 
-1. **Play setup and installed signing identity.** The Play app record and
-   saved internal-testing draft exist, and Play accepted the version 1 AAB.
-   Google-managed app signing and certificate registration are complete.
-   The release preview has zero errors and a no-testers warning; select an
-   authorized test group and verify a Play installation before treating
-   internal acceptance as complete. Google's app-signing certificate differs
-   from the upload certificate. No rollout or review submission has occurred. See
+1. **Installed signing identity.** Play accepted version 2 and its latest
+   internal release `1.0.1 (2) - Gift-ribbon logo` is Active, available only
+   to the same single authorized owner tester. Console shows Released
+   2 November at 11:07 AM IST and Not reviewed; the final preview had zero
+   errors and warnings. Google-managed app signing and certificate
+   registration are complete. Verify a real Play installation before
+   treating installed acceptance as complete. Until setup/review completes,
+   the temporary
+   download name is `com.chapega.studio (unreviewed)`. No public production
+   release or Google app-review request was made. See
    [Android signing guidance](https://developer.android.com/studio/publish/app-signing).
 2. **Real contact.** The live `/delete-account` page links to the documented
    sample WhatsApp number `919876543210`. The owner has deferred replacing
@@ -123,17 +183,21 @@ This does not replace a test of a build actually installed through Play.
    1024×500 feature graphic and four phone screenshots are saved in Console.
    Business category and five App content forms are saved: Privacy URL,
    No ads, No government affiliation, No financial features and No health
-   features. Owner decisions for audience, IARC content rating,
-   provider-dependent Data safety and restricted App access remain pending;
-   nothing has been sent for review. The local
+   features. No Advertising ID, IARC ratings, 13+ audience and restricted
+   sign-in instructions are now saved. Data safety remains a partial draft,
+   with collection/encryption/account-creation answers saved and its deletion
+   URL deliberately blank. Final categories, sharing/provider handling and
+   an operational deletion route still need completion. The local
    `../store/` pack retains the assets and declaration drafts. Screenshot
    acceptance limitations are recorded in its metadata. See
    [asset requirements](https://support.google.com/googleplay/android-developer/answer/9866151?hl=en).
-4. **Reviewer access.** Prepare a dedicated demo shop with sample products,
-   sample orders and a reusable owner login whose temporary password has
-   already been replaced. Provide English instructions in App access. Do
-   not give reviewers a real shop's account or publish credentials in git.
-   The owner explicitly chose to leave this account pending.
+4. **Installed reviewer acceptance.** Reviewer provisioning is complete
+   following the owner's new authorization. The isolated owner account has
+   a permanent password and synthetic products/orders; phone API and browser
+   checks pass, and English sign-in instructions and credentials are saved
+   privately in Console. Verify that this same account works in the actual
+   Play-installed binary, including native photo and notification flows.
+   No real shop or customer account is supplied to Google.
    See [review login requirements](https://support.google.com/googleplay/android-developer/answer/15748846?hl=en).
 5. **Commercial hosting.** Vercel Hobby is restricted to personal,
    noncommercial use. Chapega handles business shop orders, so this review
@@ -144,11 +208,26 @@ This does not replace a test of a build actually installed through Play.
    adapter build are prepared; live runtime, upload-size and service gates
    remain in `../../docs/deployment-netlify.md`. See
    [Vercel Hobby terms](https://vercel.com/legal/terms).
+6. **User-generated content safeguards.** The app permits native exchange
+   of product text/photos and order information among shop teams, as
+   disclosed by Users Interact in the saved IARC questionnaire. Google's
+   UGC policy also covers a defined company user set. The current app has
+   no in-app content/user reporting path or moderation workflow, and a
+   reviewed objectionable-content policy and terms-acceptance flow remain
+   missing. Owner access removal and product archiving do not establish
+   these safeguards. Implement and verify proportionate terms, reporting
+   and moderation before public submission; no such runtime change was
+   made in this documentation update. See
+   [Google Play UGC policy](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en).
 
 ## Acceptance checks still required
 
-- Install a properly signed build from Play's internal track on a real
-  Android phone. Do not treat a locally debug-signed APK as that check.
+- Verify the new logo in a Play-installed version 2 launcher and notification,
+  including adaptive/themed icon masks; listing artwork alone is not this check.
+- Use the private owner-only test opt-in link to install the signed build
+  from the now-active internal track on a real Android phone. The authorized
+  tester identity and link stay in private delivery records. Do not treat a
+  locally debug-signed APK or Console availability as an installed check.
 - Review Play's bundle/SDK warnings and pre-launch report after that upload;
   local validation cannot establish the Console's final policy checks.
 - Sign in, replace a temporary password, resume an existing session, switch
@@ -177,12 +256,17 @@ This does not replace a test of a build actually installed through Play.
 
 The canonical name, descriptions and release notes are in
 `../store/listing/en-IN/`. The main listing text and graphics have been saved
-in Play Console and meet the checked limits. Final submission review and
-real-device screenshot acceptance remain pending.
+in Play Console and meet the checked limits. The new logo icon/banner are
+saved in the listing draft. The existing screenshots predate the version 2
+branding, so recheck their accuracy against the final installed binary.
+Final submission review and real-device screenshot acceptance remain pending.
 
 ## Draft Data safety inventory
 
-This inventory comes from the app/API source, not a submitted form. Confirm
+Console has only a partial draft: collection Yes, encryption Yes and
+username/password account creation. No deletion URL was supplied while its
+contact route remains a sample. This inventory comes from the app/API
+source and does not complete the remaining form answers. Confirm
 each category against the final build, provider contracts and actual
 operations. Collection is encrypted in transit; most server-retained data
 is not ephemeral. Do not select "no data collected".
@@ -211,7 +295,7 @@ The full deletion procedure is manual and needs verified attribution for
 historical order-event names; RUNBOOK.md now stops on ambiguous names and
 uses both tenant and order IDs. No real deletion was performed to test it.
 
-## Policy notes checked on 2026-10-31
+## Policy notes checked on 2026-11-02
 
 - Google currently requires API 36 for new ordinary Android apps; the
   inspected build meets that requirement.
