@@ -305,7 +305,7 @@ The Chapega Studio app has its own checks (Flutter 3.44.8): `npm run check:mobil
 
 ## Current production follow-ups
 
-- Firebase, production FCM and all four approved migrations are configured (`mobile/docs/PUSH.md`). Android upload signing and the local store pack are prepared; the owner has deferred real public contact details and reviewer access. Play signing/internal-phone acceptance and a business-use hosting cutover remain pending. See `mobile/docs/PLAY_STORE_REVIEW.md` and `mobile/store/README.md`. The authorization remains free versions only; iOS APNs setup is pending (`mobile/docs/RELEASE.md`).
+- Firebase, production FCM and all four approved migrations are configured (`mobile/docs/PUSH.md`). PR #39 is merged and deployed on Inception's Vercel project. The Website Google account has the free Chapega Studio app record, accepted version 1 AAB, saved internal draft and listing assets; Play signing fingerprints are configured. Contacts/reviewer access remain deferred, and Console declarations, authorized internal-phone acceptance and a business-use hosting cutover remain pending. See `mobile/docs/PLAY_STORE_REVIEW.md` and `mobile/store/README.md`. No paid plan was enabled; iOS APNs setup is pending (`mobile/docs/RELEASE.md`).
 - A "Signed-in phones" list with remote sign-out, and a lighter, paginated orders endpoint for phones (the bootstrap returns every order).
 
 - Self-service password recovery (needs an email or SMS provider) and multi-factor sign-in for platform admins.

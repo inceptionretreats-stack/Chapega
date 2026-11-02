@@ -1,0 +1,32 @@
+{
+  "type": "public-google-play-app-signing-fingerprints",
+  "applicationId": "com.chapega.studio",
+  "recordedOn": "2026-11-02",
+  "source": "Google Play Console App signing page",
+  "googleManaged": true,
+  "privateKeyIncluded": false,
+  "firebaseRegistrationVerified": true,
+  "androidApiRestrictionVerified": true,
+  "certificates": [
+    {
+      "label": "Current app signing key",
+      "status": "in-use",
+      "sha1": "D8:1A:B2:C3:04:14:CD:B0:8B:08:AE:CD:EC:E3:D2:09:05:E1:FE:27",
+      "sha256": "27:32:11:B9:2D:6B:A2:29:8C:88:66:F8:D0:E9:58:A9:8D:06:E6:F3:D3:21:7D:ED:27:29:33:0D:9F:31:16:87"
+    },
+    {
+      "label": "Previous quantum-ready beta classical key",
+      "status": "previous",
+      "sha1": "7B:0F:40:17:9C:DD:ED:36:69:96:77:08:75:95:44:8F:AA:3F:E1:4E",
+      "sha256": "3A:C0:5A:80:BD:56:FE:3B:FE:9F:2E:6A:07:00:7B:64:98:78:B3:37:51:75:5B:1E:59:06:C7:B6:BD:18:88:5D"
+    },
+    {
+      "label": "Previous quantum-ready beta post-quantum cryptography key",
+      "status": "previous",
+      "sha1": "10:DD:A3:48:CD:49:DC:AC:2F:2B:85:4A:DD:C7:B7:79:BC:D6:1E:7C",
+      "sha256": "26:F8:E7:B0:A1:99:79:CF:45:1F:3E:B3:F7:9C:C8:A0:47:A3:A5:5F:6E:81:85:EC:C1:4E:D9:83:66:10:C1:A1"
+    }
+  ],
+  "androidPackageCertificateEntries": 5,
+  "apiAllowlistCount": 25
+}

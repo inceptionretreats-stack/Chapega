@@ -6,6 +6,16 @@ the findings of the 2026-10-08 project audit.
 
 ## [Unreleased]
 
+### Publication preparation (2026-11-02)
+
+- PR #39 is merged and deployed on Inception's existing Vercel project. The
+  Website Google account now has the free Chapega Studio app and a saved
+  internal-testing draft with the accepted version 1 AAB. Listing assets,
+  Business category and five factual app-content declarations are saved;
+  contacts, reviewer access, final declarations/testing and public rollout
+  remain pending. Google-managed signing fingerprints are registered in
+  Firebase and the Android API restriction. No migration or paid plan change.
+
 ### Before you deploy
 
 - **Android upload signing/store pack:** release bundles require a real

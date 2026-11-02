@@ -1,9 +1,13 @@
 # Chapega Studio store pack
 
 Prepared on 2026-10-31; verification follow-up on 2026-11-02.
-These files are local drafts, not a published Play
-listing. No account, listing, upload, billing or public-contact change is
-performed by generating this pack.
+The Website Google account now has the free Chapega Studio app record and a
+saved internal-testing draft with the signed version 1 AAB. The listing
+text/assets, Business category and five factual app-content answers are
+saved in Console. Nothing was submitted for review or rolled out; no billing
+or public-contact change occurred. Git and Vercel remain on Inception, and
+PR #39's fixes are deployed. See `../docs/PLAY_STORE_REVIEW.md` for the exact
+completed and pending steps. Asset generation itself uses local tools only.
 
 ## Files
 
@@ -19,7 +23,7 @@ performed by generating this pack.
 | `app-access.md` | Reviewer-account setup and English instructions | Account and shop pending; no credentials included |
 | `metadata.json` | Paths, draft declarations and explicit pending fields | Not a submitted Data safety or content-rating form |
 | `screenshots/` | Four genuine 1080 × 1920 RGB app captures | Local demo debug build; visually checked, no fabricated UI |
-| `signing/` | Public upload certificate and fingerprints | Private key and passwords excluded |
+| `signing/` | Public upload certificate and registered Google Play fingerprints | Private keys and passwords excluded |
 
 The feature graphic is newly composed vector artwork in the existing
 burgundy, linen and gold brand palette. It uses the existing Chapega mark,
