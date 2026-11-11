@@ -251,9 +251,10 @@ app; the shop deletes that chat itself.
 ### A shop team member asks to delete their account
 
 `/delete-account` (linked from the app's About screen and the privacy
-notice) sends these requests to Chapega.com's WhatsApp and promises
-deletion within 30 days. Confirm the request with the person first, for
-example from the phone number or email the shop has for them.
+notice) directs requests to the monitored address in
+`CHAPEGA_ACCOUNT_DELETION_EMAIL` when configured and states the 30-day
+deletion timeframe. Confirm the request with the person first, for example
+from the phone number or email the shop has for them.
 
 1. Find the account and its shops (as the database owner):
 

@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { z } from "zod";
 
-import { formatWhatsAppNumber } from "@/domain/whatsapp";
-import { DEFAULT_VENDOR_SLUG } from "@/server/vendor/database";
-import { loadShopContact } from "../shop-contact";
-
-// Shows Chapega.com's current WhatsApp number from its shop settings.
+// Read the public deletion address from the server environment at request time.
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
@@ -14,13 +11,10 @@ export const metadata: Metadata = {
     "How shop owners, managers and staff ask Chapega.com to delete their Vendor Studio and Chapega Studio account, and what is removed.",
 };
 
-/**
- * The account-deletion page the app stores link to. Requests go to
- * Chapega.com on WhatsApp; the procedure is in docs/RUNBOOK.md ("A shop team
- * member asks to delete their account").
- */
-export default async function DeleteAccountPage() {
-  const contact = await loadShopContact(DEFAULT_VENDOR_SLUG);
+const deletionEmail = z.email().max(254);
+
+export default function DeleteAccountPage() {
+  const contact = deletionEmail.safeParse(process.env.CHAPEGA_ACCOUNT_DELETION_EMAIL?.trim());
 
   return (
     <main className="screen-page narrow privacy-page">
@@ -32,32 +26,30 @@ export default async function DeleteAccountPage() {
       </p>
 
       <h2>How to ask</h2>
-      <ol>
-        <li>
-          {contact ? (
-            <>
-              Message Chapega.com on WhatsApp at{" "}
-              <a
-                href={`https://wa.me/${contact.whatsAppDigits}`}
-                rel="noopener noreferrer"
-                target="_blank"
-              >
-                {formatWhatsAppNumber(contact.whatsAppDigits)}
-              </a>
-              .
-            </>
-          ) : (
-            <>Message Chapega.com on WhatsApp, at the number shown on the Chapega.com kiosk.</>
-          )}{" "}
-          Write “Delete my account”, with the email address you sign in with and the shop you work
-          for.
-        </li>
-        <li>We confirm the request with you before deleting anything.</li>
-        <li>We delete your account within 30 days and tell you when it is done.</li>
-      </ol>
+      {contact.success ? (
+        <ol>
+          <li>
+            Email{" "}
+            <a href={`mailto:${encodeURIComponent(contact.data).replace("%40", "@")}`}>
+              {contact.data}
+            </a>{" "}
+            with the subject “Delete my account”. Include the email address you sign in with and the
+            shop you work for.
+          </li>
+          <li>We confirm the request with you before deleting anything.</li>
+          <li>We delete your account within 30 days and tell you when it is done.</li>
+        </ol>
+      ) : (
+        <p>
+          The online request address is currently unavailable. Ask your shop owner for help with
+          account deletion.
+        </p>
+      )}
       <p>
-        You can ask to see or correct the details we keep about you the same way. The{" "}
-        <a href="/privacy#shop-teams">privacy notice</a> lists them.
+        {contact.success
+          ? "You can also email this address to ask to see or correct your details. "
+          : null}
+        The <a href="/privacy#shop-teams">privacy notice</a> lists the data we keep about you.
       </p>
 
       <h2>What is deleted</h2>
@@ -80,14 +72,14 @@ export default async function DeleteAccountPage() {
       <h2>Only leaving one shop?</h2>
       <p>
         Ask the shop’s owner to remove your access (Team, then Remove access). Your account stays
-        for any other shop, and you can still ask us to delete it later. To sign out a lost phone,
-        change your password: every other sign-in ends.
+        for any other shop. To sign out a lost phone, change your password to end every other
+        sign-in.
       </p>
 
       <h2>Shop owners</h2>
       <p>
-        If you are a shop’s only owner, tell us who should take over the shop, or that it should
-        close, when you ask.
+        If you are a shop’s only owner, arrange for someone to take over or for the shop to close
+        before your account is deleted.
       </p>
 
       <p>
