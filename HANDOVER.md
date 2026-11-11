@@ -1,7 +1,19 @@
 # Handover
 
-State on 2026-11-02. Update this file at the end of every session (AGENTS.md,
+State on 2026-11-11. Update this file at the end of every session (AGENTS.md,
 "Start of every session").
+
+## Account deletion contact preparation (2026-11-11)
+
+- The local `/delete-account` change reads `CHAPEGA_ACCOUNT_DELETION_EMAIL`
+  from the server environment. A valid address opens an email draft.
+  Without one, the page says the online address is unavailable and directs
+  users to their shop owner for help. The account verification and deletion
+  procedure is in `docs/RUNBOOK.md`.
+- Before deploying and submitting the URL in Google Play, obtain an
+  owner-approved monitored public address, configure it on the server, and
+  verify that the published link reaches the team handling deletion requests.
+  The address remains pending. No deployment or Play Console edit was made.
 
 ## Gift-ribbon logo and version 2 internal release (2026-11-02)
 
